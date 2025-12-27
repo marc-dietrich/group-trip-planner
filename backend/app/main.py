@@ -1,6 +1,6 @@
-"""
-Main FastAPI application
-"""
+"""Main FastAPI application."""
+
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
@@ -11,11 +11,19 @@ from .api.routes import health_router, groups_router
 
 settings = get_settings()
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    """Run startup/shutdown tasks for the app lifecycle."""
+    await create_db_and_tables()
+    yield
+
+
 # FastAPI app instance
 app = FastAPI(
     title=settings.app_name,
     description="REST API für die Koordination von Gruppenreisen",
-    version=settings.app_version
+    version=settings.app_version,
+    lifespan=lifespan,
 )
 
 # CORS middleware
@@ -30,12 +38,6 @@ app.add_middleware(
 # Include routers
 app.include_router(health_router)
 app.include_router(groups_router)
-
-# Startup event
-@app.on_event("startup")
-async def on_startup():
-    """Initialize database on startup"""
-    await create_db_and_tables()
 
 # For module execution
 def run_server():

@@ -1,9 +1,6 @@
-"""
-Database models for the group trip planner
-"""
+"""Database models for the group trip planner."""
 
 from .group import Group
-from .participant import Participant
-from .availability import Availability
+from .group_member import GroupMember
 
-__all__ = ["Group", "Participant", "Availability"]
+__all__ = ["Group", "GroupMember"]

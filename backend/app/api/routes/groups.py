@@ -1,83 +1,103 @@
-"""
-Group management endpoints
-"""
+"""Group management endpoints."""
 
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.ext.asyncio import AsyncSession
+from uuid import UUID
+
+from fastapi import APIRouter, Depends, HTTPException, Response
 from pydantic import BaseModel
-from typing import List
-from datetime import date
+from sqlalchemy.ext.asyncio import AsyncSession
 
+from app.core.config import get_settings
 from app.core.database import get_session
-from app.models import Group, Participant, Availability
 from app.services import GroupService
+
+settings = get_settings()
 
 router = APIRouter(prefix="/api", tags=["groups"])
 
-# Pydantic models for requests
+
 class GroupCreate(BaseModel):
+    """Request body for creating a group."""
+
+    groupName: str
+    actorId: str
+    displayName: str
+
+
+class GroupCreateResponse(BaseModel):
+    """Minimal response returned after group creation."""
+
+    groupId: UUID
     name: str
-    description: str = ""
+    inviteLink: str
+    role: str
+    actorId: str
+    displayName: str
 
-class ParticipantCreate(BaseModel):
+
+class GroupMembership(BaseModel):
+    """Group list item for an actor."""
+
+    groupId: UUID
     name: str
-    email: str = ""
+    role: str
+    inviteLink: str
 
-class AvailabilityCreate(BaseModel):
-    start_date: str  # YYYY-MM-DD format
-    end_date: str    # YYYY-MM-DD format
 
-# Group endpoints
-@router.get("/groups", response_model=List[Group])
-async def get_groups(session: AsyncSession = Depends(get_session)):
-    """Alle Gruppen abrufen"""
+@router.get("/groups")
+async def get_groups(actorId: str | None = None, session: AsyncSession = Depends(get_session)):
+    """Return all groups or only those for the given actor."""
+
+    if actorId:
+        rows = await GroupService.get_groups_for_actor(session, actorId)
+        return [
+            {
+                "groupId": group.id,
+                "name": group.name,
+                "role": member.role,
+                "inviteLink": f"{settings.frontend_base_url}/invite/{group.id}",
+            }
+            for group, member in rows
+        ]
+
     return await GroupService.get_groups(session)
 
-@router.post("/groups", response_model=Group)
-async def create_group(group_data: GroupCreate, session: AsyncSession = Depends(get_session)):
-    """Neue Gruppe erstellen"""
-    return await GroupService.create_group(session, group_data.name, group_data.description)
 
-@router.get("/groups/{group_id}", response_model=Group)
-async def get_group(group_id: int, session: AsyncSession = Depends(get_session)):
-    """Einzelne Gruppe abrufen"""
+@router.post("/groups", response_model=GroupCreateResponse)
+async def create_group(group_data: GroupCreate, session: AsyncSession = Depends(get_session)):
+    """Create a group and store the creator as owner."""
+
+    group, member = await GroupService.create_group(
+        session=session,
+        group_name=group_data.groupName,
+        actor_id=group_data.actorId,
+        display_name=group_data.displayName,
+    )
+
+    invite_link = f"{settings.frontend_base_url}/invite/{group.id}"
+
+    return {
+        "groupId": group.id,
+        "name": group.name,
+        "inviteLink": invite_link,
+        "role": member.role,
+        "actorId": member.actor_id,
+        "displayName": member.display_name,
+    }
+
+
+@router.get("/groups/{group_id}")
+async def get_group(group_id: UUID, session: AsyncSession = Depends(get_session)):
+    """Fetch a single group by id."""
     group = await GroupService.get_group(session, group_id)
     if not group:
         raise HTTPException(status_code=404, detail="Gruppe nicht gefunden")
     return group
 
-# Participant endpoints
-@router.post("/groups/{group_id}/participants", response_model=Participant)
-async def add_participant(group_id: int, participant_data: ParticipantCreate, session: AsyncSession = Depends(get_session)):
-    """Teilnehmer zu Gruppe hinzufügen"""
-    # Check if group exists
-    group = await GroupService.get_group(session, group_id)
-    if not group:
+
+@router.delete("/groups/{group_id}", status_code=204)
+async def delete_group(group_id: UUID, session: AsyncSession = Depends(get_session)):
+    """Delete a group; currently no role checks applied."""
+    deleted = await GroupService.delete_group(session, group_id)
+    if not deleted:
         raise HTTPException(status_code=404, detail="Gruppe nicht gefunden")
-    
-    return await GroupService.add_participant(session, group_id, participant_data.name, participant_data.email)
-
-@router.get("/groups/{group_id}/participants", response_model=List[Participant])
-async def get_group_participants(group_id: int, session: AsyncSession = Depends(get_session)):
-    """Alle Teilnehmer einer Gruppe abrufen"""
-    return await GroupService.get_group_participants(session, group_id)
-
-# Availability endpoints
-@router.post("/participants/{participant_id}/availability", response_model=Availability)
-async def add_availability(participant_id: int, availability_data: AvailabilityCreate, session: AsyncSession = Depends(get_session)):
-    """Verfügbarkeit für Teilnehmer hinzufügen"""
-    try:
-        start_date = date.fromisoformat(availability_data.start_date)
-        end_date = date.fromisoformat(availability_data.end_date)
-    except ValueError:
-        raise HTTPException(status_code=400, detail="Ungültiges Datumsformat. Verwende YYYY-MM-DD")
-    
-    if start_date > end_date:
-        raise HTTPException(status_code=400, detail="Startdatum muss vor Enddatum liegen")
-    
-    return await GroupService.add_availability(session, participant_id, start_date, end_date)
-
-@router.get("/participants/{participant_id}/availability", response_model=List[Availability])
-async def get_participant_availabilities(participant_id: int, session: AsyncSession = Depends(get_session)):
-    """Verfügbarkeiten eines Teilnehmers abrufen"""
-    return await GroupService.get_participant_availabilities(session, participant_id)
+    return Response(status_code=204)

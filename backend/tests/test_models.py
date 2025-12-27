@@ -1,31 +1,26 @@
-"""
-Tests für die Models
-"""
+"""Tests für die aktuellen Models."""
 
-import pytest
-from app.models import Group, Participant, Availability
-from datetime import date, datetime
+from uuid import UUID
+
+from app.models import Group, GroupMember
+
 
 def test_group_model():
-    """Teste Group Model"""
-    group = Group(name="Test Gruppe", description="Test Description")
+    """Group should use UUID primary keys and creator tracking."""
+    group = Group(name="Test Gruppe", created_by_actor="actor-1")
     assert group.name == "Test Gruppe"
-    assert group.description == "Test Description"
-    assert group.id is None  # Before saving to DB
+    assert group.created_by_actor == "actor-1"
+    assert isinstance(group.id, UUID)
 
-def test_participant_model():
-    """Teste Participant Model"""
-    participant = Participant(group_id=1, name="Max Mustermann", email="max@test.de")
-    assert participant.group_id == 1
-    assert participant.name == "Max Mustermann"
-    assert participant.email == "max@test.de"
 
-def test_availability_model():
-    """Teste Availability Model"""
-    today = date.today()
-    tomorrow = date(today.year, today.month, today.day + 1)
-    
-    availability = Availability(participant_id=1, start_date=today, end_date=tomorrow)
-    assert availability.participant_id == 1
-    assert availability.start_date == today
-    assert availability.end_date == tomorrow
+def test_group_member_model():
+    """GroupMember should carry actor id and role."""
+    member = GroupMember(
+        group_id=UUID("00000000-0000-0000-0000-000000000000"),
+        actor_id="actor-1",
+        display_name="Tester",
+        role="owner",
+    )
+    assert member.actor_id == "actor-1"
+    assert member.display_name == "Tester"
+    assert member.role == "owner"

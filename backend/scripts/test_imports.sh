@@ -22,7 +22,7 @@ try:
     print(f'✅ Settings: {settings.app_name}')
     
     print('📦 Teste Models...')
-    from app.models import Group, Participant, Availability
+    from app.models import Group, GroupMember
     print('✅ Models Import erfolgreich')
     
     print('📦 Teste Services...')
