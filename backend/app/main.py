@@ -7,7 +7,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .core.config import get_settings
 from .core.database import create_db_and_tables
-from .api.routes import health_router, groups_router
+from .api.routes import auth_router, groups_router, health_router
 
 settings = get_settings()
 
@@ -38,6 +38,7 @@ app.add_middleware(
 # Include routers
 app.include_router(health_router)
 app.include_router(groups_router)
+app.include_router(auth_router)
 
 # For module execution
 def run_server():

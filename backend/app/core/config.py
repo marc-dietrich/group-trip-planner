@@ -25,6 +25,13 @@ class Settings(BaseSettings):
     # CORS
     cors_origins: list = ["http://localhost:3000"]
 
+    # Supabase
+    supabase_url: str | None = None
+    supabase_anon_key: str | None = None
+    supabase_public_key: str | None = None
+    supabase_service_key: str | None = None
+    supabase_jwt_secret: str = ""
+
 @lru_cache()
 def get_settings() -> Settings:
     """Get cached settings instance"""
