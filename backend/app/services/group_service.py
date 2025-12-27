@@ -1,66 +1,78 @@
-"""
-Group service - Business logic für Gruppen
-"""
+"""Group service - core business logic."""
 
-from sqlmodel import select
+from typing import List, Optional, Tuple
+from uuid import UUID
+
 from sqlalchemy.ext.asyncio import AsyncSession
-from ..models import Group, Participant, Availability
-from datetime import date
-from typing import List, Optional
+from sqlmodel import select
+
+from ..models import Group, GroupMember
+
 
 class GroupService:
-    """Service für Gruppen-Operations"""
-    
+    """Service für Gruppen-Operationen."""
+
     @staticmethod
-    async def create_group(session: AsyncSession, name: str, description: str = "") -> Group:
-        """Neue Gruppe erstellen"""
-        group = Group(name=name, description=description)
+    async def create_group(
+        session: AsyncSession,
+        group_name: str,
+        actor_id: str,
+        display_name: str,
+    ) -> Tuple[Group, GroupMember]:
+        """Create a group and add the creator as owner in one transaction."""
+
+        group = Group(name=group_name, created_by_actor=actor_id)
         session.add(group)
+        await session.flush()
+
+        owner = GroupMember(
+            group_id=group.id,
+            actor_id=actor_id,
+            display_name=display_name,
+            role="owner",
+        )
+        session.add(owner)
+
         await session.commit()
         await session.refresh(group)
-        return group
-    
+        await session.refresh(owner)
+        return group, owner
+
     @staticmethod
     async def get_groups(session: AsyncSession) -> List[Group]:
-        """Alle Gruppen abrufen"""
+        """Fetch all groups."""
         result = await session.execute(select(Group))
-        return result.scalars().all()
-    
+        return list(result.scalars().all())
+
     @staticmethod
-    async def get_group(session: AsyncSession, group_id: int) -> Optional[Group]:
-        """Einzelne Gruppe abrufen"""
+    async def get_group(session: AsyncSession, group_id: UUID) -> Optional[Group]:
+        """Fetch a single group by id."""
         return await session.get(Group, group_id)
-    
+
     @staticmethod
-    async def add_participant(session: AsyncSession, group_id: int, name: str, email: str = "") -> Participant:
-        """Teilnehmer zu Gruppe hinzufügen"""
-        participant = Participant(group_id=group_id, name=name, email=email)
-        session.add(participant)
+    async def get_group_members(session: AsyncSession, group_id: UUID) -> List[GroupMember]:
+        """Fetch all members of a group."""
+        result = await session.execute(select(GroupMember).where(GroupMember.group_id == group_id))
+        return list(result.scalars().all())
+
+    @staticmethod
+    async def delete_group(session: AsyncSession, group_id: UUID) -> bool:
+        """Delete a group (and cascading members) if it exists."""
+        group = await session.get(Group, group_id)
+        if not group:
+            return False
+
+        await session.delete(group)
         await session.commit()
-        await session.refresh(participant)
-        return participant
-    
+        return True
+
     @staticmethod
-    async def add_availability(session: AsyncSession, participant_id: int, start_date: date, end_date: date) -> Availability:
-        """Verfügbarkeit für Teilnehmer hinzufügen"""
-        availability = Availability(
-            participant_id=participant_id,
-            start_date=start_date,
-            end_date=end_date
+    async def get_groups_for_actor(session: AsyncSession, actor_id: str) -> List[Tuple[Group, GroupMember]]:
+        """Fetch groups where the actor is a member, including membership info."""
+        stmt = (
+            select(Group, GroupMember)
+            .join(GroupMember, GroupMember.group_id == Group.id)
+            .where(GroupMember.actor_id == actor_id)
         )
-        session.add(availability)
-        await session.commit()
-        await session.refresh(availability)
-        return availability
-    
-    @staticmethod
-    async def get_group_participants(session: AsyncSession, group_id: int) -> List[Participant]:
-        """Alle Teilnehmer einer Gruppe abrufen"""
-        result = await session.execute(select(Participant).where(Participant.group_id == group_id))
-        return result.scalars().all()
-    
-    @staticmethod
-    async def get_participant_availabilities(session: AsyncSession, participant_id: int) -> List[Availability]:
-        """Verfügbarkeiten eines Teilnehmers abrufen"""
-        result = await session.execute(select(Availability).where(Availability.participant_id == participant_id))
-        return result.scalars().all()
+        result = await session.execute(stmt)
+        return [(row[0], row[1]) for row in result.all()]

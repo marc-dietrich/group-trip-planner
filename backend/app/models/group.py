@@ -1,18 +1,18 @@
-"""
-Group model - Reisegruppen
-"""
+"""Group model."""
 
-from sqlmodel import SQLModel, Field
+from datetime import datetime
 from typing import Optional
-from datetime import datetime, date
+from uuid import UUID, uuid4
+
+from sqlmodel import Field, SQLModel
+
 
 class Group(SQLModel, table=True):
-    """Reisegruppe"""
-    id: Optional[int] = Field(default=None, primary_key=True)
+    """Core group entity created by a local actor."""
+
+    __tablename__ = "groups"
+
+    id: UUID = Field(default_factory=uuid4, primary_key=True, description="Primary identifier")
     name: str = Field(max_length=100, description="Name der Gruppe")
-    description: Optional[str] = Field(default=None, max_length=500, description="Beschreibung der Gruppe")
     created_at: datetime = Field(default_factory=datetime.utcnow, description="Erstellungsdatum")
-    
-    # Reisezeitraum Rahmen
-    earliest_start_date: Optional[date] = Field(default=None, description="Frühestes Startdatum")
-    latest_end_date: Optional[date] = Field(default=None, description="Spätestes Enddatum")
+    created_by_actor: str = Field(max_length=255, description="Opaque actor id of creator")

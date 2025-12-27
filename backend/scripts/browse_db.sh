@@ -14,32 +14,22 @@ psql postgresql://trip_planner:trip_password@localhost/group_trip_planner_db << 
 
 \echo ''
 \echo '👥 GRUPPEN:'
-SELECT id, name, description, created_at::date as erstellt FROM "group" ORDER BY id;
+SELECT id, name, created_by_actor, created_at::date as erstellt FROM groups ORDER BY created_at DESC;
 
 \echo ''
-\echo '🧑 TEILNEHMER:'
-SELECT p.id, p.name, p.email, g.name as gruppe 
-FROM participant p 
-JOIN "group" g ON p.group_id = g.id 
-ORDER BY g.name, p.name;
-
-\echo ''
-\echo '📅 VERFÜGBARKEITEN:'
-SELECT a.start_date, a.end_date, p.name as teilnehmer, g.name as gruppe
-FROM availability a
-JOIN participant p ON a.participant_id = p.id
-JOIN "group" g ON p.group_id = g.id
-ORDER BY g.name, a.start_date;
+\echo '🧑 MITGLIEDER:'
+SELECT m.id, m.actor_id, m.display_name, m.role, g.name as gruppe, m.joined_at::date as beitritt
+FROM group_members m
+JOIN groups g ON m.group_id = g.id
+ORDER BY g.name, m.joined_at;
 
 \echo ''
 \echo '📊 STATISTIKEN:'
 SELECT 
-    COUNT(g.id) as gruppen_total,
-    COUNT(p.id) as teilnehmer_total,
-    COUNT(a.id) as verfügbarkeiten_total
-FROM "group" g
-LEFT JOIN participant p ON g.id = p.group_id
-LEFT JOIN availability a ON p.id = a.participant_id;
+    COUNT(DISTINCT g.id) as gruppen_total,
+    COUNT(m.id) as mitglieder_total
+FROM groups g
+LEFT JOIN group_members m ON g.id = m.group_id;
 
 \q
 EOF
