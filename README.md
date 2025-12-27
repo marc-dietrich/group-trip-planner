@@ -42,48 +42,43 @@ npm run dev
 
 Frontend läuft auf: http://localhost:3000
 
-## API Endpoints
+## API Endpoints (aktuell)
 
-### Gruppen
+- `GET /api/health` – Health check
+- `GET /api/groups?actorId=` – Gruppen für anonymen Actor (oder alle ohne Parameter)
+- `GET /api/groups` mit `Authorization: Bearer <jwt>` – Gruppen für Supabase User
+- `POST /api/groups` – Neue Gruppe erstellen (anonym mit `actorId`, oder mit Supabase-JWT)
+- `DELETE /api/groups/{id}` – Gruppe löschen (keine Rollenprüfung in Phase 1)
+- `POST /api/auth/claim` – Lokalen Actor mit Supabase User verknüpfen (JWT nötig)
 
-- `GET /api/health` - Health check
-- `GET /api/groups` - Alle Gruppen abrufen
-- `POST /api/groups` - Neue Gruppe erstellen
-- `GET /api/groups/{id}` - Einzelne Gruppe abrufen
+## Supabase Auth Setup
 
-### Teilnehmer
-
-- `POST /api/groups/{group_id}/participants` - Teilnehmer hinzufügen
-- `GET /api/groups/{group_id}/participants` - Teilnehmer abrufen
-
-### Verfügbarkeiten
-
-- `POST /api/participants/{participant_id}/availability` - Verfügbarkeit hinzufügen
-- `GET /api/participants/{participant_id}/availability` - Verfügbarkeiten abrufen
-
-## Database Schema
+Backend (.env):
 
 ```
-Group (Reisegruppe)
-├── id, name, description
-├── created_at
-└── earliest_start_date, latest_end_date
-
-Participant (Teilnehmer)
-├── id, group_id, name, email
-└── created_at
-
-Availability (Verfügbarkeiten)
-├── id, participant_id
-├── start_date, end_date
-└── created_at
+SUPABASE_JWT_SECRET=<service_role_jwt_secret>
+# optional für Transparenz
+SUPABASE_URL=...
+SUPABASE_ANON_KEY=...
 ```
 
-## Features (Phase 1)
+Frontend (frontend/.env.local):
 
-- [x] Grundsetup Frontend & Backend
-- [x] PostgreSQL Integration mit SQLModel
-- [x] Gruppe erstellen
-- [x] Teilnehmer hinzufügen
-- [x] Verfügbarkeiten sammeln
-- [ ] Optimale Zeitfenster berechnen
+```
+VITE_SUPABASE_URL=<project-url>
+VITE_SUPABASE_ANON_KEY=<anon-key>
+```
+
+DB Migration (fügt Nutzer-Tabellen und user_id auf group_members hinzu):
+
+```
+psql <connection> -f migrations/0002_supabase_auth.sql
+```
+
+Minimaler Flow zum Testen:
+
+1. Starte Backend (`python main.py`) und Frontend (`npm run dev`).
+2. Öffne http://localhost:3000, erzeuge einen lokalen Actor (wird in localStorage gespeichert).
+3. Lege eine Gruppe an – sie gehört dem lokalen Actor.
+4. Klicke „Mit Google anmelden“ (Supabase OAuth). Nach Redirect wird dein Supabase-User mit dem Actor verknüpft (`/api/auth/claim`).
+5. Lade die Gruppenliste neu: sie wird jetzt über den JWT geladen und die bestehenden Mitgliedschaften sind dem Supabase-User zugeordnet.

@@ -2,12 +2,13 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Response
+from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
 from app.core.database import get_session
+from app.core.security import Identity, get_identity
 from app.services import GroupService
 
 settings = get_settings()
@@ -19,8 +20,8 @@ class GroupCreate(BaseModel):
     """Request body for creating a group."""
 
     groupName: str
-    actorId: str
-    displayName: str
+    actorId: str | None = None
+    displayName: str | None = None
 
 
 class GroupCreateResponse(BaseModel):
@@ -44,11 +45,15 @@ class GroupMembership(BaseModel):
 
 
 @router.get("/groups")
-async def get_groups(actorId: str | None = None, session: AsyncSession = Depends(get_session)):
+async def get_groups(
+    actorId: str | None = None,
+    identity: Identity = Depends(get_identity),
+    session: AsyncSession = Depends(get_session),
+):
     """Return all groups or only those for the given actor."""
 
-    if actorId:
-        rows = await GroupService.get_groups_for_actor(session, actorId)
+    if actorId or identity.user_id:
+        rows = await GroupService.get_groups_for_identity(session, actor_id=actorId, user_id=identity.user_id)
         return [
             {
                 "groupId": group.id,
@@ -63,14 +68,24 @@ async def get_groups(actorId: str | None = None, session: AsyncSession = Depends
 
 
 @router.post("/groups", response_model=GroupCreateResponse)
-async def create_group(group_data: GroupCreate, session: AsyncSession = Depends(get_session)):
+async def create_group(
+    group_data: GroupCreate,
+    identity: Identity = Depends(get_identity),
+    session: AsyncSession = Depends(get_session),
+):
     """Create a group and store the creator as owner."""
+
+    if not group_data.actorId and not identity.user_id:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="actorId is required for anonymous users")
+
+    creator_display = group_data.displayName or identity.display_name or "Traveler"
 
     group, member = await GroupService.create_group(
         session=session,
         group_name=group_data.groupName,
         actor_id=group_data.actorId,
-        display_name=group_data.displayName,
+        display_name=creator_display,
+        user_id=identity.user_id,
     )
 
     invite_link = f"{settings.frontend_base_url}/invite/{group.id}"
