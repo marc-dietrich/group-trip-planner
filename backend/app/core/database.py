@@ -9,8 +9,10 @@ from .config import get_settings
 
 settings = get_settings()
 
+connect_args = {"ssl": "require"} if settings.database_ssl_require else {}
+
 # Async engine for database operations
-engine = create_async_engine(settings.database_url, echo=settings.debug)
+engine = create_async_engine(settings.database_url, echo=settings.debug, connect_args=connect_args)
 
 # Session factory for dependency injection
 async_session = sessionmaker(engine, class_=AsyncSession, expire_on_commit=False)
