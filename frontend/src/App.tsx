@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import type { FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { useLocalActor } from "./lib/actor";
 import {
@@ -8,42 +9,22 @@ import {
   supabaseEnabled,
   supabase,
 } from "./lib/supabase";
+import {
+  ClaimResponse,
+  GroupCreateResult,
+  GroupMembership,
+  HealthCheck,
+  Identity,
+} from "./types";
+import { AuthModal } from "./components/AuthModal";
+import { GroupCreateModal } from "./components/GroupCreateModal";
+import { GroupsCard } from "./components/GroupsCard";
+import { IdentityStrip } from "./components/IdentityStrip";
+import { Topbar } from "./components/Topbar";
 import "./App.css";
 
-type HealthCheck = {
-  status: string;
-  message: string;
-};
-
-type GroupCreateResult = {
-  groupId: string;
-  name: string;
-  inviteLink: string;
-  role: string;
-  actorId: string;
-  displayName: string;
-};
-
-type GroupMembership = {
-  groupId: string;
-  name: string;
-  role: string;
-  inviteLink: string;
-};
-
-type ClaimResponse = {
-  actorId: string;
-  userId: string;
-  claimedAt: string;
-  updatedMemberships: number;
-};
-
-type Identity =
-  | { kind: "actor"; actorId: string; displayName: string }
-  | { kind: "user"; userId: string; displayName: string; accessToken: string };
-
 function App() {
-  const [actor, setDisplayName] = useLocalActor("Traveler");
+  const [actor] = useLocalActor("Gast");
   const [session, setSession] = useState<Session | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -51,12 +32,11 @@ function App() {
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [claiming, setClaiming] = useState(false);
-  const [claimError, setClaimError] = useState<string | null>(null);
+  const [, setClaiming] = useState(false);
+  const [, setClaimError] = useState<string | null>(null);
   const [claimResult, setClaimResult] = useState<ClaimResponse | null>(null);
   const [groupName, setGroupName] = useState("Wochenend-Trip");
   const [health, setHealth] = useState<HealthCheck | null>(null);
-  const [loading, setLoading] = useState(true);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<GroupCreateResult | null>(null);
@@ -64,6 +44,8 @@ function App() {
   const [groupsLoading, setGroupsLoading] = useState(false);
   const [groupsError, setGroupsError] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [authPanelOpen, setAuthPanelOpen] = useState(false);
+  const [createOpen, setCreateOpen] = useState(false);
 
   const identity = useMemo<Identity>(() => {
     if (session?.user) {
@@ -113,11 +95,9 @@ function App() {
       .then((res) => res.json())
       .then((data: HealthCheck) => {
         setHealth(data);
-        setLoading(false);
       })
       .catch(() => {
         setHealth({ status: "error", message: "Backend nicht erreichbar" });
-        setLoading(false);
       });
   }, []);
 
@@ -192,11 +172,7 @@ function App() {
     fetchGroups();
   }, [identity, result, claimResult]);
 
-  const handleActorNameChange = (name: string) => {
-    setDisplayName(name);
-  };
-
-  const handleCreateGroup = async (event: React.FormEvent) => {
+  const handleCreateGroup = async (event: FormEvent) => {
     event.preventDefault();
     setCreating(true);
     setError(null);
@@ -258,7 +234,7 @@ function App() {
     }
   };
 
-  const handleEmailAuth = async (event: React.FormEvent) => {
+  const handleEmailAuth = async (event: FormEvent) => {
     event.preventDefault();
     setAuthError(null);
     setAuthNotice(null);
@@ -312,261 +288,65 @@ function App() {
 
   return (
     <div className="page">
-      <header className="hero">
-        <div className="eyebrow">Phase 1 · Gruppen erstellen</div>
-        <h1>Gruppen-Urlaubsplaner</h1>
-        <p>
-          Erzeuge einen lokalen Actor, erstelle eine Gruppe und teile den
-          Invite-Link.
-        </p>
-      </header>
+      <Topbar
+        title="Gemeinsam Termine finden"
+        subtitle="Gruppen-Urlaubsplaner"
+        health={health}
+      />
 
-      <main className="grid">
-        <section className="card wide">
-          <div className="card-header">
-            <div>
-              <p className="eyebrow">Identität & Login</p>
-              <h2>{identity.displayName}</h2>
-            </div>
-            <span
-              className={identity.kind === "user" ? "badge success" : "badge"}
-            >
-              {identity.kind === "user" ? "Supabase" : "Local only"}
-            </span>
-          </div>
+      <IdentityStrip
+        identity={identity}
+        authLoading={authLoading}
+        supabaseEnabled={supabaseEnabled}
+        onLogin={() => setAuthPanelOpen(true)}
+        onLogout={handleLogout}
+      />
 
-          <div className="stack">
-            <label className="field">
-              <span>Lokaler Display Name</span>
-              <input
-                value={actor.displayName}
-                onChange={(e) => handleActorNameChange(e.target.value)}
-                placeholder="z. B. Alex"
-              />
-            </label>
-
-            <div className="muted">Actor ID (persisted in localStorage)</div>
-            <code className="mono">{actor.actorId}</code>
-          </div>
-
-          {identity.kind === "user" ? (
-            <div className="stack">
-              <div className="pill success">Angemeldet mit Supabase</div>
-              <div className="result-row">
-                <span>Supabase User</span>
-                <code className="mono">{identity.userId}</code>
-              </div>
-              <div className="result-row">
-                <span>JWT (gekürzt)</span>
-                <code className="mono">
-                  {identity.accessToken.slice(0, 18)}...
-                </code>
-              </div>
-              <button
-                type="button"
-                className="ghost"
-                onClick={handleLogout}
-                disabled={authLoading}
-              >
-                Logout
-              </button>
-            </div>
-          ) : (
-            <div className="stack">
-              <p className="muted">
-                Mit E-Mail/Passwort anmelden oder registrieren.
-              </p>
-              <form className="stack" onSubmit={handleEmailAuth}>
-                <label className="field">
-                  <span>E-Mail</span>
-                  <input
-                    type="email"
-                    value={email}
-                    onChange={(e) => setEmail(e.target.value)}
-                    placeholder="du@example.com"
-                  />
-                </label>
-                <label className="field">
-                  <span>Passwort</span>
-                  <input
-                    type="password"
-                    value={password}
-                    onChange={(e) => setPassword(e.target.value)}
-                    placeholder="********"
-                  />
-                </label>
-
-                <div className="result-row">
-                  <button
-                    type="submit"
-                    disabled={authLoading || !supabaseEnabled}
-                  >
-                    {authMode === "signin" ? "Login" : "Registrieren"}
-                  </button>
-                  <button
-                    type="button"
-                    className="ghost"
-                    onClick={() => {
-                      setAuthMode(authMode === "signin" ? "signup" : "signin");
-                      setAuthError(null);
-                      setAuthNotice(null);
-                    }}
-                  >
-                    {authMode === "signin"
-                      ? "Neu? Registrieren"
-                      : "Schon Account? Login"}
-                  </button>
-                </div>
-              </form>
-              {!supabaseEnabled && (
-                <div className="pill">Supabase nicht konfiguriert</div>
-              )}
-              {authError && <div className="pill danger">{authError}</div>}
-              {authNotice && <div className="pill success">{authNotice}</div>}
-            </div>
-          )}
-
-          {session && (
-            <div className="stack">
-              <p className="muted">
-                Wir verknüpfen deinen lokalen Actor mit deinem Supabase-Konto.
-              </p>
-              {claiming ? (
-                <div className="pill">Claim läuft...</div>
-              ) : claimError ? (
-                <div className="pill danger">{claimError}</div>
-              ) : claimResult ? (
-                <div className="pill success">Actor verknüpft</div>
-              ) : null}
-            </div>
-          )}
-        </section>
-
-        <section className="card wide">
-          <p className="eyebrow">Deine Gruppen</p>
-          <h3>Mitgliedschaften</h3>
-          {groupsLoading ? (
-            <p>Gruppen werden geladen...</p>
-          ) : groupsError ? (
-            <div className="pill danger">{groupsError}</div>
-          ) : groups.length === 0 ? (
-            <p className="muted">
-              Du bist noch in keiner Gruppe. Erstelle die erste oben.
-            </p>
-          ) : (
-            <div className="stack">
-              {groups.map((g) => (
-                <div key={g.groupId} className="result">
-                  <div className="result-row">
-                    <span>{g.name}</span>
-                    <span className="pill success">{g.role}</span>
-                  </div>
-                  <div className="result-row">
-                    <span>Invite</span>
-                    <a href={g.inviteLink} target="_blank" rel="noreferrer">
-                      {g.inviteLink}
-                    </a>
-                  </div>
-                  <div className="result-row">
-                    <span className="muted">Aktionen</span>
-                    <button
-                      type="button"
-                      className="ghost danger"
-                      onClick={() => handleDeleteGroup(g.groupId)}
-                      disabled={deletingId === g.groupId}
-                    >
-                      {deletingId === g.groupId
-                        ? "Lösche..."
-                        : "Gruppe löschen"}
-                    </button>
-                  </div>
-                </div>
-              ))}
-            </div>
-          )}
-        </section>
-
-        <section className="card">
-          <p className="eyebrow">Backend Status</p>
-          <h3>API Health</h3>
-          {loading ? (
-            <p>Verbinde mit Backend...</p>
-          ) : (
-            <div
-              className={
-                health?.status === "ok" ? "pill success" : "pill danger"
-              }
-            >
-              {health?.status}: {health?.message}
-            </div>
-          )}
-        </section>
-
-        <section className="card">
-          <p className="eyebrow">Nächster Schritt</p>
-          <h3>Verfügbarkeit sammeln</h3>
-          <div className="stack">
-            <div className="pill">Coming soon</div>
-            <p className="muted">
-              Placeholder für das Einsammeln von Zeitfenstern pro Teilnehmer.
-              Hier landen später Kalender-Inputs und Uploads.
-            </p>
-          </div>
-        </section>
-
-        <section className="card">
-          <p className="eyebrow">Nächster Schritt</p>
-          <h3>Beste Zeiten finden</h3>
-          <div className="stack">
-            <div className="pill">Coming soon</div>
-            <p className="muted">
-              Placeholder für den Algorithmus, der optimale Zeiträume aus den
-              Verfügbarkeiten errechnet und ranked.
-            </p>
-          </div>
-        </section>
-
-        <section className="card wide">
-          <p className="eyebrow">Gruppe erstellen</p>
-          <h3>POST /groups</h3>
-          <form className="stack" onSubmit={handleCreateGroup}>
-            <label className="field">
-              <span>Gruppenname</span>
-              <input
-                value={groupName}
-                onChange={(e) => setGroupName(e.target.value)}
-                required
-                placeholder="Team Wochenende"
-              />
-            </label>
-
-            <button type="submit" disabled={creating}>
-              {creating ? "Wird erstellt..." : "Gruppe anlegen"}
-            </button>
-
-            {error && <div className="pill danger">{error}</div>}
-            {result && (
-              <div className="result">
-                <div className="pill success">Gruppe erstellt</div>
-                <div className="result-row">
-                  <span>Group ID</span>
-                  <code className="mono">{result.groupId}</code>
-                </div>
-                <div className="result-row">
-                  <span>Invite Link</span>
-                  <a href={result.inviteLink} target="_blank" rel="noreferrer">
-                    {result.inviteLink}
-                  </a>
-                </div>
-                <div className="result-row">
-                  <span>Rolle</span>
-                  <span>{result.role}</span>
-                </div>
-              </div>
-            )}
-          </form>
-        </section>
+      <main className="layout minimal-layout single">
+        <GroupsCard
+          groups={groups}
+          groupsLoading={groupsLoading}
+          groupsError={groupsError}
+          deletingId={deletingId}
+          onDelete={handleDeleteGroup}
+          onCreateClick={() => setCreateOpen(true)}
+        />
       </main>
+
+      <GroupCreateModal
+        open={createOpen}
+        groupName={groupName}
+        creating={creating}
+        error={error}
+        result={result}
+        onGroupNameChange={setGroupName}
+        onSubmit={handleCreateGroup}
+        onClose={() => {
+          setCreateOpen(false);
+          setResult(null);
+          setError(null);
+        }}
+      />
+
+      <AuthModal
+        open={authPanelOpen && identity.kind === "actor"}
+        supabaseEnabled={supabaseEnabled}
+        authMode={authMode}
+        email={email}
+        password={password}
+        authLoading={authLoading}
+        authError={authError}
+        authNotice={authNotice}
+        onSubmit={handleEmailAuth}
+        onEmailChange={setEmail}
+        onPasswordChange={setPassword}
+        onSwitchMode={(mode) => {
+          setAuthMode(mode);
+          setAuthError(null);
+          setAuthNotice(null);
+        }}
+        onClose={() => setAuthPanelOpen(false)}
+      />
     </div>
   );
 }
