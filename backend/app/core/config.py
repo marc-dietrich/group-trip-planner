@@ -13,6 +13,7 @@ class Settings(BaseSettings):
 
     # Database
     database_url: str = "postgresql+asyncpg://trip_planner:trip_password@localhost/group_trip_planner_db"
+    database_ssl_require: bool = False
 
     # Application
     app_name: str = "Gruppen-Urlaubsplaner API"
