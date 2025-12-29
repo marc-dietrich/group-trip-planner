@@ -4,13 +4,13 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
-from app.repositories import (
+from app.user_core.repositories import (
     GroupRepository,
     IdentityRepository,
     SQLModelGroupRepository,
     SQLModelIdentityRepository,
 )
-from app.services import AuthService, GroupService
+from app.user_core.services import AuthService, GroupService
 
 
 async def get_group_repository(session: AsyncSession = Depends(get_session)) -> GroupRepository:

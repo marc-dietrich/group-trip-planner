@@ -10,8 +10,8 @@ from jose import jwt
 from app.api.deps import get_auth_service, get_group_service
 from app.core.config import get_settings
 from app.main import app
-from app.repositories import InMemoryGroupRepository, InMemoryIdentityRepository
-from app.services import AuthService, GroupService
+from app.user_core.repositories import InMemoryGroupRepository, InMemoryIdentityRepository
+from app.user_core.services import AuthService, GroupService
 
 
 settings = get_settings()

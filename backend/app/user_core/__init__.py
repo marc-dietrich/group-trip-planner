@@ -1,9 +1,7 @@
-"""Repository abstractions for persistence layers.
+"""User core package (actors, users, groups)."""
 
-Backwards-compatible shims that forward to app.user_core.repositories.
-"""
-
-from app.user_core.repositories import (
+from .models import Group, GroupMember, User, UserActor
+from .repositories import (
     GroupRepository,
     InMemoryGroupRepository,
     SQLModelGroupRepository,
@@ -11,12 +9,19 @@ from app.user_core.repositories import (
     InMemoryIdentityRepository,
     SQLModelIdentityRepository,
 )
+from .services import AuthService, GroupService
 
 __all__ = [
+    "Group",
+    "GroupMember",
+    "User",
+    "UserActor",
     "GroupRepository",
     "InMemoryGroupRepository",
     "SQLModelGroupRepository",
     "IdentityRepository",
     "InMemoryIdentityRepository",
     "SQLModelIdentityRepository",
+    "AuthService",
+    "GroupService",
 ]

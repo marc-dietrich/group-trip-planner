@@ -7,7 +7,7 @@ from pydantic import BaseModel
 
 from app.core.config import get_settings
 from app.core.security import Identity, get_identity
-from app.services import GroupService
+from app.user_core.services import GroupService
 from app.api.deps import get_group_service
 
 settings = get_settings()
