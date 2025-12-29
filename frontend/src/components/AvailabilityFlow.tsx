@@ -69,12 +69,6 @@ function monthKeyFromIso(iso: string): string {
   return iso.slice(0, 7);
 }
 
-function addDays(date: Date, days: number): Date {
-  const copy = new Date(date);
-  copy.setDate(copy.getDate() + days);
-  return copy;
-}
-
 function buildMonthGroups(daysAhead = 150): MonthGroup[] {
   const start = new Date();
   start.setHours(12, 0, 0, 0);
@@ -158,10 +152,10 @@ function MonthCalendar({
   const monthDate = new Date(`${month.monthKey}-01T12:00:00`);
   const weekdayOffset = (monthDate.getDay() + 6) % 7; // Monday as first day
 
-  const cells: Array<DayOption | null> = Array.from(
-    { length: weekdayOffset },
-    () => null
-  ).concat(month.days);
+  const cells: Array<DayOption | null> = [
+    ...Array.from({ length: weekdayOffset }, () => null as DayOption | null),
+    ...month.days,
+  ];
 
   return (
     <div className="calendar">
