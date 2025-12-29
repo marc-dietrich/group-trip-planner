@@ -6,8 +6,8 @@ from httpx import AsyncClient, ASGITransport
 
 from app.api.deps import get_group_service
 from app.main import app
-from app.repositories import InMemoryGroupRepository
-from app.services import GroupService
+from app.user_core.repositories import InMemoryGroupRepository
+from app.user_core.services import GroupService
 
 
 @pytest_asyncio.fixture()

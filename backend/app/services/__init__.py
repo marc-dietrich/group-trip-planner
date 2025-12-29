@@ -1,6 +1,9 @@
-"""Services for business logic."""
+"""Services for business logic.
 
-from .auth_service import AuthService
-from .group_service import GroupService
+This module keeps backward compatibility while the canonical implementations
+live under app.user_core.services.
+"""
+
+from app.user_core.services import AuthService, GroupService
 
 __all__ = ["AuthService", "GroupService"]

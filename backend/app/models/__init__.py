@@ -1,8 +1,8 @@
-"""Database models for the group trip planner."""
+"""Database models entrypoint.
 
-from .group import Group
-from .group_member import GroupMember
-from .user import User
-from .user_actor import UserActor
+Legacy imports remain for compatibility but user/actor/group live in app.user_core.models.
+"""
+
+from app.user_core.models import Group, GroupMember, User, UserActor
 
 __all__ = ["Group", "GroupMember", "User", "UserActor"]

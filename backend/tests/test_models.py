@@ -2,7 +2,7 @@
 
 from uuid import UUID
 
-from app.models import Group, GroupMember
+from app.user_core.models import Group, GroupMember
 
 
 def test_group_model():

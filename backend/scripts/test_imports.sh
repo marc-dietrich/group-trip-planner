@@ -22,11 +22,11 @@ try:
     print(f'✅ Settings: {settings.app_name}')
     
     print('📦 Teste Models...')
-    from app.models import Group, GroupMember
+    from app.user_core.models import Group, GroupMember
     print('✅ Models Import erfolgreich')
     
     print('📦 Teste Services...')
-    from app.services import GroupService
+    from app.user_core.services import GroupService
     print('✅ Services Import erfolgreich')
     
     print('')

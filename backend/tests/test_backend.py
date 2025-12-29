@@ -2,8 +2,8 @@
 
 import pytest
 
-from app.repositories import InMemoryGroupRepository, InMemoryIdentityRepository
-from app.services import AuthService, GroupService
+from app.user_core.repositories import InMemoryGroupRepository, InMemoryIdentityRepository
+from app.user_core.services import AuthService, GroupService
 
 
 @pytest.mark.asyncio

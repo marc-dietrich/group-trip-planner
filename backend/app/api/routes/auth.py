@@ -6,7 +6,7 @@ from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
 from app.core.security import Identity, require_authenticated_identity
-from app.services import AuthService
+from app.user_core.services import AuthService
 from app.api.deps import get_auth_service
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
