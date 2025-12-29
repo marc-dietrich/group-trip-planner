@@ -77,7 +77,7 @@ async def create_group(
     if not group_data.actorId and not identity.user_id:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="actorId is required for anonymous users")
 
-    creator_display = group_data.displayName or identity.display_name or "Traveler"
+    creator_display = group_data.displayName or identity.display_name or "Gast"
 
     group, member = await service.create_group(
         group_name=group_data.groupName,

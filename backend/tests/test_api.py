@@ -77,3 +77,19 @@ async def test_delete_group():
         assert list_res.status_code == 200
         groups = list_res.json()
         assert all(g["groupId"] != group_id for g in groups)
+
+
+@pytest.mark.asyncio
+async def test_create_group_uses_default_display_name():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        group_data = {
+            "groupName": "Ohne Anzeigename",
+            "actorId": "actor-default-name",
+            # displayName intentionally omitted to verify backend fallback
+        }
+
+        create_res = await client.post("/api/groups", json=group_data)
+        assert create_res.status_code == 200
+        body = create_res.json()
+        assert body["displayName"] == "Gast"

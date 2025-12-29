@@ -5,6 +5,9 @@ export type LocalActor = {
   displayName: string;
 };
 
+export const DEFAULT_ACTOR_NAME = "Gast";
+const PLACEHOLDER_NAMES = [DEFAULT_ACTOR_NAME, "Traveler"];
+
 const STORAGE_KEY = "gtp.localActor";
 
 function loadActor(): LocalActor | null {
@@ -29,8 +32,14 @@ function persistActor(actor: LocalActor) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(actor));
 }
 
+export function isPlaceholderActorName(name: string | null | undefined): boolean {
+  if (!name) return true;
+  const trimmed = name.trim();
+  return trimmed.length === 0 || PLACEHOLDER_NAMES.includes(trimmed);
+}
+
 export function createActor(displayName: string): LocalActor {
-  const safeName = displayName.trim() || "Traveler";
+  const safeName = displayName.trim() || DEFAULT_ACTOR_NAME;
   const actor = {
     actorId: crypto.randomUUID(),
     displayName: safeName,
@@ -39,19 +48,20 @@ export function createActor(displayName: string): LocalActor {
   return actor;
 }
 
-export function getOrCreateActor(displayName: string = "Traveler"): LocalActor {
+export function getOrCreateActor(displayName: string = DEFAULT_ACTOR_NAME): LocalActor {
   const existing = loadActor();
   if (existing) return existing;
   return createActor(displayName);
 }
 
 export function updateActorDisplayName(actor: LocalActor, displayName: string): LocalActor {
-  const updated: LocalActor = { ...actor, displayName: displayName.trim() || actor.displayName };
+  const updatedName = displayName.trim();
+  const updated: LocalActor = { ...actor, displayName: updatedName || actor.displayName };
   persistActor(updated);
   return updated;
 }
 
-export function useLocalActor(defaultName: string = "Traveler"): [LocalActor, (name: string) => void] {
+export function useLocalActor(defaultName: string = DEFAULT_ACTOR_NAME): [LocalActor, (name: string) => void] {
   const initial = getOrCreateActor(defaultName);
   const [actor, setActor] = React.useState<LocalActor>(initial);
 

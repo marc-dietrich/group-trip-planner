@@ -1,7 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import type { FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
-import { useLocalActor } from "./lib/actor";
+import {
+  DEFAULT_ACTOR_NAME,
+  isPlaceholderActorName,
+  useLocalActor,
+} from "./lib/actor";
 import {
   getExistingSession,
   getUserDisplayName,
@@ -17,6 +21,7 @@ import {
   Identity,
 } from "./types";
 import { AuthModal } from "./components/AuthModal";
+import { ActorNameModal } from "./components/ActorNameModal";
 import { GroupCreateModal } from "./components/GroupCreateModal";
 import { GroupsCard } from "./components/GroupsCard";
 import { IdentityStrip } from "./components/IdentityStrip";
@@ -24,7 +29,9 @@ import { Topbar } from "./components/Topbar";
 import "./App.css";
 
 function App() {
-  const [actor] = useLocalActor("Gast");
+  const [actor, setActorDisplayName] = useLocalActor(DEFAULT_ACTOR_NAME);
+  const [namePromptOpen, setNamePromptOpen] = useState(false);
+  const [pendingName, setPendingName] = useState("");
   const [session, setSession] = useState<Session | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
@@ -63,6 +70,15 @@ function App() {
       displayName: actor.displayName,
     };
   }, [actor.actorId, actor.displayName, session]);
+
+  useEffect(() => {
+    if (isPlaceholderActorName(actor.displayName)) {
+      setPendingName("");
+      setNamePromptOpen(true);
+    } else if (!namePromptOpen) {
+      setPendingName(actor.displayName);
+    }
+  }, [actor.displayName, namePromptOpen]);
 
   useEffect(() => {
     let isActive = true;
@@ -286,8 +302,23 @@ function App() {
     setClaimResult(null);
   };
 
+  const handleSaveActorName = (name: string) => {
+    const trimmed = name.trim();
+    if (!trimmed) return;
+    setActorDisplayName(trimmed);
+    setPendingName(trimmed);
+    setNamePromptOpen(false);
+  };
+
   return (
     <div className="page">
+      <ActorNameModal
+        open={namePromptOpen}
+        value={pendingName}
+        onChange={setPendingName}
+        onSubmit={handleSaveActorName}
+      />
+
       <Topbar
         title="Gemeinsam Termine finden"
         subtitle="Gruppen-Urlaubsplaner"
