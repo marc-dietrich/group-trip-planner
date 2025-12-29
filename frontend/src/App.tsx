@@ -28,6 +28,7 @@ import { IdentityStrip } from "./components/IdentityStrip";
 import { Topbar } from "./components/Topbar";
 import { toast } from "sonner";
 import "./App.css";
+import { AvailabilityFlow } from "./components/AvailabilityFlow";
 
 function App() {
   const [actor, setActorDisplayName] = useLocalActor(DEFAULT_ACTOR_NAME);
@@ -353,7 +354,8 @@ function App() {
         onLogout={handleLogout}
       />
 
-      <main className="layout minimal-layout single">
+      <main className="layout minimal-layout">
+        <AvailabilityFlow />
         <GroupsCard
           groups={groups}
           groupsLoading={groupsLoading}
