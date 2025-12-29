@@ -69,9 +69,10 @@ function monthKeyFromIso(iso: string): string {
   return iso.slice(0, 7);
 }
 
-function buildMonthGroups(daysAhead = 150): MonthGroup[] {
+function buildMonthGroups(daysAhead = 730): MonthGroup[] {
   const start = new Date();
   start.setHours(12, 0, 0, 0);
+  start.setDate(1); // begin at first of current month so earlier days show in the grid
 
   const groups: Record<string, MonthGroup> = {};
 
@@ -152,10 +153,19 @@ function MonthCalendar({
   const monthDate = new Date(`${month.monthKey}-01T12:00:00`);
   const weekdayOffset = (monthDate.getDay() + 6) % 7; // Monday as first day
 
-  const cells: Array<DayOption | null> = [
+  const baseCells: Array<DayOption | null> = [
     ...Array.from({ length: weekdayOffset }, () => null as DayOption | null),
     ...month.days,
   ];
+
+  const rows = 6; // fixed grid height so navigation doesn’t shift between months
+  const totalCells = rows * 7;
+  const cells: Array<DayOption | null> = baseCells.concat(
+    Array.from(
+      { length: totalCells - baseCells.length },
+      () => null as DayOption | null
+    )
+  );
 
   return (
     <div className="calendar">
@@ -226,7 +236,7 @@ export function AvailabilityFlow() {
   const [listOpen, setListOpen] = useState(false);
   const [open, setOpen] = useState(false);
 
-  const monthGroups = useMemo(() => buildMonthGroups(180), []);
+  const monthGroups = useMemo(() => buildMonthGroups(730), []);
   const [monthIndex, setMonthIndex] = useState(0);
 
   const todayIso = useMemo(() => toLocalISO(new Date()), []);

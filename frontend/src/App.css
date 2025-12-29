@@ -634,6 +634,11 @@ button.date-option.selected {
   cursor: not-allowed;
 }
 
+.calendar-cell:disabled:not(.empty) {
+  color: #94a3b8;
+  background: #f1f5f9;
+}
+
 .calendar-cell.empty {
   background: transparent;
   border: none;
