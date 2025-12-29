@@ -10,6 +10,9 @@ jobs:
   frontend-check:
     name: Frontend (typecheck & build)
     runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_URL: https://fdlmelfgshydwrcbvryg.supabase.co
+      VITE_SUPABASE_PUBLIC_KEY: sb_publishable_iTlkCvERUbGMbm6qND9cJw_jv2O03N-
     defaults:
       run:
         working-directory: frontend
