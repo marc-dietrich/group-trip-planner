@@ -1,17 +1,15 @@
 import { createClient, type Session, type User } from "@supabase/supabase-js";
+import { supabaseEnv, supabaseEnvProvided } from "../config/publicEnv";
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
-const supabasePublicKey = import.meta.env.VITE_SUPABASE_PUBLIC_KEY;
+export const supabaseEnabled = supabaseEnvProvided;
 
-export const supabaseEnabled = Boolean(supabaseUrl && supabasePublicKey);
-
-if (!supabaseUrl || !supabasePublicKey) {
-  console.warn("Supabase URL or public key missing; auth will be disabled.");
+if (!supabaseEnvProvided) {
+  console.warn("Supabase URL or public key missing; auth will fall back to defaults.");
 }
 
 export const supabase = createClient(
-  supabaseUrl || "http://localhost:54321", // fallback to avoid runtime crash when unset
-  supabasePublicKey || "public-anon-key",
+  supabaseEnv.url,
+  supabaseEnv.publicKey,
   {
   auth: {
     persistSession: true,

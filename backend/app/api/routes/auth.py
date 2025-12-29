@@ -5,11 +5,9 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
-
-from app.core.database import get_session
 from app.core.security import Identity, require_authenticated_identity
 from app.services import AuthService
+from app.api.deps import get_auth_service
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
@@ -29,7 +27,7 @@ class ClaimResponse(BaseModel):
 async def claim_actor(
     payload: ClaimRequest,
     identity: Identity = Depends(require_authenticated_identity),
-    session: AsyncSession = Depends(get_session),
+    service: AuthService = Depends(get_auth_service),
 ):
     if not payload.actorId:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="actorId is required")
@@ -39,8 +37,7 @@ async def claim_actor(
     except (TypeError, ValueError) as exc:  # pragma: no cover - defensive
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Supabase user id") from exc
 
-    result = await AuthService.claim_actor(
-        session=session,
+    result = await service.claim_actor(
         actor_id=payload.actorId,
         user_id=user_uuid,
         display_name=identity.display_name,

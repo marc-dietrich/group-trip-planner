@@ -1,46 +1,20 @@
-"""Tests for the Supabase claim endpoint."""
+"""Tests for the Supabase claim endpoint using mocked persistence."""
 
-import asyncio
 from uuid import uuid4
 
 import pytest
 import pytest_asyncio
 from httpx import ASGITransport, AsyncClient
 from jose import jwt
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import NullPool
 
+from app.api.deps import get_auth_service, get_group_service
 from app.core.config import get_settings
-from app.core.database import get_session as original_get_session
 from app.main import app
+from app.repositories import InMemoryGroupRepository, InMemoryIdentityRepository
+from app.services import AuthService, GroupService
 
 
 settings = get_settings()
-
-
-@pytest.fixture(scope="module")
-def event_loop():
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
-
-
-test_engine = create_async_engine(settings.database_url, echo=settings.debug, poolclass=NullPool)
-TestSessionLocal = sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
-
-
-async def override_get_session():
-    async with TestSessionLocal() as session:
-        yield session
-
-
-@pytest_asyncio.fixture(scope="module", autouse=True)
-async def override_dependencies():
-    app.dependency_overrides[original_get_session] = override_get_session
-    yield
-    app.dependency_overrides.clear()
-    await test_engine.dispose()
 
 
 def _make_token(user_id: str) -> str:
@@ -50,6 +24,20 @@ def _make_token(user_id: str) -> str:
         "user_metadata": {"full_name": "Tester"},
     }
     return jwt.encode(claims, settings.supabase_jwt_secret, algorithm="HS256")
+
+
+@pytest_asyncio.fixture()
+async def fake_repositories():
+    return InMemoryGroupRepository(), InMemoryIdentityRepository()
+
+
+@pytest_asyncio.fixture(autouse=True)
+async def override_services(fake_repositories):
+    group_repo, identity_repo = fake_repositories
+    app.dependency_overrides[get_group_service] = lambda: GroupService(group_repo)
+    app.dependency_overrides[get_auth_service] = lambda: AuthService(identity_repo, group_repo)
+    yield
+    app.dependency_overrides.clear()
 
 
 @pytest.mark.asyncio
@@ -62,7 +50,6 @@ async def test_claim_links_actor_to_user():
 
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
-        # Create a group as anonymous actor
         create_res = await client.post(
             "/api/groups",
             json={"groupName": "Claim Test", "actorId": actor_id, "displayName": "Anon"},
@@ -71,7 +58,6 @@ async def test_claim_links_actor_to_user():
 
         token = _make_token(user_id)
 
-        # Claim the actor with Supabase JWT
         claim_res = await client.post(
             "/api/auth/claim",
             headers={"Authorization": f"Bearer {token}"},
@@ -83,7 +69,6 @@ async def test_claim_links_actor_to_user():
         assert body["actorId"] == actor_id
         assert body["updatedMemberships"] >= 1
 
-        # Listing groups with the JWT should now work and include the claimed membership
         list_res = await client.get(
             "/api/groups",
             headers={"Authorization": f"Bearer {token}"},

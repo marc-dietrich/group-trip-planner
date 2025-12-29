@@ -4,12 +4,11 @@ from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Response, status
 from pydantic import BaseModel
-from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import get_settings
-from app.core.database import get_session
 from app.core.security import Identity, get_identity
 from app.services import GroupService
+from app.api.deps import get_group_service
 
 settings = get_settings()
 
@@ -48,12 +47,12 @@ class GroupMembership(BaseModel):
 async def get_groups(
     actorId: str | None = None,
     identity: Identity = Depends(get_identity),
-    session: AsyncSession = Depends(get_session),
+    service: GroupService = Depends(get_group_service),
 ):
     """Return all groups or only those for the given actor."""
 
     if actorId or identity.user_id:
-        rows = await GroupService.get_groups_for_identity(session, actor_id=actorId, user_id=identity.user_id)
+        rows = await service.get_groups_for_identity(actor_id=actorId, user_id=identity.user_id)
         return [
             {
                 "groupId": group.id,
@@ -64,14 +63,14 @@ async def get_groups(
             for group, member in rows
         ]
 
-    return await GroupService.get_groups(session)
+    return await service.get_groups()
 
 
 @router.post("/groups", response_model=GroupCreateResponse)
 async def create_group(
     group_data: GroupCreate,
     identity: Identity = Depends(get_identity),
-    session: AsyncSession = Depends(get_session),
+    service: GroupService = Depends(get_group_service),
 ):
     """Create a group and store the creator as owner."""
 
@@ -80,8 +79,7 @@ async def create_group(
 
     creator_display = group_data.displayName or identity.display_name or "Traveler"
 
-    group, member = await GroupService.create_group(
-        session=session,
+    group, member = await service.create_group(
         group_name=group_data.groupName,
         actor_id=group_data.actorId,
         display_name=creator_display,
@@ -101,18 +99,18 @@ async def create_group(
 
 
 @router.get("/groups/{group_id}")
-async def get_group(group_id: UUID, session: AsyncSession = Depends(get_session)):
+async def get_group(group_id: UUID, service: GroupService = Depends(get_group_service)):
     """Fetch a single group by id."""
-    group = await GroupService.get_group(session, group_id)
+    group = await service.get_group(group_id)
     if not group:
         raise HTTPException(status_code=404, detail="Gruppe nicht gefunden")
     return group
 
 
 @router.delete("/groups/{group_id}", status_code=204)
-async def delete_group(group_id: UUID, session: AsyncSession = Depends(get_session)):
+async def delete_group(group_id: UUID, service: GroupService = Depends(get_group_service)):
     """Delete a group; currently no role checks applied."""
-    deleted = await GroupService.delete_group(session, group_id)
+    deleted = await service.delete_group(group_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Gruppe nicht gefunden")
     return Response(status_code=204)

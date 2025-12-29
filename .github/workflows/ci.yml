@@ -10,6 +10,9 @@ jobs:
   frontend-check:
     name: Frontend (typecheck & build)
     runs-on: ubuntu-latest
+    env:
+      VITE_SUPABASE_URL: https://fdlmelfgshydwrcbvryg.supabase.co
+      VITE_SUPABASE_PUBLIC_KEY: sb_publishable_iTlkCvERUbGMbm6qND9cJw_jv2O03N-
     defaults:
       run:
         working-directory: frontend
@@ -55,4 +58,10 @@ jobs:
           pip install -r requirements.txt -r requirements-dev.txt
 
       - name: Run tests
-        run: pytest
+        run: pytest -m "not db_smoke"
+
+      - name: Optional DB smoke test
+        if: env.DATABASE_URL != ''
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+        run: pytest -m db_smoke
