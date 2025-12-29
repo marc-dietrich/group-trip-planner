@@ -1,6 +1,6 @@
 # Gruppen-Urlaubsplaner
 
-[![CI](https://github.com/marc/group-trip-planner/actions/workflows/ci.yml/badge.svg)](https://github.com/marc/group-trip-planner/actions/workflows/ci.yml)
+[![CI](https://github.com/marc-dietrich/group-trip-planner/actions/workflows/ci.yml/badge.svg)](https://github.com/marc-dietrich/group-trip-planner/actions/workflows/ci.yml)
 
 Monorepo für die Gruppen-Reiseplanung (Phase 1: Gruppen anlegen, Zeitfenster definieren, Verfügbarkeiten sammeln, bestes Fenster berechnen). Backend und Frontend sind bewusst schlank gehalten und auf schnelle Tests ohne echte DB ausgelegt.
 
