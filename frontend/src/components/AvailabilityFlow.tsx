@@ -107,7 +107,9 @@ function buildMonthGroups(daysAhead = 150): MonthGroup[] {
     });
   }
 
-  return Object.values(groups).sort((a, b) => a.monthKey.localeCompare(b.monthKey));
+  return Object.values(groups).sort((a, b) =>
+    a.monthKey.localeCompare(b.monthKey)
+  );
 }
 
 function dayDiffInclusive(startIso: string, endIso: string): number {
@@ -156,18 +158,29 @@ function MonthCalendar({
   const monthDate = new Date(`${month.monthKey}-01T12:00:00`);
   const weekdayOffset = (monthDate.getDay() + 6) % 7; // Monday as first day
 
-  const cells: Array<DayOption | null> = Array.from({ length: weekdayOffset }, () => null).concat(
-    month.days
-  );
+  const cells: Array<DayOption | null> = Array.from(
+    { length: weekdayOffset },
+    () => null
+  ).concat(month.days);
 
   return (
     <div className="calendar">
       <div className="calendar-header">
-        <button type="button" className="ghost tiny" onClick={onPrev} disabled={atStart}>
+        <button
+          type="button"
+          className="ghost tiny"
+          onClick={onPrev}
+          disabled={atStart}
+        >
           ←
         </button>
         <div className="calendar-title">{month.monthLabel}</div>
-        <button type="button" className="ghost tiny" onClick={onNext} disabled={atEnd}>
+        <button
+          type="button"
+          className="ghost tiny"
+          onClick={onNext}
+          disabled={atEnd}
+        >
           →
         </button>
       </div>
@@ -182,7 +195,8 @@ function MonthCalendar({
 
       <div className="calendar-grid">
         {cells.map((cell, idx) => {
-          if (!cell) return <div key={`empty-${idx}`} className="calendar-cell empty" />;
+          if (!cell)
+            return <div key={`empty-${idx}`} className="calendar-cell empty" />;
 
           const isDisabled = Boolean(
             (minDate && cell.iso < minDate) || (maxDate && cell.iso > maxDate)
@@ -237,9 +251,12 @@ export function AvailabilityFlow() {
 
   const goPrevMonth = () => setMonthIndex((idx) => Math.max(0, idx - 1));
   const goNextMonth = () =>
-    setMonthIndex((idx) => Math.min(monthGroups.length - 1, Math.max(0, idx + 1)));
+    setMonthIndex((idx) =>
+      Math.min(monthGroups.length - 1, Math.max(0, idx + 1))
+    );
 
-  const stepNumber = step === "type" ? 1 : step === "start" ? 2 : step === "end" ? 3 : 4;
+  const stepNumber =
+    step === "type" ? 1 : step === "start" ? 2 : step === "end" ? 3 : 4;
   const stepLabel: Record<Step, string> = {
     type: "Was möchtest du angeben?",
     start: "Startdatum wählen",
@@ -332,7 +349,11 @@ export function AvailabilityFlow() {
           <h3>Wann passt es dir?</h3>
         </div>
         <div className="button-row">
-          <button type="button" className="primary" onClick={() => setOpen(true)}>
+          <button
+            type="button"
+            className="primary"
+            onClick={() => setOpen(true)}
+          >
             + Hinzufügen
           </button>
         </div>
@@ -346,15 +367,19 @@ export function AvailabilityFlow() {
                 <h3>Wann passt es dir?</h3>
               </div>
               <div className="button-row">
-                <button type="button" className="ghost small" onClick={closeDialog}>
+                <button
+                  type="button"
+                  className="ghost small"
+                  onClick={closeDialog}
+                >
                   Schließen
                 </button>
               </div>
             </div>
 
             <p className="muted">
-              Schritt-für-Schritt mit Kalender: Verfügbar/Nicht verfügbar wählen, Start und Ende
-              setzen, prüfen und speichern.
+              Schritt-für-Schritt mit Kalender: Verfügbar/Nicht verfügbar
+              wählen, Start und Ende setzen, prüfen und speichern.
             </p>
 
             {step === "type" && (
@@ -374,7 +399,9 @@ export function AvailabilityFlow() {
                   className="type-choice unavailable"
                   onClick={() => handleTypeChoice("unavailable")}
                 >
-                  <div className="type-choice-title">Ich bin nicht verfügbar</div>
+                  <div className="type-choice-title">
+                    Ich bin nicht verfügbar
+                  </div>
                   <div className="type-choice-sub">
                     Blende Tage aus, die für dich nicht gehen.
                   </div>
@@ -395,13 +422,20 @@ export function AvailabilityFlow() {
                       onClick={() =>
                         setDraft((prev) => ({
                           ...prev,
-                          type: prev.type === "available" ? "unavailable" : "available",
+                          type:
+                            prev.type === "available"
+                              ? "unavailable"
+                              : "available",
                         }))
                       }
                     >
                       Typ wechseln
                     </button>
-                    <button type="button" className="ghost tiny" onClick={resetFlow}>
+                    <button
+                      type="button"
+                      className="ghost tiny"
+                      onClick={resetFlow}
+                    >
                       Neu starten
                     </button>
                   </div>
@@ -435,7 +469,9 @@ export function AvailabilityFlow() {
 
             {step === "end" && currentMonth && (
               <div className="stack sm">
-                <p className="muted">Ende muss am gleichen oder späteren Tag liegen.</p>
+                <p className="muted">
+                  Ende muss am gleichen oder späteren Tag liegen.
+                </p>
                 <MonthCalendar
                   month={currentMonth}
                   selected={draft.end}
@@ -449,7 +485,11 @@ export function AvailabilityFlow() {
                   onSelect={handleEndSelect}
                 />
                 <div className="button-row">
-                  <button type="button" className="ghost small" onClick={() => setStep("start")}>
+                  <button
+                    type="button"
+                    className="ghost small"
+                    onClick={() => setStep("start")}
+                  >
                     Zurück
                   </button>
                   <button
@@ -468,17 +508,29 @@ export function AvailabilityFlow() {
               <div className="stack sm">
                 <div className="review-card">
                   <div className="review-row">
-                    <span className={`range-chip ${draft.type}`}>{RANGE_TAG[draft.type]}</span>
+                    <span className={`range-chip ${draft.type}`}>
+                      {RANGE_TAG[draft.type]}
+                    </span>
                     <span className="muted">{durationLabel}</span>
                   </div>
-                  <div className="review-dates">{formatRange(draft.start, draft.end)}</div>
+                  <div className="review-dates">
+                    {formatRange(draft.start, draft.end)}
+                  </div>
                   <p className="muted small">Kurz prüfen und dann speichern.</p>
                 </div>
                 <div className="button-row">
-                  <button type="button" className="ghost small" onClick={() => setStep("end")}>
+                  <button
+                    type="button"
+                    className="ghost small"
+                    onClick={() => setStep("end")}
+                  >
                     Zurück
                   </button>
-                  <button type="button" className="primary" onClick={handleSave}>
+                  <button
+                    type="button"
+                    className="primary"
+                    onClick={handleSave}
+                  >
                     {editingId ? "Aktualisieren" : "Speichern"}
                   </button>
                 </div>
@@ -492,13 +544,19 @@ export function AvailabilityFlow() {
         <div className="card-header subtle">
           <div>
             <p className="eyebrow">Gespeicherte Zeiträume</p>
-            <h4>{ranges.length ? `${ranges.length} Einträge` : "Noch nichts gespeichert"}</h4>
+            <h4>
+              {ranges.length
+                ? `${ranges.length} Einträge`
+                : "Noch nichts gespeichert"}
+            </h4>
           </div>
         </div>
 
         {!ranges.length && (
           <div className="empty-state">
-            <p className="muted">Füge einen Zeitraum hinzu, um deine Teilnahme zu teilen.</p>
+            <p className="muted">
+              Füge einen Zeitraum hinzu, um deine Teilnahme zu teilen.
+            </p>
           </div>
         )}
 
@@ -507,14 +565,22 @@ export function AvailabilityFlow() {
             {(listOpen ? ranges : ranges.slice(0, 2)).map((range) => (
               <li key={range.id} className="range-row">
                 <div className="range-meta">
-                  <span className={`range-chip ${range.type}`}>{RANGE_TAG[range.type]}</span>
-                  <span className="range-dates">{formatRange(range.start, range.end)}</span>
+                  <span className={`range-chip ${range.type}`}>
+                    {RANGE_TAG[range.type]}
+                  </span>
+                  <span className="range-dates">
+                    {formatRange(range.start, range.end)}
+                  </span>
                   <span className="range-duration">
                     {dayDiffInclusive(range.start, range.end)} Tage
                   </span>
                 </div>
                 <div className="button-row">
-                  <button type="button" className="ghost tiny" onClick={() => handleEdit(range)}>
+                  <button
+                    type="button"
+                    className="ghost tiny"
+                    onClick={() => handleEdit(range)}
+                  >
                     Bearbeiten
                   </button>
                   <button
