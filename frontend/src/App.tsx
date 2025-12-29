@@ -26,6 +26,7 @@ import { GroupCreateModal } from "./components/GroupCreateModal";
 import { GroupsCard } from "./components/GroupsCard";
 import { IdentityStrip } from "./components/IdentityStrip";
 import { Topbar } from "./components/Topbar";
+import { toast } from "sonner";
 import "./App.css";
 
 function App() {
@@ -250,6 +251,25 @@ function App() {
     }
   };
 
+  const handleMockVoice = async () => {
+    try {
+      const res = await fetch("/api/voice/transcribe", { method: "POST" });
+      if (!res.ok) throw new Error(`Fehler: ${res.status}`);
+      const data = await res.json();
+      toast.success(
+        `Mock-Transkript: ${data.audioText}. Verfügbarkeiten: ${
+          data.availability
+            ?.map((a: any) => `${a.start}→${a.end}`)
+            .join(", ") || "–"
+        }`
+      );
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Mock-Transcribe fehlgeschlagen"
+      );
+    }
+  };
+
   const handleEmailAuth = async (event: FormEvent) => {
     event.preventDefault();
     setAuthError(null);
@@ -342,6 +362,13 @@ function App() {
           onDelete={handleDeleteGroup}
           onCreateClick={() => setCreateOpen(true)}
         />
+        <div className="card minimal" style={{ marginTop: "1rem" }}>
+          <div className="button-row">
+            <button type="button" className="ghost" onClick={handleMockVoice}>
+              Sprach-Mock testen
+            </button>
+          </div>
+        </div>
       </main>
 
       <GroupCreateModal
