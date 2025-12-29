@@ -58,4 +58,10 @@ jobs:
           pip install -r requirements.txt -r requirements-dev.txt
 
       - name: Run tests
-        run: pytest
+        run: pytest -m "not db_smoke"
+
+      - name: Optional DB smoke test
+        if: env.DATABASE_URL != ''
+        env:
+          DATABASE_URL: ${{ env.DATABASE_URL }}
+        run: pytest -m db_smoke

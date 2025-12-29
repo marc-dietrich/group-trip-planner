@@ -1,46 +1,29 @@
-"""Test für die API Endpoints."""
-
-import asyncio
+"""API tests with mocked persistence (no real database)."""
 
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
-from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
-from sqlalchemy.orm import sessionmaker
-from sqlalchemy.pool import NullPool
 
-from app.core.config import get_settings
-from app.core.database import get_session as original_get_session
+from app.api.deps import get_group_service
 from app.main import app
+from app.repositories import InMemoryGroupRepository
+from app.services import GroupService
 
 
-@pytest.fixture(scope="module")
-def event_loop():
-    loop = asyncio.new_event_loop()
-    yield loop
-    loop.close()
+@pytest_asyncio.fixture()
+async def fake_group_repo():
+    return InMemoryGroupRepository()
 
 
-settings = get_settings()
-test_engine = create_async_engine(settings.database_url, echo=settings.debug, poolclass=NullPool)
-TestSessionLocal = sessionmaker(test_engine, class_=AsyncSession, expire_on_commit=False)
-
-
-async def override_get_session():
-    async with TestSessionLocal() as session:
-        yield session
-
-
-@pytest_asyncio.fixture(scope="module", autouse=True)
-async def override_dependencies():
-    app.dependency_overrides[original_get_session] = override_get_session
+@pytest_asyncio.fixture(autouse=True)
+async def override_group_service(fake_group_repo):
+    app.dependency_overrides[get_group_service] = lambda: GroupService(fake_group_repo)
     yield
     app.dependency_overrides.clear()
-    await test_engine.dispose()
+
 
 @pytest.mark.asyncio
 async def test_health_endpoint():
-    """Teste Health Check Endpoint"""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.get("/api/health")
@@ -49,9 +32,9 @@ async def test_health_endpoint():
         assert data["status"] == "ok"
         assert "message" in data
 
+
 @pytest.mark.asyncio
 async def test_create_group():
-    """Teste Gruppe erstellen"""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         group_data = {
@@ -67,17 +50,14 @@ async def test_create_group():
         assert data["inviteLink"]
         assert data["role"] == "owner"
 
-        # Fetch groups for actor
         response = await client.get(f"/api/groups?actorId={group_data['actorId']}")
         assert response.status_code == 200
         groups = response.json()
-        assert len(groups) >= 1
         assert any(g["groupId"] == data["groupId"] for g in groups)
 
 
 @pytest.mark.asyncio
 async def test_delete_group():
-    """Teste Gruppe löschen (ohne Rollen-Check)."""
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         group_data = {

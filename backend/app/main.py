@@ -1,5 +1,6 @@
 """Main FastAPI application."""
 
+import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
@@ -14,7 +15,9 @@ settings = get_settings()
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     """Run startup/shutdown tasks for the app lifecycle."""
-    await create_db_and_tables()
+    # Only touch the database when a real connection string is provided
+    if os.getenv("DATABASE_URL"):
+        await create_db_and_tables()
     yield
 
 
