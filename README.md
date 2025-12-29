@@ -1,31 +1,34 @@
 # Gruppen-Urlaubsplaner
 
-Ein minimales Setup für die Gruppen-Reiseplanung Anwendung.
+[![CI](https://github.com/marc/group-trip-planner/actions/workflows/ci.yml/badge.svg)](https://github.com/marc/group-trip-planner/actions/workflows/ci.yml)
+
+Monorepo für die Gruppen-Reiseplanung (Phase 1: Gruppen anlegen, Zeitfenster definieren, Verfügbarkeiten sammeln, bestes Fenster berechnen). Backend und Frontend sind bewusst schlank gehalten und auf schnelle Tests ohne echte DB ausgelegt.
 
 ## Struktur
 
 ```
-├── frontend/          # React + Vite + TypeScript
-├── backend/          # Python + FastAPI + PostgreSQL
+├── frontend/          # React + Vite + TypeScript (shadcn UI, Zustand)
+├── backend/           # Python + FastAPI + SQLModel (PostgreSQL-ready)
 └── README.md
 ```
 
 ## Development Setup
 
-### Database (PostgreSQL)
+### Database (optional)
+
+Die App und Tests laufen standardmäßig ohne laufende Datenbank. Eine echte Postgres-Instanz ist nur für manuelle Smoke-Tests nötig.
 
 ```bash
 cd backend
-./setup_postgres.sh     # Erstellt DB und User automatisch
+./setup_postgres.sh     # Erstellt DB und User automatisch (nur falls benötigt)
 ```
 
 ### Backend (Python + FastAPI)
 
 ```bash
 cd backend
-python -m venv venv
-source venv/bin/activate  # oder venv\Scripts\activate auf Windows
-pip install -r requirements.txt
+python -m venv venv && source venv/bin/activate
+pip install -r requirements.txt -r requirements-dev.txt
 python main.py
 ```
 
@@ -41,6 +44,20 @@ npm run dev
 ```
 
 Frontend läuft auf: http://localhost:3000
+
+## Tests & CI
+
+- Schnelltests (ohne DB):
+  - Backend: `cd backend && pytest -m "not db_smoke"`
+  - Frontend: `cd frontend && npm run build`
+- Optionaler DB-Smoke-Test (führt nur `SELECT 1` aus, keine Mutationen):
+  - `cd backend && DATABASE_URL=<postgres-connection> pytest -m db_smoke`
+- CI: baut Frontend mit öffentlichen Supabase-Keys und führt Backend-Tests ohne DB aus; der Smoke-Job läuft nur, wenn `DATABASE_URL` gesetzt ist.
+
+Letzte lokale Läufe:
+
+- Backend: `pytest -m "not db_smoke"` → alle Tests grün.
+- Frontend: `npm run build` → erfolgreich.
 
 ## API Endpoints (aktuell)
 
@@ -62,11 +79,11 @@ SUPABASE_URL=...
 SUPABASE_ANON_KEY=...
 ```
 
-Frontend (frontend/.env.local):
+Frontend (frontend/.env.local oder `.env.example` als Vorlage):
 
 ```
 VITE_SUPABASE_URL=<project-url>
-VITE_SUPABASE_ANON_KEY=<anon-key>
+VITE_SUPABASE_PUBLIC_KEY=<public-anon-or-publishable-key>
 ```
 
 DB Migration (fügt Nutzer-Tabellen und user_id auf group_members hinzu):
