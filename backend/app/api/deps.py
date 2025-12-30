@@ -9,8 +9,10 @@ from app.user_core.repositories import (
     IdentityRepository,
     SQLModelGroupRepository,
     SQLModelIdentityRepository,
+    AvailabilityRepository,
+    SQLModelAvailabilityRepository,
 )
-from app.user_core.services import AuthService, GroupService
+from app.user_core.services import AuthService, GroupService, AvailabilityService
 
 
 async def get_group_repository(session: AsyncSession = Depends(get_session)) -> GroupRepository:
@@ -30,3 +32,14 @@ async def get_auth_service(
     group_repo: GroupRepository = Depends(get_group_repository),
 ) -> AuthService:
     return AuthService(identity_repo=identity_repo, group_repo=group_repo)
+
+
+async def get_availability_repository(session: AsyncSession = Depends(get_session)) -> AvailabilityRepository:
+    return SQLModelAvailabilityRepository(session)
+
+
+async def get_availability_service(
+    availability_repo: AvailabilityRepository = Depends(get_availability_repository),
+    group_repo: GroupRepository = Depends(get_group_repository),
+) -> AvailabilityService:
+    return AvailabilityService(availability_repo=availability_repo, group_repo=group_repo)

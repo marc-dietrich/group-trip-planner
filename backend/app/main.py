@@ -8,7 +8,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from .core.config import get_settings
 from .core.database import create_db_and_tables
-from .api.routes import auth_router, groups_router, health_router, voice_mock_router
+from .api.routes import auth_router, groups_router, health_router, voice_mock_router, availability_router
 
 settings = get_settings()
 
@@ -43,6 +43,7 @@ app.include_router(health_router)
 app.include_router(groups_router)
 app.include_router(auth_router)
 app.include_router(voice_mock_router)
+app.include_router(availability_router)
 
 # For module execution
 def run_server():
