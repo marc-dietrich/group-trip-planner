@@ -126,10 +126,6 @@ function formatRange(startIso: string, endIso: string): string {
   return `${start} → ${end}`;
 }
 
-function randomId(): string {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
-}
-
 type MonthCalendarProps = {
   month: MonthGroup;
   selected: string | null;
@@ -758,11 +754,7 @@ export function AvailabilityFlow({
                     disabled={!canSave}
                     onClick={handleSave}
                   >
-                    {saving
-                      ? "Speichere..."
-                      : editingId
-                      ? "Aktualisieren"
-                      : "Speichern"}
+                    {saving ? "Speichere..." : "Speichern"}
                   </button>
                 </div>
               </div>
