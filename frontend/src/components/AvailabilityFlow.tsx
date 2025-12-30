@@ -295,10 +295,13 @@ export function AvailabilityFlow({
       setRangesLoading(true);
       setRangesError(null);
       try {
-        const res = await fetch(`/api/groups/${selectedGroupId}/availabilities`, {
-          headers: { Authorization: `Bearer ${identity.accessToken ?? ""}` },
-          signal: controller.signal,
-        });
+        const res = await fetch(
+          `/api/groups/${selectedGroupId}/availabilities`,
+          {
+            headers: { Authorization: `Bearer ${identity.accessToken ?? ""}` },
+            signal: controller.signal,
+          }
+        );
         if (!res.ok) throw new Error(`Fehler: ${res.status}`);
         const data = (await res.json()) as Array<{
           id: string;
@@ -314,14 +317,17 @@ export function AvailabilityFlow({
             end: item.endDate,
             groupId: selectedGroupId,
             groupName:
-              groups.find((g) => g.groupId === selectedGroupId)?.name || "Unbekannte Gruppe",
+              groups.find((g) => g.groupId === selectedGroupId)?.name ||
+              "Unbekannte Gruppe",
           }))
           .sort((a, b) => a.start.localeCompare(b.start));
         setRanges(mapped);
         setListOpen(false);
       } catch (err) {
         if (controller.signal.aborted) return;
-        setRangesError(err instanceof Error ? err.message : "Laden fehlgeschlagen");
+        setRangesError(
+          err instanceof Error ? err.message : "Laden fehlgeschlagen"
+        );
       } finally {
         if (controller.signal.aborted) return;
         setRangesLoading(false);
@@ -369,7 +375,13 @@ export function AvailabilityFlow({
       ? `${dayDiffInclusive(draft.start, draft.end)} Tage`
       : "–";
 
-  const canSave = Boolean(draft.start && draft.end && draft.groupId && identity.kind === "user" && !saving);
+  const canSave = Boolean(
+    draft.start &&
+      draft.end &&
+      draft.groupId &&
+      identity.kind === "user" &&
+      !saving
+  );
 
   const handleTypeChoice = (type: RangeType) => {
     setDraft((prev) => ({ ...prev, type }));
@@ -451,13 +463,17 @@ export function AvailabilityFlow({
         groupName: group.name,
       };
 
-      setRanges((prev) => [...prev, payload].sort((a, b) => a.start.localeCompare(b.start)));
+      setRanges((prev) =>
+        [...prev, payload].sort((a, b) => a.start.localeCompare(b.start))
+      );
 
       toast.success("Zeitraum gespeichert");
       resetFlow();
       setOpen(false);
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Speichern fehlgeschlagen");
+      toast.error(
+        err instanceof Error ? err.message : "Speichern fehlgeschlagen"
+      );
     } finally {
       setSaving(false);
     }
@@ -479,7 +495,9 @@ export function AvailabilityFlow({
         setRanges((prev) => prev.filter((item) => item.id !== id));
         toast.success("Gelöscht");
       } catch (err) {
-        toast.error(err instanceof Error ? err.message : "Löschen fehlgeschlagen");
+        toast.error(
+          err instanceof Error ? err.message : "Löschen fehlgeschlagen"
+        );
       }
     };
 
@@ -513,7 +531,9 @@ export function AvailabilityFlow({
             className="primary"
             onClick={() => {
               if (identity.kind !== "user") {
-                toast.error("Bitte zuerst anmelden, um Verfügbarkeiten zu erfassen.");
+                toast.error(
+                  "Bitte zuerst anmelden, um Verfügbarkeiten zu erfassen."
+                );
                 return;
               }
               setOpen(true);
@@ -741,8 +761,8 @@ export function AvailabilityFlow({
                     {saving
                       ? "Speichere..."
                       : editingId
-                        ? "Aktualisieren"
-                        : "Speichern"}
+                      ? "Aktualisieren"
+                      : "Speichern"}
                   </button>
                 </div>
               </div>
@@ -759,8 +779,8 @@ export function AvailabilityFlow({
               {rangesLoading
                 ? "Lade..."
                 : ranges.length
-                  ? `${ranges.length} Einträge`
-                  : "Noch nichts gespeichert"}
+                ? `${ranges.length} Einträge`
+                : "Noch nichts gespeichert"}
             </h4>
           </div>
         </div>
