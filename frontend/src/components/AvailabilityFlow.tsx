@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
+import { GroupMembership, Identity } from "../types";
 
 const RANGE_TAG: Record<RangeType, string> = {
   available: "Verfügbar",
@@ -12,6 +13,7 @@ type DraftRange = {
   type: RangeType;
   start: string | null;
   end: string | null;
+  groupId: string | null;
 };
 
 type AvailabilityRange = {
@@ -19,6 +21,8 @@ type AvailabilityRange = {
   type: RangeType;
   start: string;
   end: string;
+  groupId: string;
+  groupName: string;
 };
 
 type DayOption = {
@@ -40,6 +44,7 @@ const initialDraft: DraftRange = {
   type: "available",
   start: null,
   end: null,
+  groupId: null,
 };
 
 const monthFormatter = new Intl.DateTimeFormat("de-DE", {
@@ -119,10 +124,6 @@ function formatRange(startIso: string, endIso: string): string {
   const end = fullFormatter.format(new Date(endIso));
   if (startIso === endIso) return start;
   return `${start} → ${end}`;
-}
-
-function randomId(): string {
-  return `${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`;
 }
 
 type MonthCalendarProps = {
@@ -228,13 +229,110 @@ function MonthCalendar({
   );
 }
 
-export function AvailabilityFlow() {
+type AvailabilityFlowProps = {
+  groups: GroupMembership[];
+  groupsLoading: boolean;
+  groupsError: string | null;
+  identity: Identity;
+};
+
+export function AvailabilityFlow({
+  groups,
+  groupsLoading,
+  groupsError,
+  identity,
+}: AvailabilityFlowProps) {
   const [draft, setDraft] = useState<DraftRange>(initialDraft);
   const [step, setStep] = useState<Step>("type");
   const [ranges, setRanges] = useState<AvailabilityRange[]>([]);
-  const [editingId, setEditingId] = useState<string | null>(null);
+  const [rangesLoading, setRangesLoading] = useState(false);
+  const [rangesError, setRangesError] = useState<string | null>(null);
+  // editing disabled: entries are either created new or deleted
   const [listOpen, setListOpen] = useState(false);
   const [open, setOpen] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const selectedGroup = useMemo(
+    () => groups.find((g) => g.groupId === selectedGroupId) ?? null,
+    [selectedGroupId, groups]
+  );
+
+  useEffect(() => {
+    if (!groups.length) {
+      setSelectedGroupId(null);
+      setDraft((prev) => ({ ...prev, groupId: null }));
+      return;
+    }
+
+    setSelectedGroupId((prev) => {
+      if (prev && groups.some((g) => g.groupId === prev)) return prev;
+      return groups[0]?.groupId ?? null;
+    });
+
+    setDraft((prev) => {
+      if (prev.groupId && groups.some((g) => g.groupId === prev.groupId)) {
+        return prev;
+      }
+      const fallback = groups[0]?.groupId ?? null;
+      return { ...prev, groupId: fallback };
+    });
+  }, [groups]);
+
+  useEffect(() => {
+    if (identity.kind !== "user") return;
+    if (!selectedGroupId) {
+      setRanges([]);
+      setRangesError(null);
+      return;
+    }
+
+    const controller = new AbortController();
+    const load = async () => {
+      setRangesLoading(true);
+      setRangesError(null);
+      try {
+        const res = await fetch(
+          `/api/groups/${selectedGroupId}/availabilities`,
+          {
+            headers: { Authorization: `Bearer ${identity.accessToken ?? ""}` },
+            signal: controller.signal,
+          }
+        );
+        if (!res.ok) throw new Error(`Fehler: ${res.status}`);
+        const data = (await res.json()) as Array<{
+          id: string;
+          startDate: string;
+          endDate: string;
+          kind: RangeType;
+        }>;
+        const mapped: AvailabilityRange[] = data
+          .map((item) => ({
+            id: item.id,
+            type: item.kind,
+            start: item.startDate,
+            end: item.endDate,
+            groupId: selectedGroupId,
+            groupName:
+              groups.find((g) => g.groupId === selectedGroupId)?.name ||
+              "Unbekannte Gruppe",
+          }))
+          .sort((a, b) => a.start.localeCompare(b.start));
+        setRanges(mapped);
+        setListOpen(false);
+      } catch (err) {
+        if (controller.signal.aborted) return;
+        setRangesError(
+          err instanceof Error ? err.message : "Laden fehlgeschlagen"
+        );
+      } finally {
+        if (controller.signal.aborted) return;
+        setRangesLoading(false);
+      }
+    };
+
+    load();
+    return () => controller.abort();
+  }, [identity, selectedGroupId, groups]);
 
   const monthGroups = useMemo(() => buildMonthGroups(730), []);
   const [monthIndex, setMonthIndex] = useState(0);
@@ -273,6 +371,14 @@ export function AvailabilityFlow() {
       ? `${dayDiffInclusive(draft.start, draft.end)} Tage`
       : "–";
 
+  const canSave = Boolean(
+    draft.start &&
+      draft.end &&
+      draft.groupId &&
+      identity.kind === "user" &&
+      !saving
+  );
+
   const handleTypeChoice = (type: RangeType) => {
     setDraft((prev) => ({ ...prev, type }));
     setMonthIndex(0);
@@ -290,45 +396,108 @@ export function AvailabilityFlow() {
   };
 
   const resetFlow = () => {
-    setDraft(initialDraft);
+    const fallbackGroupId =
+      selectedGroupId && groups.some((g) => g.groupId === selectedGroupId)
+        ? selectedGroupId
+        : groups[0]?.groupId ?? null;
+
+    setDraft({ ...initialDraft, groupId: fallbackGroupId });
     setStep("type");
-    setEditingId(null);
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!draft.start || !draft.end) return;
+    if (!draft.groupId) {
+      toast.error("Bitte wähle eine Gruppe");
+      return;
+    }
 
-    const payload: AvailabilityRange = {
-      id: editingId ?? randomId(),
-      type: draft.type,
-      start: draft.start,
-      end: draft.end,
-    };
+    if (identity.kind !== "user") {
+      toast.error("Bitte melde dich an, um Verfügbarkeiten zu speichern.");
+      return;
+    }
 
-    setRanges((prev) => {
-      if (editingId) {
-        return prev.map((item) => (item.id === editingId ? payload : item));
+    const group = groups.find((g) => g.groupId === draft.groupId);
+    if (!group) {
+      toast.error("Ausgewählte Gruppe nicht mehr vorhanden");
+      return;
+    }
+
+    setSaving(true);
+    try {
+      const res = await fetch(`/api/groups/${group.groupId}/availabilities`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${identity.accessToken ?? ""}`,
+        },
+        body: JSON.stringify({
+          startDate: draft.start,
+          endDate: draft.end,
+          kind: draft.type,
+        }),
+      });
+
+      if (!res.ok) {
+        const msg = await res.text();
+        throw new Error(msg || `Fehler: ${res.status}`);
       }
-      return [...prev, payload].sort((a, b) => a.start.localeCompare(b.start));
-    });
 
-    toast.success(editingId ? "Zeitraum aktualisiert" : "Zeitraum gespeichert");
-    resetFlow();
-    setOpen(false);
-  };
+      const data = (await res.json()) as {
+        id: string;
+        startDate: string;
+        endDate: string;
+        kind: RangeType;
+      };
 
-  const handleEdit = (range: AvailabilityRange) => {
-    setDraft({ type: range.type, start: range.start, end: range.end });
-    setEditingId(range.id);
-    setListOpen(true);
-    setStep("review");
+      const payload: AvailabilityRange = {
+        id: data.id,
+        type: data.kind,
+        start: data.startDate,
+        end: data.endDate,
+        groupId: group.groupId,
+        groupName: group.name,
+      };
+
+      setRanges((prev) =>
+        [...prev, payload].sort((a, b) => a.start.localeCompare(b.start))
+      );
+
+      toast.success("Zeitraum gespeichert");
+      resetFlow();
+      setOpen(false);
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Speichern fehlgeschlagen"
+      );
+    } finally {
+      setSaving(false);
+    }
   };
 
   const handleDelete = (id: string) => {
-    setRanges((prev) => prev.filter((item) => item.id !== id));
-    if (editingId === id) {
-      resetFlow();
+    if (identity.kind !== "user") {
+      toast.error("Bitte anmelden, um zu löschen");
+      return;
     }
+
+    const doDelete = async () => {
+      try {
+        const res = await fetch(`/api/availabilities/${id}`, {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${identity.accessToken ?? ""}` },
+        });
+        if (!res.ok) throw new Error(`Fehler: ${res.status}`);
+        setRanges((prev) => prev.filter((item) => item.id !== id));
+        toast.success("Gelöscht");
+      } catch (err) {
+        toast.error(
+          err instanceof Error ? err.message : "Löschen fehlgeschlagen"
+        );
+      }
+    };
+
+    void doDelete();
   };
 
   const closeDialog = () => {
@@ -356,12 +525,26 @@ export function AvailabilityFlow() {
           <button
             type="button"
             className="primary"
-            onClick={() => setOpen(true)}
+            onClick={() => {
+              if (identity.kind !== "user") {
+                toast.error(
+                  "Bitte zuerst anmelden, um Verfügbarkeiten zu erfassen."
+                );
+                return;
+              }
+              setOpen(true);
+            }}
+            disabled={identity.kind !== "user"}
           >
             + Hinzufügen
           </button>
         </div>
       </div>
+      {identity.kind !== "user" && (
+        <div className="pill warning" style={{ marginTop: "0.5rem" }}>
+          Bitte melde dich an, bevor du Verfügbarkeiten hinzufügst.
+        </div>
+      )}
       {open && (
         <div className="modal-overlay" role="dialog" aria-modal="true">
           <div className="modal">
@@ -385,6 +568,38 @@ export function AvailabilityFlow() {
               Schritt-für-Schritt mit Kalender: Verfügbar/Nicht verfügbar
               wählen, Start und Ende setzen, prüfen und speichern.
             </p>
+
+            <div className="stack xs">
+              <label className="field compact">
+                <span>Gruppe auswählen</span>
+                <select
+                  value={selectedGroupId ?? ""}
+                  onChange={(e) => {
+                    const nextId = e.target.value || null;
+                    setSelectedGroupId(nextId);
+                    setDraft((prev) => ({ ...prev, groupId: nextId }));
+                  }}
+                  disabled={groupsLoading || !groups.length}
+                  required
+                >
+                  <option value="" disabled>
+                    {groupsLoading ? "Lade Gruppen..." : "Gruppe wählen"}
+                  </option>
+                  {groups.map((group) => (
+                    <option key={group.groupId} value={group.groupId}>
+                      {group.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+
+              {groupsError && <div className="pill danger">{groupsError}</div>}
+              {!groupsLoading && !groups.length && (
+                <p className="muted small">
+                  Lege zuerst eine Gruppe an, um Verfügbarkeiten zuzuordnen.
+                </p>
+              )}
+            </div>
 
             {step === "type" && (
               <div className="type-choices">
@@ -520,6 +735,9 @@ export function AvailabilityFlow() {
                   <div className="review-dates">
                     {formatRange(draft.start, draft.end)}
                   </div>
+                  <div className="muted small">
+                    Gruppe: {selectedGroup?.name ?? "Keine Gruppe"}
+                  </div>
                   <p className="muted small">Kurz prüfen und dann speichern.</p>
                 </div>
                 <div className="button-row">
@@ -533,9 +751,10 @@ export function AvailabilityFlow() {
                   <button
                     type="button"
                     className="primary"
+                    disabled={!canSave}
                     onClick={handleSave}
                   >
-                    {editingId ? "Aktualisieren" : "Speichern"}
+                    {saving ? "Speichere..." : "Speichern"}
                   </button>
                 </div>
               </div>
@@ -549,14 +768,18 @@ export function AvailabilityFlow() {
           <div>
             <p className="eyebrow">Gespeicherte Zeiträume</p>
             <h4>
-              {ranges.length
+              {rangesLoading
+                ? "Lade..."
+                : ranges.length
                 ? `${ranges.length} Einträge`
                 : "Noch nichts gespeichert"}
             </h4>
           </div>
         </div>
 
-        {!ranges.length && (
+        {rangesError && <div className="pill danger">{rangesError}</div>}
+
+        {!rangesLoading && !ranges.length && (
           <div className="empty-state">
             <p className="muted">
               Füge einen Zeitraum hinzu, um deine Teilnahme zu teilen.
@@ -578,15 +801,9 @@ export function AvailabilityFlow() {
                   <span className="range-duration">
                     {dayDiffInclusive(range.start, range.end)} Tage
                   </span>
+                  <span className="muted small">Gruppe: {range.groupName}</span>
                 </div>
                 <div className="button-row">
-                  <button
-                    type="button"
-                    className="ghost tiny"
-                    onClick={() => handleEdit(range)}
-                  >
-                    Bearbeiten
-                  </button>
                   <button
                     type="button"
                     className="ghost tiny danger"

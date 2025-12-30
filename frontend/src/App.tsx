@@ -355,7 +355,12 @@ function App() {
       />
 
       <main className="layout minimal-layout">
-        <AvailabilityFlow />
+        <AvailabilityFlow
+          groups={groups}
+          groupsLoading={groupsLoading}
+          groupsError={groupsError}
+          identity={identity}
+        />
         <GroupsCard
           groups={groups}
           groupsLoading={groupsLoading}
