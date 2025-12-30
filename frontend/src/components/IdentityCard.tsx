@@ -1,4 +1,13 @@
 import { Identity } from "../types";
+import {
+  buttonGhostSmall,
+  cardMinimal,
+  eyebrow,
+  field,
+  identityLine,
+  input,
+  stackSm,
+} from "../ui";
 
 type IdentityCardProps = {
   identity: Identity;
@@ -22,11 +31,11 @@ export function IdentityCard({
   const isLoggedIn = identity.kind === "user";
 
   return (
-    <section className="card minimal">
-      <div className="identity-row">
-        <div className="identity-text">
-          <p className="eyebrow">Status</p>
-          <div className="identity-line">
+    <section className={cardMinimal}>
+      <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+        <div className="space-y-1">
+          <p className={eyebrow}>Status</p>
+          <div className={identityLine}>
             {isLoggedIn ? (
               <span>Angemeldet als {identity.displayName}</span>
             ) : (
@@ -34,11 +43,11 @@ export function IdentityCard({
             )}
           </div>
         </div>
-        <div className="identity-actions">
+        <div className="flex gap-2">
           {isLoggedIn ? (
             <button
               type="button"
-              className="ghost small"
+              className={buttonGhostSmall}
               onClick={onLogout}
               disabled={authLoading}
             >
@@ -47,7 +56,7 @@ export function IdentityCard({
           ) : (
             <button
               type="button"
-              className="ghost small"
+              className={buttonGhostSmall}
               onClick={onAuthClick}
               disabled={!supabaseEnabled}
             >
@@ -57,10 +66,11 @@ export function IdentityCard({
         </div>
       </div>
 
-      <div className="stack sm">
-        <label className="field compact">
-          <span>Anzeigename</span>
+      <div className={stackSm}>
+        <label className={field}>
+          <span className="text-sm text-slate-700">Anzeigename</span>
           <input
+            className={input}
             value={localDisplayName}
             onChange={(e) => onDisplayNameChange(e.target.value)}
             placeholder="z. B. Alex"

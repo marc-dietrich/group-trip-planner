@@ -1,5 +1,12 @@
 import { GroupMembership } from "../types";
 import { GroupsPanel } from "./GroupsPanel";
+import {
+  buttonGhostSmall,
+  buttonRow,
+  cardHeaderSubtle,
+  cardMinimal,
+  eyebrow,
+} from "../ui";
 
 type GroupsCardProps = {
   groups: GroupMembership[];
@@ -19,14 +26,18 @@ export function GroupsCard({
   onCreateClick,
 }: GroupsCardProps) {
   return (
-    <section className="card minimal">
-      <div className="card-header subtle">
+    <section className={cardMinimal}>
+      <div className={cardHeaderSubtle}>
         <div>
-          <p className="eyebrow">Deine Gruppen</p>
-          <h3>Übersicht</h3>
+          <p className={eyebrow}>Deine Gruppen</p>
+          <h3 className="text-lg font-semibold text-slate-900">Übersicht</h3>
         </div>
-        <div className="button-row">
-          <button type="button" className="ghost small" onClick={onCreateClick}>
+        <div className={buttonRow}>
+          <button
+            type="button"
+            className={buttonGhostSmall}
+            onClick={onCreateClick}
+          >
             Gruppe erstellen
           </button>
         </div>

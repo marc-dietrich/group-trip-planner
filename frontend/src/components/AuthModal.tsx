@@ -1,4 +1,19 @@
 import type { FormEvent } from "react";
+import {
+  buttonGhostSmall,
+  buttonPrimary,
+  buttonRow,
+  cardHeaderSubtle,
+  eyebrow,
+  field,
+  input,
+  modalCard,
+  modalOverlay,
+  pill,
+  pillDanger,
+  pillSuccess,
+  stackSm,
+} from "../ui";
 
 type AuthModalProps = {
   open: boolean;
@@ -34,31 +49,35 @@ export function AuthModal({
   if (!open) return null;
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true">
-      <div className="modal">
-        <div className="card-header subtle">
+    <div className={modalOverlay} role="dialog" aria-modal="true">
+      <div className={modalCard}>
+        <div className={cardHeaderSubtle}>
           <div>
-            <p className="eyebrow">Anmelden</p>
-            <h3>Login / Sign up</h3>
+            <p className={eyebrow}>Anmelden</p>
+            <h3 className="text-lg font-semibold text-slate-900">
+              Login / Sign up
+            </h3>
           </div>
-          <button type="button" className="ghost small" onClick={onClose}>
+          <button type="button" className={buttonGhostSmall} onClick={onClose}>
             Schließen
           </button>
         </div>
 
-        <form className="stack sm" onSubmit={onSubmit}>
-          <label className="field compact">
-            <span>E-Mail</span>
+        <form className={stackSm} onSubmit={onSubmit}>
+          <label className={field}>
+            <span className="text-sm text-slate-700">E-Mail</span>
             <input
+              className={input}
               type="email"
               value={email}
               onChange={(e) => onEmailChange(e.target.value)}
               placeholder="du@example.com"
             />
           </label>
-          <label className="field compact">
-            <span>Passwort</span>
+          <label className={field}>
+            <span className="text-sm text-slate-700">Passwort</span>
             <input
+              className={input}
               type="password"
               value={password}
               onChange={(e) => onPasswordChange(e.target.value)}
@@ -66,17 +85,17 @@ export function AuthModal({
             />
           </label>
 
-          <div className="button-row">
+          <div className={buttonRow}>
             <button
               type="submit"
-              className="primary"
+              className={buttonPrimary}
               disabled={authLoading || !supabaseEnabled}
             >
               {authMode === "signin" ? "Login" : "Registrieren"}
             </button>
             <button
               type="button"
-              className="ghost small"
+              className={buttonGhostSmall}
               onClick={() =>
                 onSwitchMode(authMode === "signin" ? "signup" : "signin")
               }
@@ -88,10 +107,10 @@ export function AuthModal({
           </div>
 
           {!supabaseEnabled && (
-            <div className="pill">Supabase nicht konfiguriert</div>
+            <div className={pill}>Supabase nicht konfiguriert</div>
           )}
-          {authError && <div className="pill danger">{authError}</div>}
-          {authNotice && <div className="pill success">{authNotice}</div>}
+          {authError && <div className={pillDanger}>{authError}</div>}
+          {authNotice && <div className={pillSuccess}>{authNotice}</div>}
         </form>
       </div>
     </div>

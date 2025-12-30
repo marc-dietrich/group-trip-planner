@@ -1,4 +1,5 @@
 import { GroupMembership } from "../types";
+import { buttonGhostDanger, buttonGhostTiny, muted, pillDanger } from "../ui";
 
 type GroupsPanelProps = {
   groups: GroupMembership[];
@@ -16,22 +17,25 @@ export function GroupsPanel({
   onDelete,
 }: GroupsPanelProps) {
   return (
-    <div className="groups-block">
+    <div className="mt-2">
       {groupsLoading ? (
-        <p className="muted">Gruppen werden geladen...</p>
+        <p className={muted}>Gruppen werden geladen...</p>
       ) : groupsError ? (
-        <div className="pill danger">{groupsError}</div>
+        <div className={pillDanger}>{groupsError}</div>
       ) : groups.length === 0 ? (
-        <p className="muted">Noch keine Gruppe.</p>
+        <p className={muted}>Noch keine Gruppe.</p>
       ) : (
-        <ul className="group-list">
+        <ul className="flex flex-col gap-2">
           {groups.map((g) => (
-            <li key={g.groupId}>
-              <span>{g.name}</span>
-              <div className="group-actions">
+            <li
+              key={g.groupId}
+              className="flex items-center justify-between rounded-lg border border-slate-200 bg-slate-50 px-3 py-2"
+            >
+              <span className="font-medium text-slate-900">{g.name}</span>
+              <div className="flex items-center gap-2">
                 <button
                   type="button"
-                  className="ghost tiny danger"
+                  className={`${buttonGhostTiny} ${buttonGhostDanger}`}
                   onClick={() => onDelete(g.groupId)}
                   disabled={deletingId === g.groupId}
                 >
