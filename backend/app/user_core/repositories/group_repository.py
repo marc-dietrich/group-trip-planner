@@ -7,7 +7,7 @@ from sqlalchemy import or_, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
-from app.user_core.models import Group, GroupMember
+from app.user_core.models import Group, GroupMember, User
 
 
 class GroupRepository(Protocol):
@@ -63,6 +63,13 @@ class SQLModelGroupRepository(GroupRepository):
     ) -> tuple[Group, GroupMember]:
         creator_actor_id = actor_id or (user_id or "")
         member_actor_id = actor_id or (user_id or "")
+
+        if user_id:
+            existing_user = await self.session.get(User, user_id)
+            if not existing_user:
+                # Ensure authenticated creators have a backing user row to satisfy FK constraints.
+                self.session.add(User(id=user_id, display_name=display_name, email=None))
+                await self.session.flush()
         group = Group(name=group_name, created_by_actor=creator_actor_id)
         self.session.add(group)
         await self.session.flush()
