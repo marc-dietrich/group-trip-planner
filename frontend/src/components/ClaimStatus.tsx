@@ -1,5 +1,13 @@
 import type { Session } from "@supabase/supabase-js";
 import { ClaimResponse } from "../types";
+import {
+  cardHeader,
+  muted,
+  mutedCard,
+  pill,
+  pillDanger,
+  pillSuccess,
+} from "../ui";
 
 type ClaimStatusProps = {
   session: Session | null;
@@ -17,23 +25,27 @@ export function ClaimStatus({
   if (!session) return null;
 
   return (
-    <section className="card muted-card">
-      <div className="card-header">
+    <section className={mutedCard}>
+      <div className={cardHeader}>
         <div>
-          <p className="eyebrow">Verknüpfung</p>
-          <h3>Actor & Supabase</h3>
+          <p className="text-xs uppercase tracking-[0.16em] text-slate-600">
+            Verknüpfung
+          </p>
+          <h3 className="text-lg font-semibold text-slate-900">
+            Actor & Supabase
+          </h3>
         </div>
       </div>
-      <p className="muted">
+      <p className={muted}>
         Dein lokaler Actor wird mit dem Supabase-Konto verbunden, damit
         bestehende Gruppen übernommen werden.
       </p>
       {claiming ? (
-        <div className="pill">Claim läuft...</div>
+        <div className={pill}>Claim läuft...</div>
       ) : claimError ? (
-        <div className="pill danger">{claimError}</div>
+        <div className={pillDanger}>{claimError}</div>
       ) : claimResult ? (
-        <div className="pill success">Actor verknüpft</div>
+        <div className={pillSuccess}>Actor verknüpft</div>
       ) : null}
     </section>
   );

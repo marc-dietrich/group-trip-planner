@@ -1,4 +1,11 @@
 import { Identity } from "../types";
+import {
+  buttonGhostSmall,
+  eyebrow,
+  identityIcon,
+  identityLine,
+  identityShell,
+} from "../ui";
 
 type IdentityStripProps = {
   identity: Identity;
@@ -16,21 +23,23 @@ export function IdentityStrip({
   onLogout,
 }: IdentityStripProps) {
   return (
-    <section className="identity-hero">
-      <div className="identity-icon">👥</div>
-      <div className="identity-main">
-        <p className="eyebrow">Status</p>
-        <div className="identity-line">
+    <section className={identityShell}>
+      <div className={identityIcon}>👥</div>
+      <div className="flex flex-1 flex-col gap-2">
+        <p className={eyebrow}>Status</p>
+        <div className={identityLine}>
           {identity.kind === "user"
             ? `Angemeldet als ${identity.displayName}`
             : "Lokaler Nutzer (nicht eingeloggt)"}
         </div>
-        <div className="identity-subline">
-          <span className="hi-badge">Hi {identity.displayName}</span>
+        <div className="flex flex-wrap items-center gap-3 text-sm text-slate-700">
+          <span className="inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 font-semibold text-indigo-800">
+            Hi {identity.displayName}
+          </span>
           {identity.kind === "user" ? (
             <button
               type="button"
-              className="ghost small"
+              className={buttonGhostSmall}
               onClick={onLogout}
               disabled={authLoading}
             >
@@ -39,7 +48,7 @@ export function IdentityStrip({
           ) : (
             <button
               type="button"
-              className="ghost small"
+              className={buttonGhostSmall}
               onClick={onLogin}
               disabled={!supabaseEnabled}
             >

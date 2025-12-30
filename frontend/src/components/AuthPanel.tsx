@@ -1,4 +1,18 @@
 import type { FormEvent } from "react";
+import {
+  buttonGhostSmall,
+  buttonPrimary,
+  buttonRow,
+  cardHeaderSubtle,
+  cardMinimal,
+  eyebrow,
+  field,
+  input,
+  pill,
+  pillDanger,
+  pillSuccess,
+  stackSm,
+} from "../ui";
 
 type AuthPanelProps = {
   open: boolean;
@@ -32,28 +46,30 @@ export function AuthPanel({
   onSwitchMode,
 }: AuthPanelProps) {
   return (
-    <section className="card minimal">
-      <div className="card-header subtle">
-        <p className="eyebrow">Anmelden</p>
-        <button type="button" className="ghost small" onClick={onToggle}>
+    <section className={cardMinimal}>
+      <div className={cardHeaderSubtle}>
+        <p className={eyebrow}>Anmelden</p>
+        <button type="button" className={buttonGhostSmall} onClick={onToggle}>
           {open ? "Schließen" : "Log in / Sign up"}
         </button>
       </div>
 
       {open && (
-        <form className="stack sm" onSubmit={onSubmit}>
-          <label className="field compact">
-            <span>E-Mail</span>
+        <form className={stackSm} onSubmit={onSubmit}>
+          <label className={field}>
+            <span className="text-sm text-slate-700">E-Mail</span>
             <input
+              className={input}
               type="email"
               value={email}
               onChange={(e) => onEmailChange(e.target.value)}
               placeholder="du@example.com"
             />
           </label>
-          <label className="field compact">
-            <span>Passwort</span>
+          <label className={field}>
+            <span className="text-sm text-slate-700">Passwort</span>
             <input
+              className={input}
               type="password"
               value={password}
               onChange={(e) => onPasswordChange(e.target.value)}
@@ -61,17 +77,17 @@ export function AuthPanel({
             />
           </label>
 
-          <div className="button-row">
+          <div className={buttonRow}>
             <button
               type="submit"
-              className="primary"
+              className={buttonPrimary}
               disabled={authLoading || !supabaseEnabled}
             >
               {authMode === "signin" ? "Login" : "Registrieren"}
             </button>
             <button
               type="button"
-              className="ghost small"
+              className={buttonGhostSmall}
               onClick={() =>
                 onSwitchMode(authMode === "signin" ? "signup" : "signin")
               }
@@ -83,10 +99,10 @@ export function AuthPanel({
           </div>
 
           {!supabaseEnabled && (
-            <div className="pill">Supabase nicht konfiguriert</div>
+            <div className={pill}>Supabase nicht konfiguriert</div>
           )}
-          {authError && <div className="pill danger">{authError}</div>}
-          {authNotice && <div className="pill success">{authNotice}</div>}
+          {authError && <div className={pillDanger}>{authError}</div>}
+          {authNotice && <div className={pillSuccess}>{authNotice}</div>}
         </form>
       )}
     </section>

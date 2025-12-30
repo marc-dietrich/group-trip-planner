@@ -1,6 +1,26 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { GroupMembership, Identity } from "../types";
+import {
+  buttonGhostDanger,
+  buttonGhostSmall,
+  buttonGhostTiny,
+  buttonPrimary,
+  buttonRow,
+  card,
+  cardHeaderSubtle,
+  eyebrow,
+  field,
+  modalCard,
+  modalOverlay,
+  muted,
+  pillDanger,
+  pillWarning,
+  select,
+  smallMuted,
+  stackSm,
+  stackXs,
+} from "../ui";
 
 const RANGE_TAG: Record<RangeType, string> = {
   available: "Verfügbar",
@@ -8,6 +28,20 @@ const RANGE_TAG: Record<RangeType, string> = {
 };
 type RangeType = "available" | "unavailable";
 type Step = "type" | "start" | "end" | "review";
+
+const rangeChipClass = (type: RangeType) =>
+  `${
+    type === "available"
+      ? "border-green-200 bg-green-50 text-green-700"
+      : "border-rose-200 bg-rose-50 text-rose-700"
+  } inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-semibold`;
+
+const typeChoiceClass = (type: RangeType) =>
+  `${
+    type === "available"
+      ? "border-green-200 bg-green-50"
+      : "border-amber-200 bg-amber-50"
+  } w-full text-left rounded-xl border px-4 py-3 text-slate-900 shadow-sm transition hover:-translate-y-0.5 hover:shadow-card`;
 
 type DraftRange = {
   type: RangeType;
@@ -169,20 +203,22 @@ function MonthCalendar({
   );
 
   return (
-    <div className="calendar">
-      <div className="calendar-header">
+    <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3">
+      <div className="flex items-center justify-between gap-2">
         <button
           type="button"
-          className="ghost tiny"
+          className={buttonGhostTiny}
           onClick={onPrev}
           disabled={atStart}
         >
           ←
         </button>
-        <div className="calendar-title">{month.monthLabel}</div>
+        <div className="text-sm font-semibold text-slate-900">
+          {month.monthLabel}
+        </div>
         <button
           type="button"
-          className="ghost tiny"
+          className={buttonGhostTiny}
           onClick={onNext}
           disabled={atEnd}
         >
@@ -190,18 +226,18 @@ function MonthCalendar({
         </button>
       </div>
 
-      <div className="calendar-weekdays">
+      <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-slate-600">
         {"Mo Di Mi Do Fr Sa So".split(" ").map((day) => (
-          <div key={day} className="calendar-weekday">
+          <div key={day} className="rounded-md bg-slate-50 py-1">
             {day}
           </div>
         ))}
       </div>
 
-      <div className="calendar-grid">
+      <div className="grid grid-cols-7 gap-1">
         {cells.map((cell, idx) => {
           if (!cell)
-            return <div key={`empty-${idx}`} className="calendar-cell empty" />;
+            return <div key={`empty-${idx}`} className="aspect-square" />;
 
           const isDisabled = Boolean(
             (minDate && cell.iso < minDate) || (maxDate && cell.iso > maxDate)
@@ -209,18 +245,24 @@ function MonthCalendar({
           const isSelected = selected === cell.iso;
           const isToday = todayIso === cell.iso;
 
+          const base =
+            "flex aspect-square w-full items-center justify-center rounded-lg border text-sm font-semibold transition";
+          const state = isSelected
+            ? "border-sky-500 bg-sky-500 text-white shadow"
+            : "border-slate-200 bg-slate-50 text-slate-900 hover:border-slate-400";
+          const today = isToday && !isSelected ? "border-sky-300" : "";
+          const disabled = isDisabled ? "cursor-not-allowed opacity-40" : "";
+
           return (
             <button
               key={cell.iso}
               type="button"
-              className={`calendar-cell ${isSelected ? "selected" : ""} ${
-                isToday ? "today" : ""
-              }`}
+              className={`${base} ${state} ${today} ${disabled}`}
               disabled={isDisabled}
               onClick={() => onSelect(cell.iso)}
               aria-pressed={isSelected}
             >
-              <span className="calendar-day-number">{cell.day}</span>
+              <span className="text-base">{cell.day}</span>
             </button>
           );
         })}
@@ -515,16 +557,18 @@ export function AvailabilityFlow({
   }, [draft.start, monthGroups]);
 
   return (
-    <section className="card availability-card">
-      <div className="card-header subtle">
+    <section className={`${card} flex flex-col gap-4`}>
+      <div className={cardHeaderSubtle}>
         <div>
-          <p className="eyebrow">Verfügbarkeiten</p>
-          <h3>Wann passt es dir?</h3>
+          <p className={eyebrow}>Verfügbarkeiten</p>
+          <h3 className="text-xl font-semibold text-slate-900">
+            Wann passt es dir?
+          </h3>
         </div>
-        <div className="button-row">
+        <div className={buttonRow}>
           <button
             type="button"
-            className="primary"
+            className={buttonPrimary}
             onClick={() => {
               if (identity.kind !== "user") {
                 toast.error(
@@ -541,22 +585,24 @@ export function AvailabilityFlow({
         </div>
       </div>
       {identity.kind !== "user" && (
-        <div className="pill warning" style={{ marginTop: "0.5rem" }}>
+        <div className={`${pillWarning} mt-1`}>
           Bitte melde dich an, bevor du Verfügbarkeiten hinzufügst.
         </div>
       )}
       {open && (
-        <div className="modal-overlay" role="dialog" aria-modal="true">
-          <div className="modal">
-            <div className="card-header subtle">
+        <div className={modalOverlay} role="dialog" aria-modal="true">
+          <div className={modalCard}>
+            <div className={cardHeaderSubtle}>
               <div>
-                <p className="eyebrow">Neuer Zeitraum</p>
-                <h3>Wann passt es dir?</h3>
+                <p className={eyebrow}>Neuer Zeitraum</p>
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Wann passt es dir?
+                </h3>
               </div>
-              <div className="button-row">
+              <div className={buttonRow}>
                 <button
                   type="button"
-                  className="ghost small"
+                  className={buttonGhostSmall}
                   onClick={closeDialog}
                 >
                   Schließen
@@ -564,15 +610,16 @@ export function AvailabilityFlow({
               </div>
             </div>
 
-            <p className="muted">
+            <p className={muted}>
               Schritt-für-Schritt mit Kalender: Verfügbar/Nicht verfügbar
               wählen, Start und Ende setzen, prüfen und speichern.
             </p>
 
-            <div className="stack xs">
-              <label className="field compact">
-                <span>Gruppe auswählen</span>
+            <div className={stackXs}>
+              <label className={field}>
+                <span className="text-sm text-slate-700">Gruppe auswählen</span>
                 <select
+                  className={select}
                   value={selectedGroupId ?? ""}
                   onChange={(e) => {
                     const nextId = e.target.value || null;
@@ -593,35 +640,35 @@ export function AvailabilityFlow({
                 </select>
               </label>
 
-              {groupsError && <div className="pill danger">{groupsError}</div>}
+              {groupsError && <div className={pillDanger}>{groupsError}</div>}
               {!groupsLoading && !groups.length && (
-                <p className="muted small">
+                <p className={smallMuted}>
                   Lege zuerst eine Gruppe an, um Verfügbarkeiten zuzuordnen.
                 </p>
               )}
             </div>
 
             {step === "type" && (
-              <div className="type-choices">
+              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                 <button
                   type="button"
-                  className="type-choice available"
+                  className={typeChoiceClass("available")}
                   onClick={() => handleTypeChoice("available")}
                 >
-                  <div className="type-choice-title">Ich bin verfügbar</div>
-                  <div className="type-choice-sub">
+                  <div className="text-lg font-semibold">Ich bin verfügbar</div>
+                  <div className={muted}>
                     Zeige den Zeitraum, in dem du mitreisen kannst.
                   </div>
                 </button>
                 <button
                   type="button"
-                  className="type-choice unavailable"
+                  className={typeChoiceClass("unavailable")}
                   onClick={() => handleTypeChoice("unavailable")}
                 >
-                  <div className="type-choice-title">
+                  <div className="text-lg font-semibold">
                     Ich bin nicht verfügbar
                   </div>
-                  <div className="type-choice-sub">
+                  <div className={muted}>
                     Blende Tage aus, die für dich nicht gehen.
                   </div>
                 </button>
@@ -630,14 +677,14 @@ export function AvailabilityFlow({
 
             {step !== "type" && (
               <>
-                <div className="draft-bar">
-                  <div className={`range-chip ${draft.type}`}>
+                <div className="flex flex-wrap items-center justify-between gap-3">
+                  <div className={rangeChipClass(draft.type)}>
                     {RANGE_TAG[draft.type]}
                   </div>
-                  <div className="draft-actions">
+                  <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
-                      className="ghost tiny"
+                      className={buttonGhostTiny}
                       onClick={() =>
                         setDraft((prev) => ({
                           ...prev,
@@ -652,7 +699,7 @@ export function AvailabilityFlow({
                     </button>
                     <button
                       type="button"
-                      className="ghost tiny"
+                      className={buttonGhostTiny}
                       onClick={resetFlow}
                     >
                       Neu starten
@@ -660,17 +707,21 @@ export function AvailabilityFlow({
                   </div>
                 </div>
 
-                <div className="stepper">
-                  <span className="step-badge">{stepNumber}/4</span>
-                  <span className="step-label">{stepLabel[step]}</span>
-                  <span className="step-duration">{durationLabel}</span>
+                <div className="flex flex-wrap items-center gap-2 text-sm text-slate-700">
+                  <span className="inline-flex h-8 w-12 items-center justify-center rounded-lg bg-sky-500 text-xs font-bold text-white">
+                    {stepNumber}/4
+                  </span>
+                  <span className="font-semibold text-slate-900">
+                    {stepLabel[step]}
+                  </span>
+                  <span className={muted}>{durationLabel}</span>
                 </div>
               </>
             )}
 
             {step === "start" && currentMonth && (
-              <div className="stack sm">
-                <p className="muted">Wähle zuerst den Start im Kalender.</p>
+              <div className={stackSm}>
+                <p className={muted}>Wähle zuerst den Start im Kalender.</p>
                 <MonthCalendar
                   month={currentMonth}
                   selected={draft.start}
@@ -687,8 +738,8 @@ export function AvailabilityFlow({
             )}
 
             {step === "end" && currentMonth && (
-              <div className="stack sm">
-                <p className="muted">
+              <div className={stackSm}>
+                <p className={muted}>
                   Ende muss am gleichen oder späteren Tag liegen.
                 </p>
                 <MonthCalendar
@@ -703,17 +754,17 @@ export function AvailabilityFlow({
                   onNext={goNextMonth}
                   onSelect={handleEndSelect}
                 />
-                <div className="button-row">
+                <div className={buttonRow}>
                   <button
                     type="button"
-                    className="ghost small"
+                    className={buttonGhostSmall}
                     onClick={() => setStep("start")}
                   >
                     Zurück
                   </button>
                   <button
                     type="button"
-                    className="primary"
+                    className={buttonPrimary}
                     disabled={!draft.end || !draft.start}
                     onClick={() => setStep("review")}
                   >
@@ -724,33 +775,33 @@ export function AvailabilityFlow({
             )}
 
             {step === "review" && draft.start && draft.end && (
-              <div className="stack sm">
-                <div className="review-card">
-                  <div className="review-row">
-                    <span className={`range-chip ${draft.type}`}>
+              <div className={stackSm}>
+                <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
+                  <div className="flex flex-wrap items-center justify-between gap-2">
+                    <span className={rangeChipClass(draft.type)}>
                       {RANGE_TAG[draft.type]}
                     </span>
-                    <span className="muted">{durationLabel}</span>
+                    <span className={muted}>{durationLabel}</span>
                   </div>
-                  <div className="review-dates">
+                  <div className="text-lg font-semibold text-slate-900">
                     {formatRange(draft.start, draft.end)}
                   </div>
-                  <div className="muted small">
+                  <div className={smallMuted}>
                     Gruppe: {selectedGroup?.name ?? "Keine Gruppe"}
                   </div>
-                  <p className="muted small">Kurz prüfen und dann speichern.</p>
+                  <p className={smallMuted}>Kurz prüfen und dann speichern.</p>
                 </div>
-                <div className="button-row">
+                <div className={buttonRow}>
                   <button
                     type="button"
-                    className="ghost small"
+                    className={buttonGhostSmall}
                     onClick={() => setStep("end")}
                   >
                     Zurück
                   </button>
                   <button
                     type="button"
-                    className="primary"
+                    className={buttonPrimary}
                     disabled={!canSave}
                     onClick={handleSave}
                   >
@@ -763,11 +814,11 @@ export function AvailabilityFlow({
         </div>
       )}
 
-      <div className="ranges-section">
-        <div className="card-header subtle">
+      <div className="space-y-3">
+        <div className={cardHeaderSubtle}>
           <div>
-            <p className="eyebrow">Gespeicherte Zeiträume</p>
-            <h4>
+            <p className={eyebrow}>Gespeicherte Zeiträume</p>
+            <h4 className="text-lg font-semibold text-slate-900">
               {rangesLoading
                 ? "Lade..."
                 : ranges.length
@@ -777,36 +828,39 @@ export function AvailabilityFlow({
           </div>
         </div>
 
-        {rangesError && <div className="pill danger">{rangesError}</div>}
+        {rangesError && <div className={pillDanger}>{rangesError}</div>}
 
         {!rangesLoading && !ranges.length && (
-          <div className="empty-state">
-            <p className="muted">
+          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-2">
+            <p className={muted}>
               Füge einen Zeitraum hinzu, um deine Teilnahme zu teilen.
             </p>
           </div>
         )}
 
         {ranges.length > 0 && (
-          <ul className="range-list">
+          <ul className="flex flex-col gap-2">
             {(listOpen ? ranges : ranges.slice(0, 2)).map((range) => (
-              <li key={range.id} className="range-row">
-                <div className="range-meta">
-                  <span className={`range-chip ${range.type}`}>
+              <li
+                key={range.id}
+                className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3"
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className={rangeChipClass(range.type)}>
                     {RANGE_TAG[range.type]}
                   </span>
-                  <span className="range-dates">
+                  <span className="font-semibold text-slate-900">
                     {formatRange(range.start, range.end)}
                   </span>
-                  <span className="range-duration">
+                  <span className={muted}>
                     {dayDiffInclusive(range.start, range.end)} Tage
                   </span>
-                  <span className="muted small">Gruppe: {range.groupName}</span>
+                  <span className={smallMuted}>Gruppe: {range.groupName}</span>
                 </div>
-                <div className="button-row">
+                <div className={buttonRow}>
                   <button
                     type="button"
-                    className="ghost tiny danger"
+                    className={`${buttonGhostTiny} ${buttonGhostDanger}`}
                     onClick={() => handleDelete(range.id)}
                   >
                     Löschen
@@ -820,16 +874,20 @@ export function AvailabilityFlow({
         {ranges.length > 2 && (
           <button
             type="button"
-            className="range-toggle"
+            className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-left font-semibold text-slate-900 hover:bg-slate-50"
             onClick={() => setListOpen((open) => !open)}
             aria-expanded={listOpen}
           >
-            <span className="muted">
+            <span className={muted}>
               {listOpen
                 ? "Einklappen"
                 : `Alle anzeigen (+${ranges.length - 2})`}
             </span>
-            <span className={`chevron ${listOpen ? "open" : ""}`}>⌄</span>
+            <span
+              className={`text-lg transition ${listOpen ? "rotate-180" : ""}`}
+            >
+              ⌄
+            </span>
           </button>
         )}
       </div>

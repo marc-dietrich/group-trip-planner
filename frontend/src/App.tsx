@@ -27,8 +27,14 @@ import { GroupsCard } from "./components/GroupsCard";
 import { IdentityStrip } from "./components/IdentityStrip";
 import { Topbar } from "./components/Topbar";
 import { toast } from "sonner";
-import "./App.css";
 import { AvailabilityFlow } from "./components/AvailabilityFlow";
+import {
+  buttonGhost,
+  buttonRow,
+  cardMinimal,
+  layoutGrid,
+  pageShell,
+} from "./ui";
 
 function App() {
   const [actor, setActorDisplayName] = useLocalActor(DEFAULT_ACTOR_NAME);
@@ -332,7 +338,7 @@ function App() {
   };
 
   return (
-    <div className="page">
+    <div className={pageShell}>
       <ActorNameModal
         open={namePromptOpen}
         value={pendingName}
@@ -354,7 +360,7 @@ function App() {
         onLogout={handleLogout}
       />
 
-      <main className="layout minimal-layout">
+      <main className={layoutGrid}>
         <AvailabilityFlow
           groups={groups}
           groupsLoading={groupsLoading}
@@ -369,9 +375,13 @@ function App() {
           onDelete={handleDeleteGroup}
           onCreateClick={() => setCreateOpen(true)}
         />
-        <div className="card minimal" style={{ marginTop: "1rem" }}>
-          <div className="button-row">
-            <button type="button" className="ghost" onClick={handleMockVoice}>
+        <div className={`${cardMinimal} mt-4`}>
+          <div className={buttonRow}>
+            <button
+              type="button"
+              className={buttonGhost}
+              onClick={handleMockVoice}
+            >
               Sprach-Mock testen
             </button>
           </div>

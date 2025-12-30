@@ -1,5 +1,23 @@
 import type { FormEvent } from "react";
 import { GroupCreateResult } from "../types";
+import {
+  buttonGhostSmall,
+  buttonPrimary,
+  buttonRow,
+  cardHeaderSubtle,
+  eyebrow,
+  field,
+  input,
+  metaRow,
+  modalCard,
+  modalOverlay,
+  mono,
+  muted,
+  pillDanger,
+  pillSuccess,
+  resultBox,
+  stackSm,
+} from "../ui";
 
 type GroupCreateModalProps = {
   open: boolean;
@@ -25,22 +43,25 @@ export function GroupCreateModal({
   if (!open) return null;
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true">
-      <div className="modal">
-        <div className="card-header subtle">
+    <div className={modalOverlay} role="dialog" aria-modal="true">
+      <div className={modalCard}>
+        <div className={cardHeaderSubtle}>
           <div>
-            <p className="eyebrow">Neue Gruppe</p>
-            <h3>Gruppe erstellen</h3>
+            <p className={eyebrow}>Neue Gruppe</p>
+            <h3 className="text-lg font-semibold text-slate-900">
+              Gruppe erstellen
+            </h3>
           </div>
-          <button type="button" className="ghost small" onClick={onClose}>
+          <button type="button" className={buttonGhostSmall} onClick={onClose}>
             Schließen
           </button>
         </div>
 
-        <form className="stack sm" onSubmit={onSubmit}>
-          <label className="field compact">
-            <span>Gruppenname</span>
+        <form className={stackSm} onSubmit={onSubmit}>
+          <label className={field}>
+            <span className="text-sm text-slate-700">Gruppenname</span>
             <input
+              className={input}
               value={groupName}
               onChange={(e) => onGroupNameChange(e.target.value)}
               required
@@ -48,31 +69,40 @@ export function GroupCreateModal({
             />
           </label>
 
-          <div className="button-row">
-            <button type="submit" className="primary" disabled={creating}>
+          <div className={buttonRow}>
+            <button type="submit" className={buttonPrimary} disabled={creating}>
               {creating ? "Erstelle..." : "Anlegen"}
             </button>
-            <button type="button" className="ghost small" onClick={onClose}>
+            <button
+              type="button"
+              className={buttonGhostSmall}
+              onClick={onClose}
+            >
               Abbrechen
             </button>
           </div>
 
-          {error && <div className="pill danger">{error}</div>}
+          {error && <div className={pillDanger}>{error}</div>}
           {result && (
-            <div className="result">
-              <div className="pill success">Gruppe erstellt</div>
-              <div className="meta-row">
-                <span className="muted">Group ID</span>
-                <code className="mono">{result.groupId}</code>
+            <div className={resultBox}>
+              <div className={pillSuccess}>Gruppe erstellt</div>
+              <div className={metaRow}>
+                <span className={muted}>Group ID</span>
+                <code className={mono}>{result.groupId}</code>
               </div>
-              <div className="meta-row">
-                <span className="muted">Invite Link</span>
-                <a href={result.inviteLink} target="_blank" rel="noreferrer">
+              <div className={metaRow}>
+                <span className={muted}>Invite Link</span>
+                <a
+                  className="text-blue-600 underline"
+                  href={result.inviteLink}
+                  target="_blank"
+                  rel="noreferrer"
+                >
                   {result.inviteLink}
                 </a>
               </div>
-              <div className="meta-row">
-                <span className="muted">Rolle</span>
+              <div className={metaRow}>
+                <span className={muted}>Rolle</span>
                 <span>{result.role}</span>
               </div>
             </div>

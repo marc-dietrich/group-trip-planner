@@ -1,5 +1,19 @@
 import type { FormEvent } from "react";
 import { GroupCreateResult } from "../types";
+import {
+  buttonPrimary,
+  card,
+  cardHeader,
+  field,
+  input,
+  metaRow,
+  mono,
+  muted,
+  pillDanger,
+  pillSuccess,
+  resultBox,
+  stackSm,
+} from "../ui";
 
 type GroupCreateCardProps = {
   groupName: string;
@@ -19,18 +33,21 @@ export function GroupCreateCard({
   onSubmit,
 }: GroupCreateCardProps) {
   return (
-    <section className="card">
-      <div className="card-header">
+    <section className={card}>
+      <div className={cardHeader}>
         <div>
-          <p className="eyebrow">Neue Gruppe</p>
-          <h3>POST /groups</h3>
+          <p className="text-xs uppercase tracking-[0.16em] text-slate-600">
+            Neue Gruppe
+          </p>
+          <h3 className="text-lg font-semibold text-slate-900">POST /groups</h3>
         </div>
       </div>
 
-      <form className="stack sm" onSubmit={onSubmit}>
-        <label className="field">
-          <span>Gruppenname</span>
+      <form className={stackSm} onSubmit={onSubmit}>
+        <label className={field}>
+          <span className="text-sm text-slate-700">Gruppenname</span>
           <input
+            className={input}
             value={groupName}
             onChange={(e) => onGroupNameChange(e.target.value)}
             required
@@ -38,26 +55,31 @@ export function GroupCreateCard({
           />
         </label>
 
-        <button type="submit" disabled={creating}>
+        <button type="submit" className={buttonPrimary} disabled={creating}>
           {creating ? "Wird erstellt..." : "Gruppe anlegen"}
         </button>
 
-        {error && <div className="pill danger">{error}</div>}
+        {error && <div className={pillDanger}>{error}</div>}
         {result && (
-          <div className="result">
-            <div className="pill success">Gruppe erstellt</div>
-            <div className="meta-row">
-              <span className="muted">Group ID</span>
-              <code className="mono">{result.groupId}</code>
+          <div className={resultBox}>
+            <div className={pillSuccess}>Gruppe erstellt</div>
+            <div className={metaRow}>
+              <span className={muted}>Group ID</span>
+              <code className={mono}>{result.groupId}</code>
             </div>
-            <div className="meta-row">
-              <span className="muted">Invite Link</span>
-              <a href={result.inviteLink} target="_blank" rel="noreferrer">
+            <div className={metaRow}>
+              <span className={muted}>Invite Link</span>
+              <a
+                className="text-blue-600 underline"
+                href={result.inviteLink}
+                target="_blank"
+                rel="noreferrer"
+              >
                 {result.inviteLink}
               </a>
             </div>
-            <div className="meta-row">
-              <span className="muted">Rolle</span>
+            <div className={metaRow}>
+              <span className={muted}>Rolle</span>
               <span>{result.role}</span>
             </div>
           </div>

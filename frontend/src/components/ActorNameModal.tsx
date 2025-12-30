@@ -1,4 +1,16 @@
 import type { FormEvent } from "react";
+import {
+  buttonPrimary,
+  buttonRow,
+  cardHeaderSubtle,
+  eyebrow,
+  field,
+  input,
+  modalCard,
+  modalOverlay,
+  muted,
+  stackSm,
+} from "../ui";
 
 type ActorNameModalProps = {
   open: boolean;
@@ -24,19 +36,22 @@ export function ActorNameModal({
   const disabled = trimmed.length < 2;
 
   return (
-    <div className="modal-overlay" role="dialog" aria-modal="true">
-      <div className="modal">
-        <div className="card-header subtle">
+    <div className={modalOverlay} role="dialog" aria-modal="true">
+      <div className={modalCard}>
+        <div className={cardHeaderSubtle}>
           <div>
-            <p className="eyebrow">Wer plant mit?</p>
-            <h3>Wie sollen wir dich nennen?</h3>
+            <p className={eyebrow}>Wer plant mit?</p>
+            <h3 className="text-lg font-semibold text-slate-900">
+              Wie sollen wir dich nennen?
+            </h3>
           </div>
         </div>
 
-        <form className="stack sm" onSubmit={handleSubmit}>
-          <label className="field compact">
-            <span>Dein Name</span>
+        <form className={stackSm} onSubmit={handleSubmit}>
+          <label className={field}>
+            <span className="text-sm text-slate-700">Dein Name</span>
             <input
+              className={input}
               autoFocus
               value={value}
               onChange={(e) => onChange(e.target.value)}
@@ -44,12 +59,12 @@ export function ActorNameModal({
             />
           </label>
 
-          <div className="button-row">
-            <button type="submit" className="primary" disabled={disabled}>
+          <div className={buttonRow}>
+            <button type="submit" className={buttonPrimary} disabled={disabled}>
               Speichern
             </button>
           </div>
-          <p className="muted">
+          <p className={muted}>
             Wir speichern deinen Namen nur lokal und nutzen ihn, um dich in
             Gruppen anzuzeigen.
           </p>
