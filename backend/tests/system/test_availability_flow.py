@@ -8,24 +8,14 @@ import pytest
 pytestmark = pytest.mark.asyncio
 
 
-async def create_group(client, *, group_name: str, actor_id: str | None, display_name: str, headers=None):
+async def create_group(client, *, group_name: str, display_name: str, headers):
     res = await client.post(
         "/api/groups",
         headers=headers,
-        json={"groupName": group_name, "actorId": actor_id, "displayName": display_name},
+        json={"groupName": group_name, "displayName": display_name},
     )
     assert res.status_code == 200
     return res.json()["groupId"]
-
-
-async def claim_actor(client, *, actor_id: str, headers):
-    res = await client.post(
-        "/api/auth/claim",
-        headers=headers,
-        json={"actorId": actor_id},
-    )
-    assert res.status_code == 200
-    return res.json()
 
 
 async def add_availability(client, *, group_id, headers, start: str, end: str, kind: str = "available"):
@@ -38,16 +28,12 @@ async def add_availability(client, *, group_id, headers, start: str, end: str, k
 
 
 async def test_happy_path_group_user_availability_flow(client, user_identity):
-    actor_id = f"actor-{uuid4()}"
     group_id = await create_group(
         client,
         group_name="System Test Trip",
-        actor_id=actor_id,
         display_name="Anon",
+        headers=user_identity["headers"],
     )
-
-    claim_body = await claim_actor(client, actor_id=actor_id, headers=user_identity["headers"])
-    assert claim_body["userId"] == user_identity["user_id"]
 
     start = date(2025, 3, 5).isoformat()
     end = date(2025, 3, 8).isoformat()
@@ -76,13 +62,12 @@ async def test_happy_path_group_user_availability_flow(client, user_identity):
     assert any(g["groupId"] == group_id for g in groups)
 
 
-async def test_auth_required_for_protected_availability(client):
-    actor_id = f"actor-{uuid4()}"
+async def test_auth_required_for_protected_availability(client, user_identity):
     group_id = await create_group(
         client,
         group_name="Auth Required",
-        actor_id=actor_id,
         display_name="Anon",
+        headers=user_identity["headers"],
     )
 
     res = await add_availability(
@@ -95,16 +80,13 @@ async def test_auth_required_for_protected_availability(client):
     assert res.status_code == 401
 
 
-async def test_claim_actor_links_memberships(client, user_identity):
-    actor_id = f"actor-{uuid4()}"
+async def test_group_lists_for_owner(client, user_identity):
     group_id = await create_group(
         client,
-        group_name="Claim Link",
-        actor_id=actor_id,
+        group_name="Listable Group",
         display_name="Anon",
+        headers=user_identity["headers"],
     )
-
-    await claim_actor(client, actor_id=actor_id, headers=user_identity["headers"])
 
     list_res = await client.get("/api/groups", headers=user_identity["headers"])
     assert list_res.status_code == 200
@@ -112,13 +94,12 @@ async def test_claim_actor_links_memberships(client, user_identity):
     assert any(g["groupId"] == group_id for g in groups)
 
 
-async def test_availability_requires_membership(client, token_factory):
-    actor_id = f"actor-{uuid4()}"
+async def test_availability_requires_membership(client, user_identity, token_factory):
     group_id = await create_group(
         client,
         group_name="Foreign Group",
-        actor_id=actor_id,
         display_name="Owner",
+        headers=user_identity["headers"],
     )
 
     other_user = str(uuid4())
@@ -135,15 +116,12 @@ async def test_availability_requires_membership(client, token_factory):
 
 
 async def test_invalid_date_range_rejected(client, user_identity):
-    actor_id = f"actor-{uuid4()}"
     group_id = await create_group(
         client,
         group_name="Bad Dates",
-        actor_id=actor_id,
         display_name="Owner",
+        headers=user_identity["headers"],
     )
-
-    await claim_actor(client, actor_id=actor_id, headers=user_identity["headers"])
 
     res = await add_availability(
         client,
@@ -159,14 +137,12 @@ async def test_availability_isolated_between_groups(client, user_identity):
     group1 = await create_group(
         client,
         group_name="Trip One",
-        actor_id=None,
         display_name="Member",
         headers=user_identity["headers"],
     )
     group2 = await create_group(
         client,
         group_name="Trip Two",
-        actor_id=None,
         display_name="Member",
         headers=user_identity["headers"],
     )
@@ -197,15 +173,12 @@ async def test_nonexistent_group_returns_404(client, user_identity):
 
 
 async def test_delete_availability_removes_entry(client, user_identity):
-    actor_id = f"actor-{uuid4()}"
     group_id = await create_group(
         client,
         group_name="Delete Flow",
-        actor_id=actor_id,
         display_name="Owner",
+        headers=user_identity["headers"],
     )
-
-    await claim_actor(client, actor_id=actor_id, headers=user_identity["headers"])
 
     add_res = await add_availability(
         client,
@@ -226,15 +199,12 @@ async def test_delete_availability_removes_entry(client, user_identity):
 
 
 async def test_invalid_kind_validation(client, user_identity):
-    actor_id = f"actor-{uuid4()}"
     group_id = await create_group(
         client,
         group_name="Kind Validation",
-        actor_id=actor_id,
         display_name="Owner",
+        headers=user_identity["headers"],
     )
-
-    await claim_actor(client, actor_id=actor_id, headers=user_identity["headers"])
 
     res = await add_availability(
         client,

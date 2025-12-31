@@ -1,27 +1,11 @@
 import type { Session } from "@supabase/supabase-js";
-import { ClaimResponse } from "../types";
-import {
-  cardHeader,
-  muted,
-  mutedCard,
-  pill,
-  pillDanger,
-  pillSuccess,
-} from "../ui";
+import { cardHeader, muted, mutedCard, pill } from "../ui";
 
 type ClaimStatusProps = {
   session: Session | null;
-  claiming: boolean;
-  claimError: string | null;
-  claimResult: ClaimResponse | null;
 };
 
-export function ClaimStatus({
-  session,
-  claiming,
-  claimError,
-  claimResult,
-}: ClaimStatusProps) {
+export function ClaimStatus({ session }: ClaimStatusProps) {
   if (!session) return null;
 
   return (
@@ -29,24 +13,18 @@ export function ClaimStatus({
       <div className={cardHeader}>
         <div>
           <p className="text-xs uppercase tracking-[0.16em] text-slate-600">
-            Verknüpfung
+            Anmeldung erforderlich
           </p>
           <h3 className="text-lg font-semibold text-slate-900">
-            Actor & Supabase
+            Verknüpfung deaktiviert
           </h3>
         </div>
       </div>
       <p className={muted}>
-        Dein lokaler Actor wird mit dem Supabase-Konto verbunden, damit
-        bestehende Gruppen übernommen werden.
+        Die Actor-Verknüpfung ist im MVP deaktiviert. Melde dich an, um Gruppen
+        direkt als registrierter Nutzer anzulegen.
       </p>
-      {claiming ? (
-        <div className={pill}>Claim läuft...</div>
-      ) : claimError ? (
-        <div className={pillDanger}>{claimError}</div>
-      ) : claimResult ? (
-        <div className={pillSuccess}>Actor verknüpft</div>
-      ) : null}
+      <div className={pill}>Eingeloggt</div>
     </section>
   );
 }

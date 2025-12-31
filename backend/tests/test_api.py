@@ -1,13 +1,36 @@
 """API tests with mocked persistence (no real database)."""
 
+from uuid import uuid4
+
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
+from jose import jwt
 
 from app.api.deps import get_group_service
+from app.core.config import get_settings
 from app.main import app
 from app.user_core.repositories import InMemoryGroupRepository
 from app.user_core.services import GroupService
+
+
+settings = get_settings()
+
+
+def _auth_headers(
+    user_id: str | None = None,
+    display_name: str | None = "API Tester",
+    email: str | None = "api@test.local",
+):
+    uid = user_id or str(uuid4())
+    metadata = {"full_name": display_name} if display_name is not None else {}
+    claims = {
+        "sub": uid,
+        "email": email,
+        "user_metadata": metadata,
+    }
+    token = jwt.encode(claims, settings.supabase_jwt_secret, algorithm="HS256")
+    return {"Authorization": f"Bearer {token}"}, uid
 
 
 @pytest_asyncio.fixture()
@@ -34,15 +57,26 @@ async def test_health_endpoint():
 
 
 @pytest.mark.asyncio
+async def test_group_creation_requires_authentication():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        response = await client.post(
+            "/api/groups",
+            json={"groupName": "Unauthed", "displayName": "Anon"},
+        )
+        assert response.status_code == 401
+
+
+@pytest.mark.asyncio
 async def test_create_group():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
+        headers, user_id = _auth_headers()
         group_data = {
             "groupName": "Test Gruppe API",
-            "actorId": "actor-api-test-123",
             "displayName": "API Tester",
         }
-        response = await client.post("/api/groups", json=group_data)
+        response = await client.post("/api/groups", json=group_data, headers=headers)
         assert response.status_code == 200
         data = response.json()
         assert data["name"] == "Test Gruppe API"
@@ -50,7 +84,7 @@ async def test_create_group():
         assert data["inviteLink"]
         assert data["role"] == "owner"
 
-        response = await client.get(f"/api/groups?actorId={group_data['actorId']}")
+        response = await client.get("/api/groups", headers=headers)
         assert response.status_code == 200
         groups = response.json()
         assert any(g["groupId"] == data["groupId"] for g in groups)
@@ -60,20 +94,20 @@ async def test_create_group():
 async def test_delete_group():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
+        headers, _ = _auth_headers()
         group_data = {
             "groupName": "Delete Me",
-            "actorId": "actor-delete-test-123",
             "displayName": "Deleter",
         }
 
-        create_res = await client.post("/api/groups", json=group_data)
+        create_res = await client.post("/api/groups", json=group_data, headers=headers)
         assert create_res.status_code == 200
         group_id = create_res.json()["groupId"]
 
-        delete_res = await client.delete(f"/api/groups/{group_id}")
+        delete_res = await client.delete(f"/api/groups/{group_id}", headers=headers)
         assert delete_res.status_code == 204
 
-        list_res = await client.get(f"/api/groups?actorId={group_data['actorId']}")
+        list_res = await client.get("/api/groups", headers=headers)
         assert list_res.status_code == 200
         groups = list_res.json()
         assert all(g["groupId"] != group_id for g in groups)
@@ -83,13 +117,13 @@ async def test_delete_group():
 async def test_create_group_uses_default_display_name():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
+        headers, _ = _auth_headers(display_name=None, email=None)
         group_data = {
             "groupName": "Ohne Anzeigename",
-            "actorId": "actor-default-name",
             # displayName intentionally omitted to verify backend fallback
         }
 
-        create_res = await client.post("/api/groups", json=group_data)
+        create_res = await client.post("/api/groups", json=group_data, headers=headers)
         assert create_res.status_code == 200
         body = create_res.json()
         assert body["displayName"] == "Gast"

@@ -8,7 +8,6 @@ export type GroupCreateResult = {
   name: string;
   inviteLink: string;
   role: string;
-  actorId: string;
   displayName: string;
 };
 
@@ -17,13 +16,6 @@ export type GroupMembership = {
   name: string;
   role: string;
   inviteLink: string;
-};
-
-export type ClaimResponse = {
-  actorId: string;
-  userId: string;
-  claimedAt: string;
-  updatedMemberships: number;
 };
 
 export type Identity =
