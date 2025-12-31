@@ -41,6 +41,27 @@ class GroupMembership(BaseModel):
     inviteLink: str
 
 
+class GroupPublic(BaseModel):
+    """Public view of a group for invite previews."""
+
+    groupId: UUID
+    name: str
+
+    @classmethod
+    def from_model(cls, group):
+        return cls(groupId=group.id, name=group.name)
+
+
+class JoinGroupResponse(BaseModel):
+    """Response after accepting an invite link."""
+
+    groupId: UUID
+    name: str
+    role: str
+    inviteLink: str
+    alreadyMember: bool
+
+
 @router.get("/groups")
 async def get_groups(
     identity: Identity = Depends(require_authenticated_identity),
@@ -99,13 +120,13 @@ async def create_group(
     }
 
 
-@router.get("/groups/{group_id}")
+@router.get("/groups/{group_id}", response_model=GroupPublic)
 async def get_group(group_id: UUID, service: GroupService = Depends(get_group_service)):
     """Fetch a single group by id."""
     group = await service.get_group(group_id)
     if not group:
         raise HTTPException(status_code=404, detail="Gruppe nicht gefunden")
-    return group
+    return GroupPublic.from_model(group)
 
 
 @router.delete("/groups/{group_id}", status_code=204)
@@ -115,3 +136,38 @@ async def delete_group(group_id: UUID, service: GroupService = Depends(get_group
     if not deleted:
         raise HTTPException(status_code=404, detail="Gruppe nicht gefunden")
     return Response(status_code=204)
+
+
+@router.post("/groups/{group_id}/join", response_model=JoinGroupResponse)
+async def join_group(
+    group_id: UUID,
+    identity: Identity = Depends(require_authenticated_identity),
+    service: GroupService = Depends(get_group_service),
+):
+    """Allow an authenticated user to join a group via invite link."""
+
+    try:
+        user_uuid = UUID(identity.user_id)
+    except (TypeError, ValueError) as exc:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user id") from exc
+
+    display_name = identity.display_name or "Gast"
+
+    try:
+        group, member, created = await service.join_group(
+            group_id=group_id,
+            user_id=user_uuid,
+            display_name=display_name,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    invite_link = f"{settings.frontend_base_url}/invite/{group.id}"
+
+    return JoinGroupResponse(
+        groupId=group.id,
+        name=group.name,
+        role=member.role,
+        inviteLink=invite_link,
+        alreadyMember=not created,
+    )

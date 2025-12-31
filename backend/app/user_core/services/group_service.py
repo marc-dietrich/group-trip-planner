@@ -55,3 +55,25 @@ class GroupService:
     async def claim_memberships_for_user(self, actor_id: str, user_id: UUID) -> int:
         """Assign a Supabase user to all memberships created by an actor."""
         return await self.repo.claim_memberships_for_user(actor_id=actor_id, user_id=user_id)
+
+    async def join_group(self, group_id: UUID, user_id: UUID, display_name: str) -> Tuple[Group, GroupMember, bool]:
+        """Join a group by creating a membership when missing.
+
+        Returns a tuple of (group, member, created_flag).
+        """
+
+        group = await self.repo.get_group(group_id)
+        if not group:
+            raise ValueError("Group not found")
+
+        existing = await self.repo.get_member_by_user(group_id=group_id, user_id=user_id)
+        if existing:
+            return group, existing, False
+
+        member = await self.repo.add_member_to_group(
+            group_id=group_id,
+            user_id=user_id,
+            display_name=display_name,
+            role="member",
+        )
+        return group, member, True

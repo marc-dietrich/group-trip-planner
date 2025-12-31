@@ -7,6 +7,7 @@ type GroupsPanelProps = {
   groupsError: string | null;
   deletingId: string | null;
   onDelete: (groupId: string) => void;
+  onCopyInvite: (group: GroupMembership) => void;
 };
 
 export function GroupsPanel({
@@ -15,6 +16,7 @@ export function GroupsPanel({
   groupsError,
   deletingId,
   onDelete,
+  onCopyInvite,
 }: GroupsPanelProps) {
   return (
     <div className="mt-2">
@@ -35,11 +37,18 @@ export function GroupsPanel({
               <div className="flex items-center gap-2">
                 <button
                   type="button"
+                  className={buttonGhostTiny}
+                  onClick={() => onCopyInvite(g)}
+                >
+                  Link kopieren
+                </button>
+                <button
+                  type="button"
                   className={`${buttonGhostTiny} ${buttonGhostDanger}`}
                   onClick={() => onDelete(g.groupId)}
                   disabled={deletingId === g.groupId}
                 >
-                  {deletingId === g.groupId ? "…" : "Löschen"}
+                  {deletingId === g.groupId ? "..." : "Löschen"}
                 </button>
               </div>
             </li>
