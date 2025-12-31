@@ -18,7 +18,7 @@ class GroupService:
         group_name: str,
         actor_id: Optional[str],
         display_name: str,
-        user_id: Optional[str] = None,
+        user_id: Optional[UUID] = None,
     ) -> Tuple[Group, GroupMember]:
         """Create a group and add the creator as owner in one transaction."""
         return await self.repo.create_group(
@@ -47,7 +47,7 @@ class GroupService:
     async def get_groups_for_identity(
         self,
         actor_id: Optional[str] = None,
-        user_id: Optional[str] = None,
+        user_id: Optional[UUID] = None,
     ) -> List[Tuple[Group, GroupMember]]:
         """Fetch groups for either a local actor or authenticated user."""
         return await self.repo.get_groups_for_identity(actor_id=actor_id, user_id=user_id)

@@ -1,32 +1,20 @@
 """End-to-end happy path using the real database container."""
 
 from datetime import date
-from uuid import uuid4
-
 import pytest
 
 pytestmark = pytest.mark.asyncio
 
 
 async def test_group_user_availability_flow(client, user_identity):
-    actor_id = f"actor-{uuid4()}"
-
     create_group_res = await client.post(
         "/api/groups",
-        json={"groupName": "System Test Trip", "actorId": actor_id, "displayName": "Anon"},
+        headers=user_identity["headers"],
+        json={"groupName": "System Test Trip", "displayName": "Anon"},
     )
     assert create_group_res.status_code == 200
     group_body = create_group_res.json()
     group_id = group_body["groupId"]
-
-    claim_res = await client.post(
-        "/api/auth/claim",
-        headers=user_identity["headers"],
-        json={"actorId": actor_id},
-    )
-    assert claim_res.status_code == 200
-    claim_body = claim_res.json()
-    assert claim_body["userId"] == user_identity["user_id"]
 
     payload = {
         "startDate": date(2025, 3, 5).isoformat(),

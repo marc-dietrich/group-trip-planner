@@ -18,7 +18,7 @@ class GroupRepository(Protocol):
         group_name: str,
         actor_id: Optional[str],
         display_name: str,
-        user_id: Optional[str] = None,
+        user_id: Optional[UUID] = None,
     ) -> tuple[Group, GroupMember]:
         ...
 
@@ -37,7 +37,7 @@ class GroupRepository(Protocol):
     async def get_groups_for_identity(
         self,
         actor_id: Optional[str] = None,
-        user_id: Optional[str] = None,
+        user_id: Optional[UUID] = None,
     ) -> List[Tuple[Group, GroupMember]]:
         ...
 
@@ -59,10 +59,11 @@ class SQLModelGroupRepository(GroupRepository):
         group_name: str,
         actor_id: Optional[str],
         display_name: str,
-        user_id: Optional[str] = None,
+        user_id: Optional[UUID] = None,
     ) -> tuple[Group, GroupMember]:
-        creator_actor_id = actor_id or (user_id or "")
-        member_actor_id = actor_id or (user_id or "")
+        user_actor_id = str(user_id) if user_id else ""
+        creator_actor_id = actor_id or user_actor_id
+        member_actor_id = actor_id or user_actor_id
 
         if user_id:
             existing_user = await self.session.get(User, user_id)
@@ -147,12 +148,13 @@ class InMemoryGroupRepository(GroupRepository):
         group_name: str,
         actor_id: Optional[str],
         display_name: str,
-        user_id: Optional[str] = None,
+        user_id: Optional[UUID] = None,
     ) -> tuple[Group, GroupMember]:
         from uuid import uuid4
 
-        creator_actor_id = actor_id or (user_id or "")
-        member_actor_id = actor_id or (user_id or "")
+        user_actor_id = str(user_id) if user_id else ""
+        creator_actor_id = actor_id or user_actor_id
+        member_actor_id = actor_id or user_actor_id
         group = Group(name=group_name, created_by_actor=creator_actor_id)
         owner = GroupMember(
             group_id=group.id,

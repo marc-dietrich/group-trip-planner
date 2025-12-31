@@ -14,7 +14,6 @@ import {
   supabase,
 } from "./lib/supabase";
 import {
-  ClaimResponse,
   GroupCreateResult,
   GroupMembership,
   HealthCheck,
@@ -47,9 +46,6 @@ function App() {
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [, setClaiming] = useState(false);
-  const [, setClaimError] = useState<string | null>(null);
-  const [claimResult, setClaimResult] = useState<ClaimResponse | null>(null);
   const [groupName, setGroupName] = useState("Wochenend-Trip");
   const [health, setHealth] = useState<HealthCheck | null>(null);
   const [creating, setCreating] = useState(false);
@@ -126,61 +122,20 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (!session || !actor.actorId) return;
-    const alreadyClaimed =
-      claimResult &&
-      claimResult.actorId === actor.actorId &&
-      claimResult.userId === session.user.id;
-    if (alreadyClaimed) return;
-
-    const controller = new AbortController();
-    const claim = async () => {
-      setClaiming(true);
-      setClaimError(null);
-      try {
-        const res = await fetch("/api/auth/claim", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.access_token}`,
-          },
-          body: JSON.stringify({ actorId: actor.actorId }),
-          signal: controller.signal,
-        });
-
-        if (!res.ok) throw new Error(`Claim fehlgeschlagen: ${res.status}`);
-        const data = (await res.json()) as ClaimResponse;
-        setClaimResult(data);
-      } catch (err) {
-        if (controller.signal.aborted) return;
-        setClaimError(
-          err instanceof Error ? err.message : "Claim fehlgeschlagen"
-        );
-      } finally {
-        if (controller.signal.aborted) return;
-        setClaiming(false);
-      }
-    };
-
-    claim();
-    return () => controller.abort();
-  }, [actor.actorId, claimResult, session]);
-
-  useEffect(() => {
     const fetchGroups = async () => {
       setGroupsLoading(true);
       setGroupsError(null);
       try {
         const headers: HeadersInit = {};
-        let query = "";
-
-        if (identity.kind === "actor") {
-          query = `?actorId=${encodeURIComponent(identity.actorId)}`;
-        } else {
-          headers.Authorization = `Bearer ${identity.accessToken}`;
+        if (identity.kind !== "user") {
+          setGroups([]);
+          setGroupsError("Bitte einloggen, um Gruppen zu sehen.");
+          return;
         }
 
-        const res = await fetch(`/api/groups${query}`, { headers });
+        headers.Authorization = `Bearer ${identity.accessToken}`;
+
+        const res = await fetch(`/api/groups`, { headers });
         if (!res.ok) throw new Error(`Fehler: ${res.status}`);
         const data = (await res.json()) as GroupMembership[];
         setGroups(data);
@@ -194,7 +149,7 @@ function App() {
     };
 
     fetchGroups();
-  }, [identity, result, claimResult]);
+  }, [identity, result]);
 
   const handleCreateGroup = async (event: FormEvent) => {
     event.preventDefault();
@@ -202,15 +157,19 @@ function App() {
     setError(null);
     setResult(null);
 
+    if (identity.kind !== "user") {
+      setError("Bitte erst einloggen, um eine Gruppe zu erstellen.");
+      setAuthPanelOpen(true);
+      setCreating(false);
+      return;
+    }
+
     try {
       const headers: HeadersInit = { "Content-Type": "application/json" };
-      if (identity.kind === "user") {
-        headers.Authorization = `Bearer ${identity.accessToken}`;
-      }
+      headers.Authorization = `Bearer ${identity.accessToken}`;
 
       const payload = {
         groupName,
-        actorId: identity.kind === "actor" ? identity.actorId : null,
         displayName: identity.displayName,
       };
 
@@ -237,11 +196,17 @@ function App() {
   const handleDeleteGroup = async (groupId: string) => {
     setGroupsError(null);
     setDeletingId(groupId);
+
+    if (identity.kind !== "user") {
+      setGroupsError("Nur angemeldete Nutzer können Gruppen löschen.");
+      setDeletingId(null);
+      setAuthPanelOpen(true);
+      return;
+    }
+
     try {
       const headers: HeadersInit = {};
-      if (identity.kind === "user") {
-        headers.Authorization = `Bearer ${identity.accessToken}`;
-      }
+      headers.Authorization = `Bearer ${identity.accessToken}`;
 
       const res = await fetch(`/api/groups/${groupId}`, {
         method: "DELETE",
@@ -326,7 +291,6 @@ function App() {
     await supabase.auth.signOut();
     persistJwt(null);
     setSession(null);
-    setClaimResult(null);
   };
 
   const handleSaveActorName = (name: string) => {
