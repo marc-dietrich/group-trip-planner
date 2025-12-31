@@ -18,6 +18,8 @@ import {
   GroupMembership,
   HealthCheck,
   Identity,
+  GroupInvitePreview,
+  JoinGroupResponse,
 } from "./types";
 import { AuthModal } from "./components/AuthModal";
 import { ActorNameModal } from "./components/ActorNameModal";
@@ -27,6 +29,7 @@ import { IdentityStrip } from "./components/IdentityStrip";
 import { Topbar } from "./components/Topbar";
 import { toast } from "sonner";
 import { AvailabilityFlow } from "./components/AvailabilityFlow";
+import { InviteModal } from "./components/InviteModal";
 import {
   buttonGhost,
   buttonRow,
@@ -57,6 +60,16 @@ function App() {
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [authPanelOpen, setAuthPanelOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
+  const [groupsReloadToken, setGroupsReloadToken] = useState(0);
+  const [inviteOpen, setInviteOpen] = useState(false);
+  const [inviteGroupId, setInviteGroupId] = useState<string | null>(null);
+  const [invitePreview, setInvitePreview] = useState<GroupInvitePreview | null>(
+    null
+  );
+  const [inviteError, setInviteError] = useState<string | null>(null);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [joining, setJoining] = useState(false);
+  const [alreadyMember, setAlreadyMember] = useState(false);
 
   const identity = useMemo<Identity>(() => {
     if (session?.user) {
@@ -122,6 +135,40 @@ function App() {
   }, []);
 
   useEffect(() => {
+    const match = window.location.pathname.match(/^\/invite\/([A-Za-z0-9-]+)/);
+    if (match?.[1]) {
+      setInviteGroupId(match[1]);
+      setInviteOpen(true);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (!inviteGroupId) return;
+
+    setInviteLoading(true);
+    setInviteError(null);
+    setAlreadyMember(false);
+
+    fetch(`/api/groups/${inviteGroupId}`)
+      .then((res) => {
+        if (!res.ok) throw new Error("Einladung ungültig oder abgelaufen");
+        return res.json();
+      })
+      .then((data: any) => {
+        setInvitePreview({
+          groupId: data.groupId || data.id || inviteGroupId,
+          name: data.name,
+        });
+      })
+      .catch((err) => {
+        setInviteError(
+          err instanceof Error ? err.message : "Einladung ungültig"
+        );
+      })
+      .finally(() => setInviteLoading(false));
+  }, [inviteGroupId]);
+
+  useEffect(() => {
     const fetchGroups = async () => {
       setGroupsLoading(true);
       setGroupsError(null);
@@ -149,7 +196,7 @@ function App() {
     };
 
     fetchGroups();
-  }, [identity, result]);
+  }, [identity, result, groupsReloadToken]);
 
   const handleCreateGroup = async (event: FormEvent) => {
     event.preventDefault();
@@ -220,6 +267,80 @@ function App() {
       setGroupsError(err instanceof Error ? err.message : "Unbekannter Fehler");
     } finally {
       setDeletingId(null);
+    }
+  };
+
+  const handleCopyInvite = async (group: GroupMembership) => {
+    const link =
+      group.inviteLink || `${window.location.origin}/invite/${group.groupId}`;
+    try {
+      await navigator.clipboard.writeText(link);
+      toast.success("Einladungslink kopiert");
+    } catch (err) {
+      toast.error("Konnte Link nicht kopieren");
+    }
+  };
+
+  const handleCloseInvite = () => {
+    setInviteOpen(false);
+    setInviteGroupId(null);
+    setInvitePreview(null);
+    setInviteError(null);
+    setAlreadyMember(false);
+    window.history.replaceState({}, "", "/");
+  };
+
+  const handleAcceptInvite = async () => {
+    if (!inviteGroupId) return;
+
+    if (identity.kind !== "user") {
+      setAuthPanelOpen(true);
+      return;
+    }
+
+    setJoining(true);
+    setInviteError(null);
+
+    try {
+      const headers: HeadersInit = {
+        Authorization: `Bearer ${identity.accessToken}`,
+      };
+      const res = await fetch(`/api/groups/${inviteGroupId}/join`, {
+        method: "POST",
+        headers,
+      });
+      if (!res.ok) {
+        throw new Error(`Fehler: ${res.status}`);
+      }
+
+      const data = (await res.json()) as JoinGroupResponse;
+      setAlreadyMember(data.alreadyMember);
+
+      const membership: GroupMembership = {
+        groupId: data.groupId,
+        name: data.name,
+        role: data.role,
+        inviteLink: data.inviteLink,
+      };
+
+      setGroups((prev) => {
+        const exists = prev.some((g) => g.groupId === membership.groupId);
+        return exists
+          ? prev.map((g) => (g.groupId === membership.groupId ? membership : g))
+          : [...prev, membership];
+      });
+      setGroupsReloadToken((value) => value + 1);
+
+      toast.success(
+        data.alreadyMember ? "Du bist bereits Mitglied." : "Gruppe beigetreten."
+      );
+      handleCloseInvite();
+    } catch (err) {
+      setInviteError(
+        err instanceof Error ? err.message : "Beitritt fehlgeschlagen"
+      );
+    } finally {
+      setJoining(false);
     }
   };
 
@@ -310,6 +431,22 @@ function App() {
         onSubmit={handleSaveActorName}
       />
 
+      <InviteModal
+        open={inviteOpen}
+        loading={inviteLoading}
+        invite={invitePreview}
+        error={inviteError}
+        joining={joining}
+        alreadyMember={alreadyMember}
+        requireLogin={identity.kind !== "user"}
+        onJoin={handleAcceptInvite}
+        onClose={handleCloseInvite}
+        onLogin={() => {
+          setAuthPanelOpen(true);
+          setInviteError(null);
+        }}
+      />
+
       <Topbar
         title="Gemeinsam Termine finden"
         subtitle="Gruppen-Urlaubsplaner"
@@ -338,6 +475,7 @@ function App() {
           deletingId={deletingId}
           onDelete={handleDeleteGroup}
           onCreateClick={() => setCreateOpen(true)}
+          onCopyInvite={handleCopyInvite}
         />
         <div className={`${cardMinimal} mt-4`}>
           <div className={buttonRow}>

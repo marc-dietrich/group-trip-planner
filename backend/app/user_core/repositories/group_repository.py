@@ -44,6 +44,18 @@ class GroupRepository(Protocol):
     async def claim_memberships_for_user(self, actor_id: str, user_id: UUID) -> int:
         ...
 
+    async def get_member_by_user(self, group_id: UUID, user_id: UUID) -> Optional[GroupMember]:
+        ...
+
+    async def add_member_to_group(
+        self,
+        group_id: UUID,
+        user_id: UUID,
+        display_name: str,
+        role: str = "member",
+    ) -> GroupMember:
+        ...
+
     async def commit(self) -> None:
         ...
 
@@ -132,6 +144,40 @@ class SQLModelGroupRepository(GroupRepository):
         result = await self.session.execute(stmt)
         return result.rowcount or 0
 
+    async def get_member_by_user(self, group_id: UUID, user_id: UUID) -> Optional[GroupMember]:
+        stmt = select(GroupMember).where(
+            GroupMember.group_id == group_id,
+            GroupMember.user_id == user_id,
+        )
+        result = await self.session.execute(stmt)
+        return result.scalars().first()
+
+    async def add_member_to_group(
+        self,
+        group_id: UUID,
+        user_id: UUID,
+        display_name: str,
+        role: str = "member",
+    ) -> GroupMember:
+        # Ensure a user row exists for the FK constraint; reuse display_name if available.
+        user = await self.session.get(User, user_id)
+        if not user:
+            user = User(id=user_id, display_name=display_name, email=None)
+            self.session.add(user)
+            await self.session.flush()
+
+        member = GroupMember(
+            group_id=group_id,
+            user_id=user_id,
+            actor_id=str(user_id),
+            display_name=display_name,
+            role=role,
+        )
+        self.session.add(member)
+        await self.session.commit()
+        await self.session.refresh(member)
+        return member
+
     async def commit(self) -> None:
         await self.session.commit()
 
@@ -209,6 +255,32 @@ class InMemoryGroupRepository(GroupRepository):
                 member.user_id = user_id
                 updated += 1
         return updated
+
+    async def get_member_by_user(self, group_id: UUID, user_id: UUID) -> Optional[GroupMember]:
+        for member in self.members.values():
+            if member.group_id == group_id and member.user_id and str(member.user_id) == str(user_id):
+                return member
+        return None
+
+    async def add_member_to_group(
+        self,
+        group_id: UUID,
+        user_id: UUID,
+        display_name: str,
+        role: str = "member",
+    ) -> GroupMember:
+        from uuid import uuid4
+
+        member = GroupMember(
+            id=uuid4(),
+            group_id=group_id,
+            actor_id=str(user_id),
+            user_id=user_id,
+            display_name=display_name,
+            role=role,
+        )
+        self.members[member.id] = member
+        return member
 
     async def commit(self) -> None:  # pragma: no cover - no-op for in-memory
         return None

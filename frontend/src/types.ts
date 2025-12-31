@@ -18,6 +18,19 @@ export type GroupMembership = {
   inviteLink: string;
 };
 
+export type GroupInvitePreview = {
+  groupId: string;
+  name: string;
+};
+
+export type JoinGroupResponse = {
+  groupId: string;
+  name: string;
+  role: string;
+  inviteLink: string;
+  alreadyMember: boolean;
+};
+
 export type Identity =
   | { kind: "actor"; actorId: string; displayName: string }
   | { kind: "user"; userId: string; displayName: string; accessToken: string };

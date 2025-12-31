@@ -127,3 +127,31 @@ async def test_create_group_uses_default_display_name():
         assert create_res.status_code == 200
         body = create_res.json()
         assert body["displayName"] == "Gast"
+
+
+@pytest.mark.asyncio
+async def test_join_group_via_invite_link():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        owner_headers, _ = _auth_headers(display_name="Owner")
+        group_data = {"groupName": "Joinable", "displayName": "Owner"}
+        create_res = await client.post("/api/groups", json=group_data, headers=owner_headers)
+        assert create_res.status_code == 200
+        group_id = create_res.json()["groupId"]
+
+        guest_headers, _ = _auth_headers(display_name="Guest")
+        join_res = await client.post(f"/api/groups/{group_id}/join", headers=guest_headers)
+        assert join_res.status_code == 200
+        body = join_res.json()
+        assert body["groupId"] == group_id
+        assert body["alreadyMember"] is False
+
+        # Joining again should be idempotent
+        repeat = await client.post(f"/api/groups/{group_id}/join", headers=guest_headers)
+        assert repeat.status_code == 200
+        assert repeat.json()["alreadyMember"] is True
+
+        # Guest should see the group in their listing
+        list_res = await client.get("/api/groups", headers=guest_headers)
+        assert list_res.status_code == 200
+        assert any(g["groupId"] == group_id for g in list_res.json())

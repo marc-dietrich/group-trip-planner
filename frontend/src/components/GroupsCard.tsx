@@ -15,6 +15,7 @@ type GroupsCardProps = {
   deletingId: string | null;
   onDelete: (groupId: string) => void;
   onCreateClick: () => void;
+  onCopyInvite: (group: GroupMembership) => void;
 };
 
 export function GroupsCard({
@@ -24,6 +25,7 @@ export function GroupsCard({
   deletingId,
   onDelete,
   onCreateClick,
+  onCopyInvite,
 }: GroupsCardProps) {
   return (
     <section className={cardMinimal}>
@@ -48,6 +50,7 @@ export function GroupsCard({
         groupsError={groupsError}
         deletingId={deletingId}
         onDelete={onDelete}
+        onCopyInvite={onCopyInvite}
       />
     </section>
   );
