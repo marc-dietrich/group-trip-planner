@@ -46,14 +46,20 @@ export function GroupDetailPage({
     loading: summaryLoading,
     error: summaryError,
     refetch: refetchSummary,
-  } = useGroupAvailability(groupId ?? null, identity.kind === "user" ? identity.accessToken : null);
+  } = useGroupAvailability(
+    groupId ?? null,
+    identity.kind === "user" ? identity.accessToken : null
+  );
 
   const {
     data: memberAvailabilities,
     loading: membersLoading,
     error: membersError,
     refetch: refetchMembers,
-  } = useGroupMemberAvailabilities(groupId ?? null, identity.kind === "user" ? identity.accessToken : null);
+  } = useGroupMemberAvailabilities(
+    groupId ?? null,
+    identity.kind === "user" ? identity.accessToken : null
+  );
 
   useEffect(() => {
     const fallback = groups.find((g) => g.groupId === groupId);
@@ -76,7 +82,11 @@ export function GroupDetailPage({
         }
       } catch (err) {
         if (cancelled) return;
-        setGroupError(err instanceof Error ? err.message : "Gruppe konnte nicht geladen werden");
+        setGroupError(
+          err instanceof Error
+            ? err.message
+            : "Gruppe konnte nicht geladen werden"
+        );
       }
     };
 
@@ -119,7 +129,11 @@ export function GroupDetailPage({
         );
       } catch (err) {
         if (signal?.aborted) return;
-        setEntriesError(err instanceof Error ? err.message : "Verfügbarkeiten konnten nicht geladen werden");
+        setEntriesError(
+          err instanceof Error
+            ? err.message
+            : "Verfügbarkeiten konnten nicht geladen werden"
+        );
       } finally {
         if (signal?.aborted) return;
         setEntriesLoading(false);
@@ -147,10 +161,16 @@ export function GroupDetailPage({
         <div className="flex items-start justify-between gap-3">
           <div>
             <p className={eyebrow}>Gruppe</p>
-            <h2 className="text-xl font-semibold text-slate-900">{groupName}</h2>
+            <h2 className="text-xl font-semibold text-slate-900">
+              {groupName}
+            </h2>
             {groupError && <div className={pillDanger}>{groupError}</div>}
           </div>
-          <button type="button" className={buttonGhost} onClick={() => navigate(-1)}>
+          <button
+            type="button"
+            className={buttonGhost}
+            onClick={() => navigate(-1)}
+          >
             Zurück
           </button>
         </div>
@@ -160,64 +180,79 @@ export function GroupDetailPage({
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className={eyebrow}>Mitglieder</p>
-            <h3 className="text-lg font-semibold text-slate-900">Verfügbarkeiten</h3>
+            <h3 className="text-lg font-semibold text-slate-900">
+              Verfügbarkeiten
+            </h3>
           </div>
           {identity.kind !== "user" && <div className={pill}>Login nötig</div>}
         </div>
         <div className="mt-3 flex flex-col gap-2">
           {membersLoading && <p className={muted}>Lade Mitglieder...</p>}
           {membersError && <div className={pillDanger}>{membersError}</div>}
-          {!membersLoading && !membersError && memberAvailabilities.length === 0 && (
-            <p className={muted}>Noch keine Mitglieder gefunden.</p>
-          )}
+          {!membersLoading &&
+            !membersError &&
+            memberAvailabilities.length === 0 && (
+              <p className={muted}>Noch keine Mitglieder gefunden.</p>
+            )}
 
-          {Array.isArray(memberAvailabilities) && memberAvailabilities.map((member) => (
-            <div key={member.memberId} className="rounded-lg border border-slate-200 bg-slate-50 p-3">
-              <div className="flex items-center justify-between gap-2">
-                <div className="flex items-center gap-2">
-                  <span className={pillNeutral}>{member.displayName}</span>
-                  <span className={pill}>{member.role}</span>
+          {Array.isArray(memberAvailabilities) &&
+            memberAvailabilities.map((member) => (
+              <div
+                key={member.memberId}
+                className="rounded-lg border border-slate-200 bg-slate-50 p-3"
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <div className="flex items-center gap-2">
+                    <span className={pillNeutral}>{member.displayName}</span>
+                    <span className={pill}>{member.role}</span>
+                  </div>
+                  {identity.kind === "user" &&
+                  member.userId === identity.userId ? (
+                    <span className={pillNeutral}>Du</span>
+                  ) : null}
                 </div>
-                {identity.kind === "user" && member.userId === identity.userId ? (
-                  <span className={pillNeutral}>Du</span>
-                ) : null}
+                <div className="mt-3 flex flex-col gap-2">
+                  {member.availabilities.length === 0 && (
+                    <p className={muted}>Keine Zeiträume hinterlegt.</p>
+                  )}
+                  {member.availabilities.length > 0 && (
+                    <ul className="flex flex-col gap-2">
+                      {member.availabilities.map((entry) => (
+                        <li
+                          key={entry.id}
+                          className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                        >
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className={pillNeutral}>Verfügbar</span>
+                            <span className="font-semibold text-slate-900">
+                              {dateFormatter.format(new Date(entry.startDate))}{" "}
+                              – {dateFormatter.format(new Date(entry.endDate))}
+                            </span>
+                          </div>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
               </div>
-              <div className="mt-3 flex flex-col gap-2">
-                {member.availabilities.length === 0 && <p className={muted}>Keine Zeiträume hinterlegt.</p>}
-                {member.availabilities.length > 0 && (
-                  <ul className="flex flex-col gap-2">
-                    {member.availabilities.map((entry) => (
-                      <li
-                        key={entry.id}
-                        className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
-                      >
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span className={pillNeutral}>Verfügbar</span>
-                          <span className="font-semibold text-slate-900">
-                            {dateFormatter.format(new Date(entry.startDate))} – {dateFormatter.format(
-                              new Date(entry.endDate)
-                            )}
-                          </span>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </div>
-            </div>
-          ))}
+            ))}
         </div>
       </section>
       <section className={cardMinimal}>
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className={eyebrow}>Deine Angaben</p>
-            <h3 className="text-lg font-semibold text-slate-900">Verfügbarkeiten</h3>
+            <h3 className="text-lg font-semibold text-slate-900">
+              Verfügbarkeiten
+            </h3>
           </div>
-          <span className={pillNeutral}>{identity.kind === "user" ? "Eingeloggt" : "Gast"}</span>
+          <span className={pillNeutral}>
+            {identity.kind === "user" ? "Eingeloggt" : "Gast"}
+          </span>
         </div>
         <p className={`${muted} mt-2`}>
-          Nutzt den bestehenden Kalender-Dialog, um Zeiträume hinzuzufügen oder zu löschen.
+          Nutzt den bestehenden Kalender-Dialog, um Zeiträume hinzuzufügen oder
+          zu löschen.
         </p>
         <div className="mt-4">
           <AvailabilityFlow
@@ -240,28 +275,37 @@ export function GroupDetailPage({
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className={eyebrow}>Gruppen-Übersicht</p>
-            <h3 className="text-lg font-semibold text-slate-900">Wann die Gruppe kann</h3>
+            <h3 className="text-lg font-semibold text-slate-900">
+              Wann die Gruppe kann
+            </h3>
           </div>
         </div>
         <p className={`${muted} mt-2`}>
-          Zeigt überlappende Zeiträume und wie viele Mitglieder verfügbar sind. Nicht markierte Tage gelten als nicht
-          verfügbar.
+          Zeigt überlappende Zeiträume und wie viele Mitglieder verfügbar sind.
+          Nicht markierte Tage gelten als nicht verfügbar.
         </p>
 
         <div className="mt-3 flex flex-col gap-2">
           {summaryLoading && <p className={muted}>Lade Übersicht...</p>}
           {summaryError && <div className={pillDanger}>{summaryError}</div>}
-          {!summaryLoading && !summaryError && summary.length === 0 && <p className={muted}>Keine Überschneidungen vorhanden.</p>}
+          {!summaryLoading && !summaryError && summary.length === 0 && (
+            <p className={muted}>Keine Überschneidungen vorhanden.</p>
+          )}
           {summary.length > 0 && (
             <ul className="flex flex-col gap-2">
               {summary.map((item, idx) => (
-                <li key={`${item.from}-${item.to}-${idx}`} className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm">
+                <li
+                  key={`${item.from}-${item.to}-${idx}`}
+                  className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                >
                   <div className="flex flex-wrap items-center gap-2">
                     <span className="font-semibold text-slate-900">
-                      {dateFormatter.format(new Date(item.from))} – {dateFormatter.format(new Date(item.to))}
+                      {dateFormatter.format(new Date(item.from))} –{" "}
+                      {dateFormatter.format(new Date(item.to))}
                     </span>
                     <span className={pillNeutral}>
-                      {item.availableCount} von {item.totalMembers} Mitgliedern verfügbar
+                      {item.availableCount} von {item.totalMembers} Mitgliedern
+                      verfügbar
                     </span>
                   </div>
                 </li>

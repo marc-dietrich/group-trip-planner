@@ -16,7 +16,12 @@ const memberAvailabilityResponse = [
     displayName: "You",
     role: "owner",
     availabilities: [
-      { id: "a1", groupId: "123", startDate: "2025-07-01", endDate: "2025-07-03" },
+      {
+        id: "a1",
+        groupId: "123",
+        startDate: "2025-07-01",
+        endDate: "2025-07-03",
+      },
     ],
   },
   {
@@ -42,10 +47,13 @@ describe("GroupDetailPage availability summary", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async (url: string) => {
-        if (url.includes("availability-summary")) return mockResponse(summaryResponse);
-        if (url.includes("member-availabilities")) return mockResponse(memberAvailabilityResponse);
+        if (url.includes("availability-summary"))
+          return mockResponse(summaryResponse);
+        if (url.includes("member-availabilities"))
+          return mockResponse(memberAvailabilityResponse);
         if (url.endsWith("/availabilities")) return mockResponse([]);
-        if (/\/api\/groups\/.+/.test(url)) return mockResponse({ name: "Sommertrip" });
+        if (/\/api\/groups\/.+/.test(url))
+          return mockResponse({ name: "Sommertrip" });
         return mockResponse({}, 404);
       })
     );
@@ -63,8 +71,20 @@ describe("GroupDetailPage availability summary", () => {
             path="/groups/:groupId"
             element={
               <GroupDetailPage
-                identity={{ kind: "user", userId: "u1", displayName: "You", accessToken: "token" }}
-                groups={[{ groupId: "123", name: "Sommertrip", role: "owner", inviteLink: "" }]}
+                identity={{
+                  kind: "user",
+                  userId: "u1",
+                  displayName: "You",
+                  accessToken: "token",
+                }}
+                groups={[
+                  {
+                    groupId: "123",
+                    name: "Sommertrip",
+                    role: "owner",
+                    inviteLink: "",
+                  },
+                ]}
                 groupsLoading={false}
                 groupsError={null}
               />
@@ -75,8 +95,12 @@ describe("GroupDetailPage availability summary", () => {
     );
 
     await waitFor(() => {
-      expect(screen.getByText(/3 von 5 Mitgliedern verfügbar/)).toBeInTheDocument();
-      expect(screen.getByText(/2 von 5 Mitgliedern verfügbar/)).toBeInTheDocument();
+      expect(
+        screen.getByText(/3 von 5 Mitgliedern verfügbar/)
+      ).toBeInTheDocument();
+      expect(
+        screen.getByText(/2 von 5 Mitgliedern verfügbar/)
+      ).toBeInTheDocument();
     });
   });
 });
