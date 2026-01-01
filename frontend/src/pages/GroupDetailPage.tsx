@@ -1,6 +1,6 @@
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { AvailabilityEntry, GroupMembership, Identity } from "../types";
+import { GroupMembership, Identity } from "../types";
 import { AvailabilityFlow } from "../components/AvailabilityFlow";
 import {
   buttonGhost,
@@ -37,9 +37,6 @@ export function GroupDetailPage({
   const navigate = useNavigate();
   const [groupName, setGroupName] = useState<string>("Gruppe");
   const [groupError, setGroupError] = useState<string | null>(null);
-  const [entries, setEntries] = useState<AvailabilityEntry[]>([]);
-  const [entriesError, setEntriesError] = useState<string | null>(null);
-  const [entriesLoading, setEntriesLoading] = useState(false);
 
   const {
     data: summary,
@@ -95,59 +92,6 @@ export function GroupDetailPage({
       cancelled = true;
     };
   }, [groupId, groups]);
-
-  const fetchEntries = useCallback(
-    async (signal?: AbortSignal) => {
-      if (!groupId) return;
-      if (identity.kind !== "user") {
-        setEntries([]);
-        setEntriesError("Bitte einloggen, um Verfügbarkeiten zu sehen.");
-        return;
-      }
-
-      setEntriesLoading(true);
-      setEntriesError(null);
-      try {
-        const res = await fetch(`/api/groups/${groupId}/availabilities`, {
-          headers: { Authorization: `Bearer ${identity.accessToken}` },
-          signal,
-        });
-        if (!res.ok) throw new Error(`Fehler: ${res.status}`);
-        const data = (await res.json()) as Array<{
-          id: string;
-          startDate: string;
-          endDate: string;
-        }>;
-        if (signal?.aborted) return;
-        setEntries(
-          data.map((entry) => ({
-            id: entry.id,
-            groupId: groupId,
-            startDate: entry.startDate,
-            endDate: entry.endDate,
-          }))
-        );
-      } catch (err) {
-        if (signal?.aborted) return;
-        setEntriesError(
-          err instanceof Error
-            ? err.message
-            : "Verfügbarkeiten konnten nicht geladen werden"
-        );
-      } finally {
-        if (signal?.aborted) return;
-        setEntriesLoading(false);
-      }
-    },
-    [groupId, identity]
-  );
-
-  useEffect(() => {
-    if (!groupId) return;
-    const controller = new AbortController();
-    void fetchEntries(controller.signal);
-    return () => controller.abort();
-  }, [groupId, fetchEntries]);
 
   const singleGroupList = useMemo(() => {
     if (!groupId) return [] as GroupMembership[];
@@ -263,7 +207,6 @@ export function GroupDetailPage({
             fixedGroupId={groupId ?? null}
             hideSavedList
             onChange={() => {
-              void fetchEntries();
               void refetchSummary();
               void refetchMembers();
             }}
