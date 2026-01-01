@@ -22,26 +22,8 @@ import {
   stackXs,
 } from "../ui";
 
-const RANGE_TAG: Record<RangeType, string> = {
-  available: "Verfügbar",
-  unavailable: "Nicht verfügbar",
-};
 type RangeType = "available" | "unavailable";
 type Step = "type" | "start" | "end" | "review";
-
-const rangeChipClass = (type: RangeType) =>
-  `${
-    type === "available"
-      ? "border-green-200 bg-green-50 text-green-700"
-      : "border-rose-200 bg-rose-50 text-rose-700"
-  } inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-semibold`;
-
-const typeChoiceClass = (type: RangeType) =>
-  `${
-    type === "available"
-      ? "border-green-200 bg-green-50"
-      : "border-amber-200 bg-amber-50"
-  } w-full text-left rounded-xl border px-4 py-3 text-slate-900 shadow-sm transition hover:-translate-y-0.5 hover:shadow-card`;
 
 type DraftRange = {
   type: RangeType;
@@ -74,6 +56,34 @@ type MonthGroup = {
   days: DayOption[];
 };
 
+type MonthCalendarProps = {
+  month: MonthGroup;
+  selected: string | null;
+  minDate?: string | null;
+  maxDate?: string | null;
+  todayIso: string;
+  atStart: boolean;
+  atEnd: boolean;
+  onPrev: () => void;
+  onNext: () => void;
+  onSelect: (iso: string) => void;
+};
+
+type AvailabilityFlowProps = {
+  groups: GroupMembership[];
+  groupsLoading: boolean;
+  groupsError: string | null;
+  identity: Identity;
+  fixedGroupId?: string | null;
+  hideSavedList?: boolean;
+  onChange?: () => void;
+};
+
+const RANGE_TAG: Record<RangeType, string> = {
+  available: "Verfügbar",
+  unavailable: "Nicht verfügbar",
+};
+
 const initialDraft: DraftRange = {
   type: "available",
   start: null,
@@ -99,6 +109,20 @@ const fullFormatter = new Intl.DateTimeFormat("de-DE", {
   year: "numeric",
 });
 
+const rangeChipClass = (type: RangeType) =>
+  `${
+    type === "available"
+      ? "border-green-200 bg-green-50 text-green-700"
+      : "border-rose-200 bg-rose-50 text-rose-700"
+  } inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-semibold`;
+
+const typeChoiceClass = (type: RangeType) =>
+  `${
+    type === "available"
+      ? "border-green-200 bg-green-50"
+      : "border-amber-200 bg-amber-50"
+  } w-full text-left rounded-xl border px-4 py-3 text-slate-900 shadow-sm transition hover:-translate-y-0.5 hover:shadow-card`;
+
 function toLocalISO(date: Date): string {
   const offsetMs = date.getTimezoneOffset() * 60000;
   return new Date(date.getTime() - offsetMs).toISOString().slice(0, 10);
@@ -111,7 +135,7 @@ function monthKeyFromIso(iso: string): string {
 function buildMonthGroups(daysAhead = 730): MonthGroup[] {
   const start = new Date();
   start.setHours(12, 0, 0, 0);
-  start.setDate(1); // begin at first of current month so earlier days show in the grid
+  start.setDate(1);
 
   const groups: Record<string, MonthGroup> = {};
 
@@ -141,9 +165,7 @@ function buildMonthGroups(daysAhead = 730): MonthGroup[] {
     });
   }
 
-  return Object.values(groups).sort((a, b) =>
-    a.monthKey.localeCompare(b.monthKey)
-  );
+  return Object.values(groups).sort((a, b) => a.monthKey.localeCompare(b.monthKey));
 }
 
 function dayDiffInclusive(startIso: string, endIso: string): number {
@@ -160,19 +182,6 @@ function formatRange(startIso: string, endIso: string): string {
   return `${start} → ${end}`;
 }
 
-type MonthCalendarProps = {
-  month: MonthGroup;
-  selected: string | null;
-  minDate?: string | null;
-  maxDate?: string | null;
-  todayIso: string;
-  atStart: boolean;
-  atEnd: boolean;
-  onPrev: () => void;
-  onNext: () => void;
-  onSelect: (iso: string) => void;
-};
-
 function MonthCalendar({
   month,
   selected,
@@ -186,42 +195,27 @@ function MonthCalendar({
   onSelect,
 }: MonthCalendarProps) {
   const monthDate = new Date(`${month.monthKey}-01T12:00:00`);
-  const weekdayOffset = (monthDate.getDay() + 6) % 7; // Monday as first day
+  const weekdayOffset = (monthDate.getDay() + 6) % 7;
 
   const baseCells: Array<DayOption | null> = [
     ...Array.from({ length: weekdayOffset }, () => null as DayOption | null),
     ...month.days,
   ];
 
-  const rows = 6; // fixed grid height so navigation doesn’t shift between months
+  const rows = 6;
   const totalCells = rows * 7;
   const cells: Array<DayOption | null> = baseCells.concat(
-    Array.from(
-      { length: totalCells - baseCells.length },
-      () => null as DayOption | null
-    )
+    Array.from({ length: totalCells - baseCells.length }, () => null as DayOption | null)
   );
 
   return (
     <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3">
       <div className="flex items-center justify-between gap-2">
-        <button
-          type="button"
-          className={buttonGhostTiny}
-          onClick={onPrev}
-          disabled={atStart}
-        >
+        <button type="button" className={buttonGhostTiny} onClick={onPrev} disabled={atStart}>
           ←
         </button>
-        <div className="text-sm font-semibold text-slate-900">
-          {month.monthLabel}
-        </div>
-        <button
-          type="button"
-          className={buttonGhostTiny}
-          onClick={onNext}
-          disabled={atEnd}
-        >
+        <div className="text-sm font-semibold text-slate-900">{month.monthLabel}</div>
+        <button type="button" className={buttonGhostTiny} onClick={onNext} disabled={atEnd}>
           →
         </button>
       </div>
@@ -236,12 +230,9 @@ function MonthCalendar({
 
       <div className="grid grid-cols-7 gap-1">
         {cells.map((cell, idx) => {
-          if (!cell)
-            return <div key={`empty-${idx}`} className="aspect-square" />;
+          if (!cell) return <div key={`empty-${idx}`} className="aspect-square" />;
 
-          const isDisabled = Boolean(
-            (minDate && cell.iso < minDate) || (maxDate && cell.iso > maxDate)
-          );
+          const isDisabled = Boolean((minDate && cell.iso < minDate) || (maxDate && cell.iso > maxDate));
           const isSelected = selected === cell.iso;
           const isToday = todayIso === cell.iso;
 
@@ -271,35 +262,37 @@ function MonthCalendar({
   );
 }
 
-type AvailabilityFlowProps = {
-  groups: GroupMembership[];
-  groupsLoading: boolean;
-  groupsError: string | null;
-  identity: Identity;
-};
-
 export function AvailabilityFlow({
   groups,
   groupsLoading,
   groupsError,
   identity,
+  fixedGroupId = null,
+  hideSavedList = false,
+  onChange,
 }: AvailabilityFlowProps) {
   const [draft, setDraft] = useState<DraftRange>(initialDraft);
   const [step, setStep] = useState<Step>("type");
   const [ranges, setRanges] = useState<AvailabilityRange[]>([]);
   const [rangesLoading, setRangesLoading] = useState(false);
   const [rangesError, setRangesError] = useState<string | null>(null);
-  // editing disabled: entries are either created new or deleted
   const [listOpen, setListOpen] = useState(false);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+
   const selectedGroup = useMemo(
     () => groups.find((g) => g.groupId === selectedGroupId) ?? null,
     [selectedGroupId, groups]
   );
 
   useEffect(() => {
+    if (fixedGroupId) {
+      setSelectedGroupId(fixedGroupId);
+      setDraft((prev) => ({ ...prev, groupId: fixedGroupId }));
+      return;
+    }
+
     if (!groups.length) {
       setSelectedGroupId(null);
       setDraft((prev) => ({ ...prev, groupId: null }));
@@ -318,7 +311,7 @@ export function AvailabilityFlow({
       const fallback = groups[0]?.groupId ?? null;
       return { ...prev, groupId: fallback };
     });
-  }, [groups]);
+  }, [groups, fixedGroupId]);
 
   useEffect(() => {
     if (identity.kind !== "user") return;
@@ -333,13 +326,10 @@ export function AvailabilityFlow({
       setRangesLoading(true);
       setRangesError(null);
       try {
-        const res = await fetch(
-          `/api/groups/${selectedGroupId}/availabilities`,
-          {
-            headers: { Authorization: `Bearer ${identity.accessToken ?? ""}` },
-            signal: controller.signal,
-          }
-        );
+        const res = await fetch(`/api/groups/${selectedGroupId}/availabilities`, {
+          headers: { Authorization: `Bearer ${identity.accessToken ?? ""}` },
+          signal: controller.signal,
+        });
         if (!res.ok) throw new Error(`Fehler: ${res.status}`);
         const data = (await res.json()) as Array<{
           id: string;
@@ -354,18 +344,14 @@ export function AvailabilityFlow({
             start: item.startDate,
             end: item.endDate,
             groupId: selectedGroupId,
-            groupName:
-              groups.find((g) => g.groupId === selectedGroupId)?.name ||
-              "Unbekannte Gruppe",
+            groupName: groups.find((g) => g.groupId === selectedGroupId)?.name || "Unbekannte Gruppe",
           }))
           .sort((a, b) => a.start.localeCompare(b.start));
         setRanges(mapped);
         setListOpen(false);
       } catch (err) {
         if (controller.signal.aborted) return;
-        setRangesError(
-          err instanceof Error ? err.message : "Laden fehlgeschlagen"
-        );
+        setRangesError(err instanceof Error ? err.message : "Laden fehlgeschlagen");
       } finally {
         if (controller.signal.aborted) return;
         setRangesLoading(false);
@@ -389,18 +375,12 @@ export function AvailabilityFlow({
   const hasMonths = monthGroups.length > 0;
   const atStart = monthIndex === 0;
   const atEnd = hasMonths ? monthIndex === monthGroups.length - 1 : true;
-  const currentMonth = hasMonths
-    ? monthGroups[Math.min(monthIndex, monthGroups.length - 1)]
-    : null;
+  const currentMonth = hasMonths ? monthGroups[Math.min(monthIndex, monthGroups.length - 1)] : null;
 
   const goPrevMonth = () => setMonthIndex((idx) => Math.max(0, idx - 1));
-  const goNextMonth = () =>
-    setMonthIndex((idx) =>
-      Math.min(monthGroups.length - 1, Math.max(0, idx + 1))
-    );
+  const goNextMonth = () => setMonthIndex((idx) => Math.min(monthGroups.length - 1, Math.max(0, idx + 1)));
 
-  const stepNumber =
-    step === "type" ? 1 : step === "start" ? 2 : step === "end" ? 3 : 4;
+  const stepNumber = step === "type" ? 1 : step === "start" ? 2 : step === "end" ? 3 : 4;
   const stepLabel: Record<Step, string> = {
     type: "Was möchtest du angeben?",
     start: "Startdatum wählen",
@@ -408,18 +388,9 @@ export function AvailabilityFlow({
     review: "Prüfen und speichern",
   };
 
-  const durationLabel =
-    draft.start && draft.end
-      ? `${dayDiffInclusive(draft.start, draft.end)} Tage`
-      : "–";
+  const durationLabel = draft.start && draft.end ? `${dayDiffInclusive(draft.start, draft.end)} Tage` : "–";
 
-  const canSave = Boolean(
-    draft.start &&
-      draft.end &&
-      draft.groupId &&
-      identity.kind === "user" &&
-      !saving
-  );
+  const canSave = Boolean(draft.start && draft.end && draft.groupId && identity.kind === "user" && !saving);
 
   const handleTypeChoice = (type: RangeType) => {
     setDraft((prev) => ({ ...prev, type }));
@@ -438,10 +409,11 @@ export function AvailabilityFlow({
   };
 
   const resetFlow = () => {
-    const fallbackGroupId =
-      selectedGroupId && groups.some((g) => g.groupId === selectedGroupId)
-        ? selectedGroupId
-        : groups[0]?.groupId ?? null;
+    const fallbackGroupId = fixedGroupId
+      ? fixedGroupId
+      : selectedGroupId && groups.some((g) => g.groupId === selectedGroupId)
+      ? selectedGroupId
+      : groups[0]?.groupId ?? null;
 
     setDraft({ ...initialDraft, groupId: fallbackGroupId });
     setStep("type");
@@ -459,7 +431,10 @@ export function AvailabilityFlow({
       return;
     }
 
-    const group = groups.find((g) => g.groupId === draft.groupId);
+    const group =
+      groups.find((g) => g.groupId === draft.groupId) ??
+      (draft.groupId ? { groupId: draft.groupId, name: "Ausgewählte Gruppe" } : null);
+
     if (!group) {
       toast.error("Ausgewählte Gruppe nicht mehr vorhanden");
       return;
@@ -501,17 +476,14 @@ export function AvailabilityFlow({
         groupName: group.name,
       };
 
-      setRanges((prev) =>
-        [...prev, payload].sort((a, b) => a.start.localeCompare(b.start))
-      );
+      setRanges((prev) => [...prev, payload].sort((a, b) => a.start.localeCompare(b.start)));
 
       toast.success("Zeitraum gespeichert");
+      if (onChange) onChange();
       resetFlow();
       setOpen(false);
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Speichern fehlgeschlagen"
-      );
+      toast.error(err instanceof Error ? err.message : "Speichern fehlgeschlagen");
     } finally {
       setSaving(false);
     }
@@ -532,10 +504,9 @@ export function AvailabilityFlow({
         if (!res.ok) throw new Error(`Fehler: ${res.status}`);
         setRanges((prev) => prev.filter((item) => item.id !== id));
         toast.success("Gelöscht");
+        if (onChange) onChange();
       } catch (err) {
-        toast.error(
-          err instanceof Error ? err.message : "Löschen fehlgeschlagen"
-        );
+        toast.error(err instanceof Error ? err.message : "Löschen fehlgeschlagen");
       }
     };
 
@@ -561,9 +532,7 @@ export function AvailabilityFlow({
       <div className={cardHeaderSubtle}>
         <div>
           <p className={eyebrow}>Verfügbarkeiten</p>
-          <h3 className="text-xl font-semibold text-slate-900">
-            Wann passt es dir?
-          </h3>
+          <h3 className="text-xl font-semibold text-slate-900">Wann passt es dir?</h3>
         </div>
         <div className={buttonRow}>
           <button
@@ -571,9 +540,7 @@ export function AvailabilityFlow({
             className={buttonPrimary}
             onClick={() => {
               if (identity.kind !== "user") {
-                toast.error(
-                  "Bitte zuerst anmelden, um Verfügbarkeiten zu erfassen."
-                );
+                toast.error("Bitte zuerst anmelden, um Verfügbarkeiten zu erfassen.");
                 return;
               }
               setOpen(true);
@@ -584,67 +551,65 @@ export function AvailabilityFlow({
           </button>
         </div>
       </div>
-      {identity.kind !== "user" && (
-        <div className={`${pillWarning} mt-1`}>
-          Bitte melde dich an, bevor du Verfügbarkeiten hinzufügst.
-        </div>
-      )}
+
+      {identity.kind !== "user" && <div className={`${pillWarning} mt-1`}>Bitte melde dich an, bevor du Verfügbarkeiten hinzufügst.</div>}
+
       {open && (
         <div className={modalOverlay} role="dialog" aria-modal="true">
           <div className={modalCard}>
             <div className={cardHeaderSubtle}>
               <div>
                 <p className={eyebrow}>Neuer Zeitraum</p>
-                <h3 className="text-lg font-semibold text-slate-900">
-                  Wann passt es dir?
-                </h3>
+                <h3 className="text-lg font-semibold text-slate-900">Wann passt es dir?</h3>
               </div>
               <div className={buttonRow}>
-                <button
-                  type="button"
-                  className={buttonGhostSmall}
-                  onClick={closeDialog}
-                >
+                <button type="button" className={buttonGhostSmall} onClick={closeDialog}>
                   Schließen
                 </button>
               </div>
             </div>
 
             <p className={muted}>
-              Schritt-für-Schritt mit Kalender: Verfügbar/Nicht verfügbar
-              wählen, Start und Ende setzen, prüfen und speichern.
+              Schritt-für-Schritt mit Kalender: Verfügbar/Nicht verfügbar wählen, Start und Ende setzen, prüfen und speichern.
             </p>
 
             <div className={stackXs}>
-              <label className={field}>
-                <span className="text-sm text-slate-700">Gruppe auswählen</span>
-                <select
-                  className={select}
-                  value={selectedGroupId ?? ""}
-                  onChange={(e) => {
-                    const nextId = e.target.value || null;
-                    setSelectedGroupId(nextId);
-                    setDraft((prev) => ({ ...prev, groupId: nextId }));
-                  }}
-                  disabled={groupsLoading || !groups.length}
-                  required
-                >
-                  <option value="" disabled>
-                    {groupsLoading ? "Lade Gruppen..." : "Gruppe wählen"}
-                  </option>
-                  {groups.map((group) => (
-                    <option key={group.groupId} value={group.groupId}>
-                      {group.name}
+              {!fixedGroupId ? (
+                <label className={field}>
+                  <span className="text-sm text-slate-700">Gruppe auswählen</span>
+                  <select
+                    className={select}
+                    value={selectedGroupId ?? ""}
+                    onChange={(e) => {
+                      const nextId = e.target.value || null;
+                      setSelectedGroupId(nextId);
+                      setDraft((prev) => ({ ...prev, groupId: nextId }));
+                    }}
+                    disabled={groupsLoading || !groups.length}
+                    required
+                  >
+                    <option value="" disabled>
+                      {groupsLoading ? "Lade Gruppen..." : "Gruppe wählen"}
                     </option>
-                  ))}
-                </select>
-              </label>
+                    {groups.map((group) => (
+                      <option key={group.groupId} value={group.groupId}>
+                        {group.name}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              ) : (
+                <div className={field}>
+                  <span className="text-sm text-slate-700">Gruppe</span>
+                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900">
+                    {selectedGroup?.name ?? "Ausgewählte Gruppe"}
+                  </div>
+                </div>
+              )}
 
               {groupsError && <div className={pillDanger}>{groupsError}</div>}
-              {!groupsLoading && !groups.length && (
-                <p className={smallMuted}>
-                  Lege zuerst eine Gruppe an, um Verfügbarkeiten zuzuordnen.
-                </p>
+              {!groupsLoading && !groups.length && !fixedGroupId && (
+                <p className={smallMuted}>Lege zuerst eine Gruppe an, um Verfügbarkeiten zuzuordnen.</p>
               )}
             </div>
 
@@ -656,21 +621,15 @@ export function AvailabilityFlow({
                   onClick={() => handleTypeChoice("available")}
                 >
                   <div className="text-lg font-semibold">Ich bin verfügbar</div>
-                  <div className={muted}>
-                    Zeige den Zeitraum, in dem du mitreisen kannst.
-                  </div>
+                  <div className={muted}>Zeige den Zeitraum, in dem du mitreisen kannst.</div>
                 </button>
                 <button
                   type="button"
                   className={typeChoiceClass("unavailable")}
                   onClick={() => handleTypeChoice("unavailable")}
                 >
-                  <div className="text-lg font-semibold">
-                    Ich bin nicht verfügbar
-                  </div>
-                  <div className={muted}>
-                    Blende Tage aus, die für dich nicht gehen.
-                  </div>
+                  <div className="text-lg font-semibold">Ich bin nicht verfügbar</div>
+                  <div className={muted}>Blende Tage aus, die für dich nicht gehen.</div>
                 </button>
               </div>
             )}
@@ -678,9 +637,7 @@ export function AvailabilityFlow({
             {step !== "type" && (
               <>
                 <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className={rangeChipClass(draft.type)}>
-                    {RANGE_TAG[draft.type]}
-                  </div>
+                  <div className={rangeChipClass(draft.type)}>{RANGE_TAG[draft.type]}</div>
                   <div className="flex flex-wrap gap-2">
                     <button
                       type="button"
@@ -688,20 +645,13 @@ export function AvailabilityFlow({
                       onClick={() =>
                         setDraft((prev) => ({
                           ...prev,
-                          type:
-                            prev.type === "available"
-                              ? "unavailable"
-                              : "available",
+                          type: prev.type === "available" ? "unavailable" : "available",
                         }))
                       }
                     >
                       Typ wechseln
                     </button>
-                    <button
-                      type="button"
-                      className={buttonGhostTiny}
-                      onClick={resetFlow}
-                    >
+                    <button type="button" className={buttonGhostTiny} onClick={resetFlow}>
                       Neu starten
                     </button>
                   </div>
@@ -711,9 +661,7 @@ export function AvailabilityFlow({
                   <span className="inline-flex h-8 w-12 items-center justify-center rounded-lg bg-sky-500 text-xs font-bold text-white">
                     {stepNumber}/4
                   </span>
-                  <span className="font-semibold text-slate-900">
-                    {stepLabel[step]}
-                  </span>
+                  <span className="font-semibold text-slate-900">{stepLabel[step]}</span>
                   <span className={muted}>{durationLabel}</span>
                 </div>
               </>
@@ -739,9 +687,7 @@ export function AvailabilityFlow({
 
             {step === "end" && currentMonth && (
               <div className={stackSm}>
-                <p className={muted}>
-                  Ende muss am gleichen oder späteren Tag liegen.
-                </p>
+                <p className={muted}>Ende muss am gleichen oder späteren Tag liegen.</p>
                 <MonthCalendar
                   month={currentMonth}
                   selected={draft.end}
@@ -755,11 +701,7 @@ export function AvailabilityFlow({
                   onSelect={handleEndSelect}
                 />
                 <div className={buttonRow}>
-                  <button
-                    type="button"
-                    className={buttonGhostSmall}
-                    onClick={() => setStep("start")}
-                  >
+                  <button type="button" className={buttonGhostSmall} onClick={() => setStep("start")}>
                     Zurück
                   </button>
                   <button
@@ -778,33 +720,18 @@ export function AvailabilityFlow({
               <div className={stackSm}>
                 <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className={rangeChipClass(draft.type)}>
-                      {RANGE_TAG[draft.type]}
-                    </span>
+                    <span className={rangeChipClass(draft.type)}>{RANGE_TAG[draft.type]}</span>
                     <span className={muted}>{durationLabel}</span>
                   </div>
-                  <div className="text-lg font-semibold text-slate-900">
-                    {formatRange(draft.start, draft.end)}
-                  </div>
-                  <div className={smallMuted}>
-                    Gruppe: {selectedGroup?.name ?? "Keine Gruppe"}
-                  </div>
+                  <div className="text-lg font-semibold text-slate-900">{formatRange(draft.start, draft.end)}</div>
+                  <div className={smallMuted}>Gruppe: {selectedGroup?.name ?? "Keine Gruppe"}</div>
                   <p className={smallMuted}>Kurz prüfen und dann speichern.</p>
                 </div>
                 <div className={buttonRow}>
-                  <button
-                    type="button"
-                    className={buttonGhostSmall}
-                    onClick={() => setStep("end")}
-                  >
+                  <button type="button" className={buttonGhostSmall} onClick={() => setStep("end")}>
                     Zurück
                   </button>
-                  <button
-                    type="button"
-                    className={buttonPrimary}
-                    disabled={!canSave}
-                    onClick={handleSave}
-                  >
+                  <button type="button" className={buttonPrimary} disabled={!canSave} onClick={handleSave}>
                     {saving ? "Speichere..." : "Speichern"}
                   </button>
                 </div>
@@ -814,83 +741,68 @@ export function AvailabilityFlow({
         </div>
       )}
 
-      <div className="space-y-3">
-        <div className={cardHeaderSubtle}>
-          <div>
-            <p className={eyebrow}>Gespeicherte Zeiträume</p>
-            <h4 className="text-lg font-semibold text-slate-900">
-              {rangesLoading
-                ? "Lade..."
-                : ranges.length
-                ? `${ranges.length} Einträge`
-                : "Noch nichts gespeichert"}
-            </h4>
+      {!hideSavedList && (
+        <div className="space-y-3">
+          <div className={cardHeaderSubtle}>
+            <div>
+              <p className={eyebrow}>Gespeicherte Zeiträume</p>
+              <h4 className="text-lg font-semibold text-slate-900">
+                {rangesLoading
+                  ? "Lade..."
+                  : ranges.length
+                  ? `${ranges.length} Einträge`
+                  : "Noch nichts gespeichert"}
+              </h4>
+            </div>
           </div>
-        </div>
 
-        {rangesError && <div className={pillDanger}>{rangesError}</div>}
+          {rangesError && <div className={pillDanger}>{rangesError}</div>}
 
-        {!rangesLoading && !ranges.length && (
-          <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-2">
-            <p className={muted}>
-              Füge einen Zeitraum hinzu, um deine Teilnahme zu teilen.
-            </p>
-          </div>
-        )}
+          {!rangesLoading && !ranges.length && (
+            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-2">
+              <p className={muted}>Füge einen Zeitraum hinzu, um deine Teilnahme zu teilen.</p>
+            </div>
+          )}
 
-        {ranges.length > 0 && (
-          <ul className="flex flex-col gap-2">
-            {(listOpen ? ranges : ranges.slice(0, 2)).map((range) => (
-              <li
-                key={range.id}
-                className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3"
-              >
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className={rangeChipClass(range.type)}>
-                    {RANGE_TAG[range.type]}
-                  </span>
-                  <span className="font-semibold text-slate-900">
-                    {formatRange(range.start, range.end)}
-                  </span>
-                  <span className={muted}>
-                    {dayDiffInclusive(range.start, range.end)} Tage
-                  </span>
-                  <span className={smallMuted}>Gruppe: {range.groupName}</span>
-                </div>
-                <div className={buttonRow}>
-                  <button
-                    type="button"
-                    className={`${buttonGhostTiny} ${buttonGhostDanger}`}
-                    onClick={() => handleDelete(range.id)}
-                  >
-                    Löschen
-                  </button>
-                </div>
-              </li>
-            ))}
-          </ul>
-        )}
+          {ranges.length > 0 && (
+            <ul className="flex flex-col gap-2">
+              {(listOpen ? ranges : ranges.slice(0, 2)).map((range) => (
+                <li key={range.id} className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className={rangeChipClass(range.type)}>{RANGE_TAG[range.type]}</span>
+                    <span className="font-semibold text-slate-900">{formatRange(range.start, range.end)}</span>
+                    <span className={muted}>{dayDiffInclusive(range.start, range.end)} Tage</span>
+                    <span className={smallMuted}>Gruppe: {range.groupName}</span>
+                  </div>
+                  <div className={buttonRow}>
+                    <button
+                      type="button"
+                      className={`${buttonGhostTiny} ${buttonGhostDanger}`}
+                      onClick={() => handleDelete(range.id)}
+                    >
+                      Löschen
+                    </button>
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
 
-        {ranges.length > 2 && (
-          <button
-            type="button"
-            className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-left font-semibold text-slate-900 hover:bg-slate-50"
-            onClick={() => setListOpen((open) => !open)}
-            aria-expanded={listOpen}
-          >
-            <span className={muted}>
-              {listOpen
-                ? "Einklappen"
-                : `Alle anzeigen (+${ranges.length - 2})`}
-            </span>
-            <span
-              className={`text-lg transition ${listOpen ? "rotate-180" : ""}`}
+          {ranges.length > 2 && (
+            <button
+              type="button"
+              className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-left font-semibold text-slate-900 hover:bg-slate-50"
+              onClick={() => setListOpen((open) => !open)}
+              aria-expanded={listOpen}
             >
-              ⌄
-            </span>
-          </button>
-        )}
-      </div>
+              <span className={muted}>
+                {listOpen ? "Einklappen" : `Alle anzeigen (+${ranges.length - 2})`}
+              </span>
+              <span className={`text-lg transition ${listOpen ? "rotate-180" : ""}`}>⌄</span>
+            </button>
+          )}
+        </div>
+      )}
     </section>
   );
 }

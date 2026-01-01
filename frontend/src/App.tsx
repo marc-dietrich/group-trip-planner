@@ -1,6 +1,7 @@
-import { useEffect, useMemo, useState } from "react";
-import type { FormEvent } from "react";
+import { BrowserRouter, Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import type { Session } from "@supabase/supabase-js";
+import { toast } from "sonner";
 import {
   DEFAULT_ACTOR_NAME,
   isPlaceholderActorName,
@@ -10,35 +11,38 @@ import {
   getExistingSession,
   getUserDisplayName,
   persistJwt,
-  supabaseEnabled,
   supabase,
+  supabaseEnabled,
 } from "./lib/supabase";
 import {
   GroupCreateResult,
+  GroupInvitePreview,
   GroupMembership,
   HealthCheck,
   Identity,
-  GroupInvitePreview,
   JoinGroupResponse,
 } from "./types";
 import { AuthModal } from "./components/AuthModal";
 import { ActorNameModal } from "./components/ActorNameModal";
 import { GroupCreateModal } from "./components/GroupCreateModal";
-import { GroupsCard } from "./components/GroupsCard";
-import { IdentityStrip } from "./components/IdentityStrip";
-import { Topbar } from "./components/Topbar";
-import { toast } from "sonner";
-import { AvailabilityFlow } from "./components/AvailabilityFlow";
 import { InviteModal } from "./components/InviteModal";
-import {
-  buttonGhost,
-  buttonRow,
-  cardMinimal,
-  layoutGrid,
-  pageShell,
-} from "./ui";
+import { Topbar } from "./components/Topbar";
+import { BottomNav } from "./components/BottomNav";
+import { GroupsPage } from "./pages/GroupsPage";
+import { GroupDetailPage } from "./pages/GroupDetailPage";
+import { ProfilePage } from "./pages/ProfilePage";
+import { MorePage } from "./pages/MorePage";
+import { pageShell } from "./ui";
 
 function App() {
+  return (
+    <BrowserRouter>
+      <AppShell />
+    </BrowserRouter>
+  );
+}
+
+function AppShell() {
   const [actor, setActorDisplayName] = useLocalActor(DEFAULT_ACTOR_NAME);
   const [namePromptOpen, setNamePromptOpen] = useState(false);
   const [pendingName, setPendingName] = useState("");
@@ -63,9 +67,7 @@ function App() {
   const [groupsReloadToken, setGroupsReloadToken] = useState(0);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteGroupId, setInviteGroupId] = useState<string | null>(null);
-  const [invitePreview, setInvitePreview] = useState<GroupInvitePreview | null>(
-    null
-  );
+  const [invitePreview, setInvitePreview] = useState<GroupInvitePreview | null>(null);
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [joining, setJoining] = useState(false);
@@ -126,12 +128,8 @@ function App() {
   useEffect(() => {
     fetch("/api/health")
       .then((res) => res.json())
-      .then((data: HealthCheck) => {
-        setHealth(data);
-      })
-      .catch(() => {
-        setHealth({ status: "error", message: "Backend nicht erreichbar" });
-      });
+      .then((data: HealthCheck) => setHealth(data))
+      .catch(() => setHealth({ status: "error", message: "Backend nicht erreichbar" }));
   }, []);
 
   useEffect(() => {
@@ -144,7 +142,6 @@ function App() {
 
   useEffect(() => {
     if (!inviteGroupId) return;
-
     setInviteLoading(true);
     setInviteError(null);
     setAlreadyMember(false);
@@ -161,9 +158,7 @@ function App() {
         });
       })
       .catch((err) => {
-        setInviteError(
-          err instanceof Error ? err.message : "Einladung ungültig"
-        );
+        setInviteError(err instanceof Error ? err.message : "Einladung ungültig");
       })
       .finally(() => setInviteLoading(false));
   }, [inviteGroupId]);
@@ -179,17 +174,13 @@ function App() {
           setGroupsError("Bitte einloggen, um Gruppen zu sehen.");
           return;
         }
-
         headers.Authorization = `Bearer ${identity.accessToken}`;
-
         const res = await fetch(`/api/groups`, { headers });
         if (!res.ok) throw new Error(`Fehler: ${res.status}`);
         const data = (await res.json()) as GroupMembership[];
         setGroups(data);
       } catch (err) {
-        setGroupsError(
-          err instanceof Error ? err.message : "Unbekannter Fehler"
-        );
+        setGroupsError(err instanceof Error ? err.message : "Unbekannter Fehler");
       } finally {
         setGroupsLoading(false);
       }
@@ -215,24 +206,19 @@ function App() {
       const headers: HeadersInit = { "Content-Type": "application/json" };
       headers.Authorization = `Bearer ${identity.accessToken}`;
 
-      const payload = {
-        groupName,
-        displayName: identity.displayName,
-      };
-
+      const payload = { groupName, displayName: identity.displayName };
       const response = await fetch("/api/groups", {
         method: "POST",
         headers,
         body: JSON.stringify(payload),
       });
 
-      if (!response.ok) {
-        throw new Error(`Fehler: ${response.status}`);
-      }
+      if (!response.ok) throw new Error(`Fehler: ${response.status}`);
 
       const data = (await response.json()) as GroupCreateResult;
       setResult(data);
       setGroupName("");
+      setGroupsReloadToken((v) => v + 1);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unbekannter Fehler");
     } finally {
@@ -252,16 +238,9 @@ function App() {
     }
 
     try {
-      const headers: HeadersInit = {};
-      headers.Authorization = `Bearer ${identity.accessToken}`;
-
-      const res = await fetch(`/api/groups/${groupId}`, {
-        method: "DELETE",
-        headers,
-      });
-      if (!res.ok) {
-        throw new Error(`Fehler: ${res.status}`);
-      }
+      const headers: HeadersInit = { Authorization: `Bearer ${identity.accessToken}` };
+      const res = await fetch(`/api/groups/${groupId}`, { method: "DELETE", headers });
+      if (!res.ok) throw new Error(`Fehler: ${res.status}`);
       setGroups((prev) => prev.filter((g) => g.groupId !== groupId));
     } catch (err) {
       setGroupsError(err instanceof Error ? err.message : "Unbekannter Fehler");
@@ -271,8 +250,7 @@ function App() {
   };
 
   const handleCopyInvite = async (group: GroupMembership) => {
-    const link =
-      group.inviteLink || `${window.location.origin}/invite/${group.groupId}`;
+    const link = group.inviteLink || `${window.location.origin}/invite/${group.groupId}`;
     try {
       await navigator.clipboard.writeText(link);
       toast.success("Einladungslink kopiert");
@@ -292,7 +270,6 @@ function App() {
 
   const handleAcceptInvite = async () => {
     if (!inviteGroupId) return;
-
     if (identity.kind !== "user") {
       setAuthPanelOpen(true);
       return;
@@ -302,17 +279,9 @@ function App() {
     setInviteError(null);
 
     try {
-      const headers: HeadersInit = {
-        Authorization: `Bearer ${identity.accessToken}`,
-      };
-      const res = await fetch(`/api/groups/${inviteGroupId}/join`, {
-        method: "POST",
-        headers,
-      });
-      if (!res.ok) {
-        throw new Error(`Fehler: ${res.status}`);
-      }
-
+      const headers: HeadersInit = { Authorization: `Bearer ${identity.accessToken}` };
+      const res = await fetch(`/api/groups/${inviteGroupId}/join`, { method: "POST", headers });
+      if (!res.ok) throw new Error(`Fehler: ${res.status}`);
       const data = (await res.json()) as JoinGroupResponse;
       setAlreadyMember(data.alreadyMember);
 
@@ -325,20 +294,13 @@ function App() {
 
       setGroups((prev) => {
         const exists = prev.some((g) => g.groupId === membership.groupId);
-        return exists
-          ? prev.map((g) => (g.groupId === membership.groupId ? membership : g))
-          : [...prev, membership];
+        return exists ? prev.map((g) => (g.groupId === membership.groupId ? membership : g)) : [...prev, membership];
       });
       setGroupsReloadToken((value) => value + 1);
-
-      toast.success(
-        data.alreadyMember ? "Du bist bereits Mitglied." : "Gruppe beigetreten."
-      );
+      toast.success(data.alreadyMember ? "Du bist bereits Mitglied." : "Gruppe beigetreten.");
       handleCloseInvite();
     } catch (err) {
-      setInviteError(
-        err instanceof Error ? err.message : "Beitritt fehlgeschlagen"
-      );
+      setInviteError(err instanceof Error ? err.message : "Beitritt fehlgeschlagen");
     } finally {
       setJoining(false);
     }
@@ -351,15 +313,11 @@ function App() {
       const data = await res.json();
       toast.success(
         `Mock-Transkript: ${data.audioText}. Verfügbarkeiten: ${
-          data.availability
-            ?.map((a: any) => `${a.start}→${a.end}`)
-            .join(", ") || "–"
+          data.availability?.map((a: any) => `${a.start}→${a.end}`).join(", ") || "–"
         }`
       );
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Mock-Transcribe fehlgeschlagen"
-      );
+      toast.error(err instanceof Error ? err.message : "Mock-Transcribe fehlgeschlagen");
     }
   };
 
@@ -370,34 +328,18 @@ function App() {
     setAuthLoading(true);
 
     try {
-      if (!supabaseEnabled) {
-        throw new Error("Supabase nicht konfiguriert");
-      }
-
-      if (!email || !password) {
-        throw new Error("E-Mail und Passwort angeben");
-      }
+      if (!supabaseEnabled) throw new Error("Supabase nicht konfiguriert");
+      if (!email || !password) throw new Error("E-Mail und Passwort angeben");
 
       if (authMode === "signin") {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
       } else {
         const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         if (!data.session) {
-          // If email confirmations are disabled in Supabase, a session will be returned.
-          // Fallback: try immediate password sign-in to avoid waiting for email confirmation.
-          const { error: signinError } = await supabase.auth.signInWithPassword(
-            { email, password }
-          );
-          if (signinError) {
-            throw new Error(
-              "Login nach Registrierung fehlgeschlagen. Prüfe, ob E-Mail-Bestätigung deaktiviert ist."
-            );
-          }
+          const { error: signinError } = await supabase.auth.signInWithPassword({ email, password });
+          if (signinError) throw new Error("Login nach Registrierung fehlgeschlagen");
           setAuthNotice(null);
         }
       }
@@ -424,12 +366,7 @@ function App() {
 
   return (
     <div className={pageShell}>
-      <ActorNameModal
-        open={namePromptOpen}
-        value={pendingName}
-        onChange={setPendingName}
-        onSubmit={handleSaveActorName}
-      />
+      <ActorNameModal open={namePromptOpen} value={pendingName} onChange={setPendingName} onSubmit={handleSaveActorName} />
 
       <InviteModal
         open={inviteOpen}
@@ -447,48 +384,38 @@ function App() {
         }}
       />
 
-      <Topbar
-        title="Gemeinsam Termine finden"
-        subtitle="Gruppen-Urlaubsplaner"
-        health={health}
-      />
+      <Topbar title="Gemeinsam Termine finden" subtitle="Gruppen-Urlaubsplaner" health={health} />
 
-      <IdentityStrip
-        identity={identity}
-        authLoading={authLoading}
-        supabaseEnabled={supabaseEnabled}
-        onLogin={() => setAuthPanelOpen(true)}
-        onLogout={handleLogout}
-      />
-
-      <main className={layoutGrid}>
-        <AvailabilityFlow
-          groups={groups}
-          groupsLoading={groupsLoading}
-          groupsError={groupsError}
-          identity={identity}
+      <Routes>
+        <Route path="/" element={<Navigate to="/groups" replace />} />
+        <Route
+          path="/groups"
+          element={
+            <GroupsPage
+              groups={groups}
+              groupsLoading={groupsLoading}
+              groupsError={groupsError}
+              deletingId={deletingId}
+              identity={identity}
+              onCreate={() => setCreateOpen(true)}
+              onDelete={handleDeleteGroup}
+              onCopyInvite={handleCopyInvite}
+              onRequireLogin={() => setAuthPanelOpen(true)}
+            />
+          }
         />
-        <GroupsCard
-          groups={groups}
-          groupsLoading={groupsLoading}
-          groupsError={groupsError}
-          deletingId={deletingId}
-          onDelete={handleDeleteGroup}
-          onCreateClick={() => setCreateOpen(true)}
-          onCopyInvite={handleCopyInvite}
+        <Route
+          path="/groups/:groupId"
+          element={<GroupDetailPage identity={identity} groups={groups} groupsLoading={groupsLoading} groupsError={groupsError} />}
         />
-        <div className={`${cardMinimal} mt-4`}>
-          <div className={buttonRow}>
-            <button
-              type="button"
-              className={buttonGhost}
-              onClick={handleMockVoice}
-            >
-              Sprach-Mock testen
-            </button>
-          </div>
-        </div>
-      </main>
+        <Route
+          path="/profile"
+          element={<ProfilePage identity={identity} authLoading={authLoading} supabaseEnabled={supabaseEnabled} health={health} onLogin={() => setAuthPanelOpen(true)} onLogout={handleLogout} />}
+        />
+        <Route path="/more" element={<MorePage onTestVoice={handleMockVoice} />} />
+        <Route path="/invite/:inviteId" element={<InviteRoute onInvite={(id) => setInviteGroupId(id)} />} />
+        <Route path="*" element={<Navigate to="/groups" replace />} />
+      </Routes>
 
       <GroupCreateModal
         open={createOpen}
@@ -524,8 +451,24 @@ function App() {
         }}
         onClose={() => setAuthPanelOpen(false)}
       />
+
+      <BottomNav />
     </div>
   );
+}
+
+function InviteRoute({ onInvite }: { onInvite: (id: string) => void }) {
+  const { inviteId } = useParams();
+  const navigate = useNavigate();
+
+  useEffect(() => {
+    if (inviteId) {
+      onInvite(inviteId);
+      navigate("/groups", { replace: true });
+    }
+  }, [inviteId, navigate, onInvite]);
+
+  return null;
 }
 
 export default App;
