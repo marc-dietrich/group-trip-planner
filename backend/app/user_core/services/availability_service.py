@@ -1,6 +1,6 @@
 """Availability service with membership checks."""
 
-from datetime import date
+from datetime import date, timedelta
 from uuid import UUID
 
 from fastapi import HTTPException, status
@@ -22,7 +22,6 @@ class AvailabilityService:
         group_id: UUID,
         start_date: date,
         end_date: date,
-        kind: str,
     ):
         if start_date > end_date:
             raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="startDate must be before endDate")
@@ -41,7 +40,6 @@ class AvailabilityService:
             user_id=user_id,
             start_date=start_date,
             end_date=end_date,
-            kind=kind,
         )
         await self.availability_repo.commit()
         return record
@@ -52,6 +50,114 @@ class AvailabilityService:
         if not is_member:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a member of this group")
         return await self.availability_repo.list_for_user_in_group(user_id=user_id, group_id=group_id)
+
+    async def list_group_member_availabilities(self, *, group_id: UUID, user_id: UUID):
+        """Return all members with their availabilities (may be empty per member)."""
+
+        members = await self.group_repo.get_group_members(group_id)
+        is_member = any(m.user_id and str(m.user_id) == str(user_id) for m in members)
+        if not is_member:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a member of this group")
+
+        avails = await self.availability_repo.list_for_group(group_id=group_id)
+        grouped: dict[UUID | None, list] = {}
+        for a in avails:
+            grouped.setdefault(a.user_id, []).append(a)
+
+        results = []
+        for member in members:
+            member_avails = grouped.get(member.user_id, [])
+            sorted_avails = sorted(member_avails, key=lambda a: a.start_date)
+            results.append(
+                {
+                    "memberId": member.id,
+                    "userId": member.user_id,
+                    "displayName": member.display_name,
+                    "role": member.role,
+                    "availabilities": sorted_avails,
+                }
+            )
+
+        return results
+
+    async def calculate_group_availability(self, *, group_id: UUID, user_id: UUID | None = None):
+        """Compute overlapping availability intervals for a group (inclusive dates).
+
+        Uses a simple sweep-line to emit contiguous ranges where at least one member is available,
+        along with the number of members available in each interval.
+        """
+
+        members = await self.group_repo.get_group_members(group_id)
+        if user_id:
+            is_member = any(m.user_id and str(m.user_id) == str(user_id) for m in members)
+            if not is_member:
+                raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a member of this group")
+
+        total_members = len(members)
+
+        records = await self.availability_repo.list_for_group(group_id=group_id)
+        if not records:
+            return []
+
+        # Merge per-user ranges first to avoid double-counting a member with overlapping intervals.
+        by_user: dict[UUID, list[tuple[date, date]]] = {}
+        for record in records:
+            by_user.setdefault(record.user_id, []).append((record.start_date, record.end_date))
+
+        def merge_ranges(ranges: list[tuple[date, date]]) -> list[tuple[int, int]]:
+            merged: list[tuple[int, int]] = []
+            for start, end in sorted(((s.toordinal(), e.toordinal()) for s, e in ranges)):
+                if not merged:
+                    merged.append((start, end))
+                    continue
+                last_start, last_end = merged[-1]
+                # Merge overlapping or directly adjacent ranges (inclusive dates).
+                if start <= last_end + 1:
+                    merged[-1] = (last_start, max(last_end, end))
+                else:
+                    merged.append((start, end))
+            return merged
+
+        events: list[tuple[int, int]] = []
+        for user_ranges in by_user.values():
+            for start_ord, end_ord in merge_ranges(user_ranges):
+                events.append((start_ord, 1))
+                events.append((end_ord + 1, -1))
+
+        events.sort()
+
+        active = 0
+        current_start: int | None = None
+        intervals: list[dict] = []
+
+        for day_ord, delta in events:
+            if current_start is not None and day_ord > current_start and active > 0:
+                count = min(active, total_members)  # clamp to group size
+                interval = {
+                    "from": date.fromordinal(current_start),
+                    "to": date.fromordinal(day_ord - 1),
+                    "availableCount": count,
+                    "totalMembers": total_members,
+                }
+                intervals.append(interval)
+
+            active += delta
+            current_start = day_ord
+
+        # Merge adjacent intervals with the same availability count to reduce fragmentation.
+        merged: list[dict] = []
+        for interval in intervals:
+            if merged:
+                prev = merged[-1]
+                if (
+                    prev["availableCount"] == interval["availableCount"]
+                    and prev["to"] == interval["from"] - timedelta(days=1)
+                ):
+                    prev["to"] = interval["to"]
+                    continue
+            merged.append(interval)
+
+        return merged
 
     async def delete_availability(self, *, availability_id: UUID, user_id: UUID) -> None:
         record = await self.availability_repo.get_by_id(availability_id)

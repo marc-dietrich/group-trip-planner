@@ -16,5 +16,9 @@ class Availability(SQLModel, table=True):
     user_id: UUID = Field(foreign_key="users.id", description="Supabase user id")
     start_date: date = Field(description="Start date of availability (inclusive)")
     end_date: date = Field(description="End date of availability (inclusive)")
-    kind: str = Field(max_length=20, description="Type of range, e.g. available/unavailable")
+    kind: str = Field(
+        default="available",
+        max_length=20,
+        description="Type of range (MVP: always 'available')",
+    )
     created_at: datetime = Field(default_factory=datetime.utcnow, description="Creation timestamp")

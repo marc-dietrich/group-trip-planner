@@ -22,11 +22,9 @@ import {
   stackXs,
 } from "../ui";
 
-type RangeType = "available" | "unavailable";
-type Step = "type" | "start" | "end" | "review";
+type Step = "start" | "end" | "review";
 
 type DraftRange = {
-  type: RangeType;
   start: string | null;
   end: string | null;
   groupId: string | null;
@@ -34,7 +32,6 @@ type DraftRange = {
 
 type AvailabilityRange = {
   id: string;
-  type: RangeType;
   start: string;
   end: string;
   groupId: string;
@@ -79,13 +76,12 @@ type AvailabilityFlowProps = {
   onChange?: () => void;
 };
 
-const RANGE_TAG: Record<RangeType, string> = {
-  available: "Verfügbar",
-  unavailable: "Nicht verfügbar",
-};
+const AVAILABLE_TAG = "Verfügbar";
+
+const availableChipClass =
+  "border-green-200 bg-green-50 text-green-700 inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-semibold";
 
 const initialDraft: DraftRange = {
-  type: "available",
   start: null,
   end: null,
   groupId: null,
@@ -108,20 +104,6 @@ const fullFormatter = new Intl.DateTimeFormat("de-DE", {
   month: "short",
   year: "numeric",
 });
-
-const rangeChipClass = (type: RangeType) =>
-  `${
-    type === "available"
-      ? "border-green-200 bg-green-50 text-green-700"
-      : "border-rose-200 bg-rose-50 text-rose-700"
-  } inline-flex items-center gap-2 rounded-full border px-3 py-1.5 text-sm font-semibold`;
-
-const typeChoiceClass = (type: RangeType) =>
-  `${
-    type === "available"
-      ? "border-green-200 bg-green-50"
-      : "border-amber-200 bg-amber-50"
-  } w-full text-left rounded-xl border px-4 py-3 text-slate-900 shadow-sm transition hover:-translate-y-0.5 hover:shadow-card`;
 
 function toLocalISO(date: Date): string {
   const offsetMs = date.getTimezoneOffset() * 60000;
@@ -272,7 +254,7 @@ export function AvailabilityFlow({
   onChange,
 }: AvailabilityFlowProps) {
   const [draft, setDraft] = useState<DraftRange>(initialDraft);
-  const [step, setStep] = useState<Step>("type");
+  const [step, setStep] = useState<Step>("start");
   const [ranges, setRanges] = useState<AvailabilityRange[]>([]);
   const [rangesLoading, setRangesLoading] = useState(false);
   const [rangesError, setRangesError] = useState<string | null>(null);
@@ -335,12 +317,10 @@ export function AvailabilityFlow({
           id: string;
           startDate: string;
           endDate: string;
-          kind: RangeType;
         }>;
         const mapped: AvailabilityRange[] = data
           .map((item) => ({
             id: item.id,
-            type: item.kind,
             start: item.startDate,
             end: item.endDate,
             groupId: selectedGroupId,
@@ -380,9 +360,8 @@ export function AvailabilityFlow({
   const goPrevMonth = () => setMonthIndex((idx) => Math.max(0, idx - 1));
   const goNextMonth = () => setMonthIndex((idx) => Math.min(monthGroups.length - 1, Math.max(0, idx + 1)));
 
-  const stepNumber = step === "type" ? 1 : step === "start" ? 2 : step === "end" ? 3 : 4;
+  const stepNumber = step === "start" ? 1 : step === "end" ? 2 : 3;
   const stepLabel: Record<Step, string> = {
-    type: "Was möchtest du angeben?",
     start: "Startdatum wählen",
     end: "Enddatum festlegen",
     review: "Prüfen und speichern",
@@ -391,12 +370,6 @@ export function AvailabilityFlow({
   const durationLabel = draft.start && draft.end ? `${dayDiffInclusive(draft.start, draft.end)} Tage` : "–";
 
   const canSave = Boolean(draft.start && draft.end && draft.groupId && identity.kind === "user" && !saving);
-
-  const handleTypeChoice = (type: RangeType) => {
-    setDraft((prev) => ({ ...prev, type }));
-    setMonthIndex(0);
-    setStep("start");
-  };
 
   const handleStartSelect = (iso: string) => {
     setDraft((prev) => ({ ...prev, start: iso, end: iso }));
@@ -416,7 +389,7 @@ export function AvailabilityFlow({
       : groups[0]?.groupId ?? null;
 
     setDraft({ ...initialDraft, groupId: fallbackGroupId });
-    setStep("type");
+    setStep("start");
   };
 
   const handleSave = async () => {
@@ -451,7 +424,6 @@ export function AvailabilityFlow({
         body: JSON.stringify({
           startDate: draft.start,
           endDate: draft.end,
-          kind: draft.type,
         }),
       });
 
@@ -464,12 +436,10 @@ export function AvailabilityFlow({
         id: string;
         startDate: string;
         endDate: string;
-        kind: RangeType;
       };
 
       const payload: AvailabilityRange = {
         id: data.id,
-        type: data.kind,
         start: data.startDate,
         end: data.endDate,
         groupId: group.groupId,
@@ -570,7 +540,8 @@ export function AvailabilityFlow({
             </div>
 
             <p className={muted}>
-              Schritt-für-Schritt mit Kalender: Verfügbar/Nicht verfügbar wählen, Start und Ende setzen, prüfen und speichern.
+              Schritt-für-Schritt mit Kalender: Start und Ende setzen, prüfen und speichern. Nicht markierte Tage gelten als
+              nicht verfügbar.
             </p>
 
             <div className={stackXs}>
@@ -613,59 +584,22 @@ export function AvailabilityFlow({
               )}
             </div>
 
-            {step === "type" && (
-              <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
-                <button
-                  type="button"
-                  className={typeChoiceClass("available")}
-                  onClick={() => handleTypeChoice("available")}
-                >
-                  <div className="text-lg font-semibold">Ich bin verfügbar</div>
-                  <div className={muted}>Zeige den Zeitraum, in dem du mitreisen kannst.</div>
-                </button>
-                <button
-                  type="button"
-                  className={typeChoiceClass("unavailable")}
-                  onClick={() => handleTypeChoice("unavailable")}
-                >
-                  <div className="text-lg font-semibold">Ich bin nicht verfügbar</div>
-                  <div className={muted}>Blende Tage aus, die für dich nicht gehen.</div>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div className={availableChipClass}>{AVAILABLE_TAG}</div>
+              <div className="flex flex-wrap gap-2">
+                <button type="button" className={buttonGhostTiny} onClick={resetFlow}>
+                  Neu starten
                 </button>
               </div>
-            )}
+            </div>
 
-            {step !== "type" && (
-              <>
-                <div className="flex flex-wrap items-center justify-between gap-3">
-                  <div className={rangeChipClass(draft.type)}>{RANGE_TAG[draft.type]}</div>
-                  <div className="flex flex-wrap gap-2">
-                    <button
-                      type="button"
-                      className={buttonGhostTiny}
-                      onClick={() =>
-                        setDraft((prev) => ({
-                          ...prev,
-                          type: prev.type === "available" ? "unavailable" : "available",
-                        }))
-                      }
-                    >
-                      Typ wechseln
-                    </button>
-                    <button type="button" className={buttonGhostTiny} onClick={resetFlow}>
-                      Neu starten
-                    </button>
-                  </div>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-2 text-sm text-slate-700">
-                  <span className="inline-flex h-8 w-12 items-center justify-center rounded-lg bg-sky-500 text-xs font-bold text-white">
-                    {stepNumber}/4
-                  </span>
-                  <span className="font-semibold text-slate-900">{stepLabel[step]}</span>
-                  <span className={muted}>{durationLabel}</span>
-                </div>
-              </>
-            )}
+            <div className="flex flex-wrap items-center gap-2 text-sm text-slate-700">
+              <span className="inline-flex h-8 w-12 items-center justify-center rounded-lg bg-sky-500 text-xs font-bold text-white">
+                {stepNumber}/3
+              </span>
+              <span className="font-semibold text-slate-900">{stepLabel[step]}</span>
+              <span className={muted}>{durationLabel}</span>
+            </div>
 
             {step === "start" && currentMonth && (
               <div className={stackSm}>
@@ -720,7 +654,7 @@ export function AvailabilityFlow({
               <div className={stackSm}>
                 <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
                   <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className={rangeChipClass(draft.type)}>{RANGE_TAG[draft.type]}</span>
+                    <span className={availableChipClass}>{AVAILABLE_TAG}</span>
                     <span className={muted}>{durationLabel}</span>
                   </div>
                   <div className="text-lg font-semibold text-slate-900">{formatRange(draft.start, draft.end)}</div>
@@ -769,7 +703,7 @@ export function AvailabilityFlow({
               {(listOpen ? ranges : ranges.slice(0, 2)).map((range) => (
                 <li key={range.id} className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3">
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className={rangeChipClass(range.type)}>{RANGE_TAG[range.type]}</span>
+                    <span className={availableChipClass}>{AVAILABLE_TAG}</span>
                     <span className="font-semibold text-slate-900">{formatRange(range.start, range.end)}</span>
                     <span className={muted}>{dayDiffInclusive(range.start, range.end)} Tage</span>
                     <span className={smallMuted}>Gruppe: {range.groupName}</span>

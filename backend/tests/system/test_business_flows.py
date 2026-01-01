@@ -21,7 +21,7 @@ async def test_auth_required_for_protected_availability(client):
 
     res = await client.post(
         f"/api/groups/{group_id}/availabilities",
-        json={"startDate": "2025-01-01", "endDate": "2025-01-02", "kind": "available"},
+        json={"startDate": "2025-01-01", "endDate": "2025-01-02"},
     )
     assert res.status_code == 401
 
@@ -48,7 +48,7 @@ async def test_availability_requires_membership(client, token_factory):
     res = await client.post(
         f"/api/groups/{group_id}/availabilities",
         headers=headers,
-        json={"startDate": "2025-02-01", "endDate": "2025-02-02", "kind": "available"},
+        json={"startDate": "2025-02-01", "endDate": "2025-02-02"},
     )
     assert res.status_code == 403
 
@@ -64,7 +64,7 @@ async def test_invalid_date_range_rejected(client, user_identity):
     res = await client.post(
         f"/api/groups/{group_id}/availabilities",
         headers=user_identity["headers"],
-        json={"startDate": "2025-04-10", "endDate": "2025-04-05", "kind": "available"},
+        json={"startDate": "2025-04-10", "endDate": "2025-04-05"},
     )
     assert res.status_code == 400
 
@@ -86,7 +86,7 @@ async def test_availability_isolated_between_groups(client, user_identity):
     await client.post(
         f"/api/groups/{group1}/availabilities",
         headers=user_identity["headers"],
-        json={"startDate": "2025-05-01", "endDate": "2025-05-03", "kind": "available"},
+        json={"startDate": "2025-05-01", "endDate": "2025-05-03"},
     )
 
     res_two = await client.get(f"/api/groups/{group2}/availabilities", headers=user_identity["headers"])
@@ -99,7 +99,7 @@ async def test_nonexistent_group_returns_404(client, user_identity):
     res = await client.post(
         f"/api/groups/{missing_group}/availabilities",
         headers=user_identity["headers"],
-        json={"startDate": "2025-06-01", "endDate": "2025-06-02", "kind": "available"},
+        json={"startDate": "2025-06-01", "endDate": "2025-06-02"},
     )
     assert res.status_code == 404
 
@@ -115,7 +115,7 @@ async def test_delete_availability_removes_entry(client, user_identity):
     add_res = await client.post(
         f"/api/groups/{group_id}/availabilities",
         headers=user_identity["headers"],
-        json={"startDate": "2025-07-01", "endDate": "2025-07-02", "kind": "available"},
+        json={"startDate": "2025-07-01", "endDate": "2025-07-02"},
     )
     assert add_res.status_code == 200
     availability_id = add_res.json()["id"] if "id" in add_res.json() else add_res.json()["id" if False else "id"]
