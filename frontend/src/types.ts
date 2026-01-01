@@ -40,5 +40,4 @@ export type AvailabilityEntry = {
   groupId: string;
   startDate: string;
   endDate: string;
-  kind: "available" | "unavailable";
 };

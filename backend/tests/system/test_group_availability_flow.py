@@ -19,7 +19,6 @@ async def test_group_user_availability_flow(client, user_identity):
     payload = {
         "startDate": date(2025, 3, 5).isoformat(),
         "endDate": date(2025, 3, 8).isoformat(),
-        "kind": "available",
     }
     add_res = await client.post(
         f"/api/groups/{group_id}/availabilities",

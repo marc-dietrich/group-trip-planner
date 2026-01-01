@@ -46,7 +46,7 @@ async def test_create_and_list(fake_group_repo):
 
 	transport = ASGITransport(app=app)
 	async with AsyncClient(transport=transport, base_url="http://test") as client:
-		payload = {"startDate": "2025-03-01", "endDate": "2025-03-03", "kind": "available"}
+		payload = {"startDate": "2025-03-01", "endDate": "2025-03-03"}
 		create_res = await client.post(f"/api/groups/{group.id}/availabilities", json=payload)
 		assert create_res.status_code == 200
 
@@ -69,7 +69,7 @@ async def test_delete(fake_group_repo):
 
 	transport = ASGITransport(app=app)
 	async with AsyncClient(transport=transport, base_url="http://test") as client:
-		payload = {"startDate": "2025-04-01", "endDate": "2025-04-02", "kind": "available"}
+		payload = {"startDate": "2025-04-01", "endDate": "2025-04-02"}
 		create_res = await client.post(f"/api/groups/{group.id}/availabilities", json=payload)
 		assert create_res.status_code == 200
 		av_id = create_res.json()["id"]

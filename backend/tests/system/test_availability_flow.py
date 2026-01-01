@@ -18,11 +18,11 @@ async def create_group(client, *, group_name: str, display_name: str, headers):
     return res.json()["groupId"]
 
 
-async def add_availability(client, *, group_id, headers, start: str, end: str, kind: str = "available"):
+async def add_availability(client, *, group_id, headers, start: str, end: str, kind: str | None = None):
     res = await client.post(
         f"/api/groups/{group_id}/availabilities",
         headers=headers,
-        json={"startDate": start, "endDate": end, "kind": kind},
+        json={"startDate": start, "endDate": end} if kind is None else {"startDate": start, "endDate": end, "kind": kind},
     )
     return res
 

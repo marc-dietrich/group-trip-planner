@@ -20,11 +20,13 @@ class AvailabilityRepository(Protocol):
         user_id: UUID,
         start_date: date,
         end_date: date,
-        kind: str,
     ) -> Availability:
         ...
 
     async def list_for_user_in_group(self, *, user_id: UUID, group_id: UUID) -> List[Availability]:
+        ...
+
+    async def list_for_group(self, *, group_id: UUID) -> List[Availability]:
         ...
 
     async def get_by_id(self, availability_id: UUID) -> Availability | None:
@@ -50,7 +52,6 @@ class SQLModelAvailabilityRepository(AvailabilityRepository):
         user_id: UUID,
         start_date: date,
         end_date: date,
-        kind: str,
     ) -> Availability:
         record = Availability(
                         id=uuid4(),  # stable id even before flush for consistent tests
@@ -58,7 +59,7 @@ class SQLModelAvailabilityRepository(AvailabilityRepository):
                         user_id=user_id,
                         start_date=start_date,
                         end_date=end_date,
-                        kind=kind,
+                        kind="available",
         )
         self.session.add(record)
         await self.session.flush()
@@ -70,6 +71,11 @@ class SQLModelAvailabilityRepository(AvailabilityRepository):
             Availability.group_id == group_id,
             Availability.user_id == user_id,
         )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def list_for_group(self, *, group_id: UUID) -> List[Availability]:
+        stmt = select(Availability).where(Availability.group_id == group_id)
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
 
@@ -101,7 +107,6 @@ class InMemoryAvailabilityRepository(AvailabilityRepository):
         user_id: UUID,
         start_date: date,
         end_date: date,
-        kind: str,
     ) -> Availability:
         record = Availability(
             id=uuid4(),
@@ -109,13 +114,16 @@ class InMemoryAvailabilityRepository(AvailabilityRepository):
             user_id=user_id,
             start_date=start_date,
             end_date=end_date,
-            kind=kind,
+            kind="available",
         )
         self._rows.append(record)
         return record
 
     async def list_for_user_in_group(self, *, user_id: UUID, group_id: UUID) -> List[Availability]:
         return [r for r in self._rows if r.group_id == group_id and r.user_id == user_id]
+
+    async def list_for_group(self, *, group_id: UUID) -> List[Availability]:
+        return [r for r in self._rows if r.group_id == group_id]
 
     async def get_by_id(self, availability_id: UUID) -> Availability | None:
         return next((r for r in self._rows if r.id == availability_id), None)
