@@ -72,6 +72,7 @@ docker run --rm -p 8000:8000 \
 ```
 
 Wichtige Variablen (siehe `backend/.env` Vorlage):
+
 - `DATABASE_URL` (Supabase-Postgres, asyncpg-URL)
 - `DATABASE_SSL_REQUIRE=True`
 - `SUPABASE_URL`, `SUPABASE_JWT_SECRET`, `SUPABASE_PUBLIC_KEY`
