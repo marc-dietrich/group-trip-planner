@@ -24,7 +24,11 @@ class Settings(BaseSettings):
     frontend_base_url: str = "http://localhost:3000"
 
     # CORS
-    cors_origins: list = ["http://localhost:3000"]
+    cors_origins: list = [
+        "http://localhost:3000",
+        "http://localhost:5173",
+        "https://marc-dietrich.github.io",
+    ]
 
     # Supabase
     supabase_url: str | None = None
