@@ -43,6 +43,14 @@ import { MorePage } from "./pages/MorePage";
 import { pageShell } from "./ui";
 
 const basename = import.meta.env.BASE_URL || "/";
+const buildCommit =
+  (import.meta.env.VITE_BUILD_COMMIT as string | undefined) || "";
+const rawBuildLabel =
+  (import.meta.env.VITE_BUILD_LABEL as string | undefined) ||
+  (import.meta.env.VITE_COMMIT as string | undefined) ||
+  buildCommit ||
+  "";
+const buildLabel = rawBuildLabel ? rawBuildLabel.slice(0, 7) : "dev";
 
 const stripBasename = (path: string) => {
   if (!basename || basename === "/") return path;
@@ -505,6 +513,8 @@ function AppShell() {
         title="Gemeinsam Termine finden"
         subtitle="Gruppen-Urlaubsplaner"
         health={health}
+        buildLabel={buildLabel}
+        buildTitle={buildCommit || undefined}
       />
 
       <Routes>

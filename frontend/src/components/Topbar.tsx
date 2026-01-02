@@ -5,10 +5,20 @@ type TopbarProps = {
   title: string;
   subtitle: string;
   health: HealthCheck | null;
+  buildLabel?: string;
+  buildTitle?: string;
 };
 
-export function Topbar({ title, subtitle, health }: TopbarProps) {
+export function Topbar({
+  title,
+  subtitle,
+  health,
+  buildLabel,
+  buildTitle,
+}: TopbarProps) {
   const isOk = health?.status === "ok";
+  const label = buildLabel?.trim();
+  const titleText = buildTitle?.trim() || label;
 
   return (
     <header className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -18,16 +28,26 @@ export function Topbar({ title, subtitle, health }: TopbarProps) {
           {title}
         </h1>
       </div>
-      <div
-        className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
-        title={isOk ? "Backend connected" : "Backend nicht erreichbar"}
-      >
-        <span
-          className={`h-2.5 w-2.5 rounded-full ${
-            isOk ? "bg-emerald-500" : "bg-amber-500"
-          }`}
-        ></span>
-        <span className="font-medium">{isOk ? "Online" : "Offline"}</span>
+      <div className="flex items-center gap-2">
+        <div
+          className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
+          title={isOk ? "Backend connected" : "Backend nicht erreichbar"}
+        >
+          <span
+            className={`h-2.5 w-2.5 rounded-full ${
+              isOk ? "bg-emerald-500" : "bg-amber-500"
+            }`}
+          ></span>
+          <span className="font-medium">{isOk ? "Online" : "Offline"}</span>
+        </div>
+        {label ? (
+          <span
+            className="rounded-full border border-slate-200 bg-white px-3 py-2 text-xs font-medium text-slate-700"
+            title={titleText}
+          >
+            Build {label}
+          </span>
+        ) : null}
       </div>
     </header>
   );
