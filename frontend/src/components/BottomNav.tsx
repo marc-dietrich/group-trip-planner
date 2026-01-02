@@ -7,14 +7,14 @@ const items = [
 ];
 
 const baseItem =
-  "flex-1 text-center text-sm font-semibold transition-colors py-3";
-const activeItem = "text-blue-600";
-const inactiveItem = "text-slate-600";
+  "flex-1 rounded-md py-2 text-center text-sm font-semibold transition-colors";
+const activeItem = "bg-slate-100 text-slate-900 border border-slate-200";
+const inactiveItem = "text-slate-600 hover:text-slate-900";
 
 export function BottomNav() {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-10 border-t border-slate-200 bg-white/95 backdrop-blur-md shadow-2xl shadow-slate-200/60">
-      <div className="mx-auto flex max-w-5xl items-center px-4">
+    <nav className="fixed bottom-0 left-0 right-0 z-10 border-t border-slate-200 bg-white/95 backdrop-blur-sm">
+      <div className="mx-auto flex max-w-4xl items-center gap-2 px-4 py-1.5">
         {items.map((item) => (
           <NavLink
             key={item.to}

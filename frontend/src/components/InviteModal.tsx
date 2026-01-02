@@ -56,6 +56,10 @@ export function InviteModal({
         </div>
 
         <div className={stackSm}>
+          <p className={muted}>
+            Wir zeigen dir kurz, welcher Gruppe du beitrittst und was dafür
+            nötig ist.
+          </p>
           {loading ? (
             <p className={muted}>Einladung wird geladen...</p>
           ) : error ? (

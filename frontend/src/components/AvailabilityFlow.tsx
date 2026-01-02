@@ -554,6 +554,9 @@ export function AvailabilityFlow({
           <h3 className="text-xl font-semibold text-slate-900">
             Wann passt es dir?
           </h3>
+          <p className={muted}>
+            Kurze Zeiträume hinzufügen, die für dich funktionieren.
+          </p>
         </div>
         <div className={buttonRow}>
           <button
@@ -603,8 +606,8 @@ export function AvailabilityFlow({
             </div>
 
             <p className={muted}>
-              Schritt-für-Schritt mit Kalender: Start und Ende setzen, prüfen
-              und speichern. Nicht markierte Tage gelten als nicht verfügbar.
+              Start und Ende wählen, kurz prüfen und dann speichern. Nicht
+              markierte Tage gelten als nicht verfügbar.
             </p>
 
             <div className={stackXs}>
@@ -799,26 +802,30 @@ export function AvailabilityFlow({
                   key={range.id}
                   className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3"
                 >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className={availableChipClass}>{AVAILABLE_TAG}</span>
-                    <span className="font-semibold text-slate-900">
-                      {formatRange(range.start, range.end)}
-                    </span>
-                    <span className={muted}>
-                      {dayDiffInclusive(range.start, range.end)} Tage
-                    </span>
-                    <span className={smallMuted}>
-                      Gruppe: {range.groupName}
-                    </span>
-                  </div>
-                  <div className={buttonRow}>
-                    <button
-                      type="button"
-                      className={`${buttonGhostTiny} ${buttonGhostDanger}`}
-                      onClick={() => handleDelete(range.id)}
-                    >
-                      Löschen
-                    </button>
+                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                    <div className="flex flex-wrap items-center gap-2">
+                      <span className={availableChipClass}>
+                        {AVAILABLE_TAG}
+                      </span>
+                      <span className="font-semibold text-slate-900">
+                        {formatRange(range.start, range.end)}
+                      </span>
+                      <span className={muted}>
+                        {dayDiffInclusive(range.start, range.end)} Tage
+                      </span>
+                      <span className={smallMuted}>
+                        Gruppe: {range.groupName}
+                      </span>
+                    </div>
+                    <div className={buttonRow}>
+                      <button
+                        type="button"
+                        className={`${buttonGhostTiny} ${buttonGhostDanger}`}
+                        onClick={() => handleDelete(range.id)}
+                      >
+                        Löschen
+                      </button>
+                    </div>
                   </div>
                 </li>
               ))}

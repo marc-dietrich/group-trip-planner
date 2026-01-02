@@ -11,21 +11,23 @@ export function Topbar({ title, subtitle, health }: TopbarProps) {
   const isOk = health?.status === "ok";
 
   return (
-    <header className="mb-6 flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between">
+    <header className="mb-8 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
       <div className="space-y-1">
         <p className={eyebrowCls}>{subtitle}</p>
-        <h1 className="text-3xl font-bold text-slate-900">{title}</h1>
+        <h1 className="text-2xl font-semibold leading-tight text-slate-900 sm:text-3xl">
+          {title}
+        </h1>
       </div>
       <div
-        className="flex items-center gap-2 text-sm text-slate-600"
+        className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
         title={isOk ? "Backend connected" : "Backend nicht erreichbar"}
       >
         <span
-          className={`h-3 w-3 rounded-full ${
+          className={`h-2.5 w-2.5 rounded-full ${
             isOk ? "bg-emerald-500" : "bg-amber-500"
           }`}
         ></span>
-        <span>{isOk ? "Online" : "Offline"}</span>
+        <span className="font-medium">{isOk ? "Online" : "Offline"}</span>
       </div>
     </header>
   );

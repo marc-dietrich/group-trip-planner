@@ -57,6 +57,11 @@ export function GroupCreateModal({
           </button>
         </div>
 
+        <p className={muted}>
+          Gib deiner Gruppe einen klaren Namen, damit alle wissen, worum es
+          geht.
+        </p>
+
         <form className={stackSm} onSubmit={onSubmit}>
           <label className={field}>
             <span className="text-sm text-slate-700">Gruppenname</span>

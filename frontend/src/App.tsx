@@ -1,5 +1,12 @@
-import { BrowserRouter, Navigate, Route, Routes, useNavigate, useParams } from "react-router-dom";
-import { useEffect, useMemo, useState, type FormEvent } from "react";
+import React, { useEffect, useMemo, useState, type FormEvent } from "react";
+import {
+  BrowserRouter,
+  Navigate,
+  Route,
+  Routes,
+  useNavigate,
+  useParams,
+} from "react-router-dom";
 import type { Session } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import {
@@ -34,10 +41,64 @@ import { ProfilePage } from "./pages/ProfilePage";
 import { MorePage } from "./pages/MorePage";
 import { pageShell } from "./ui";
 
+class AppErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { hasError: boolean; message: string }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, message: "" };
+  }
+
+  static getDerivedStateFromError(error: unknown) {
+    return {
+      hasError: true,
+      message: error instanceof Error ? error.message : "Unbekannter Fehler",
+    };
+  }
+
+  componentDidCatch(error: unknown, info: unknown) {
+    console.error("App rendering error", error, info);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="mx-auto max-w-2xl px-4 py-10 text-center">
+          <div className="rounded-lg border border-slate-200 bg-white p-6 shadow-sm">
+            <p className="text-sm font-semibold text-rose-700">
+              Es ist ein Fehler aufgetreten
+            </p>
+            <p className="mt-2 text-base text-slate-800">
+              {this.state.message}
+            </p>
+            <p className="mt-2 text-sm text-slate-600">
+              Bitte Seite neu laden oder erneut versuchen.
+            </p>
+            <div className="mt-4 flex justify-center gap-2">
+              <button
+                type="button"
+                className="inline-flex items-center justify-center rounded-md border border-slate-200 bg-white px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-slate-50"
+                onClick={() => window.location.reload()}
+              >
+                Neu laden
+              </button>
+            </div>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 function App() {
   return (
     <BrowserRouter>
-      <AppShell />
+      <AppErrorBoundary>
+        <AppShell />
+      </AppErrorBoundary>
     </BrowserRouter>
   );
 }
@@ -67,7 +128,9 @@ function AppShell() {
   const [groupsReloadToken, setGroupsReloadToken] = useState(0);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteGroupId, setInviteGroupId] = useState<string | null>(null);
-  const [invitePreview, setInvitePreview] = useState<GroupInvitePreview | null>(null);
+  const [invitePreview, setInvitePreview] = useState<GroupInvitePreview | null>(
+    null
+  );
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [joining, setJoining] = useState(false);
@@ -129,7 +192,9 @@ function AppShell() {
     fetch("/api/health")
       .then((res) => res.json())
       .then((data: HealthCheck) => setHealth(data))
-      .catch(() => setHealth({ status: "error", message: "Backend nicht erreichbar" }));
+      .catch(() =>
+        setHealth({ status: "error", message: "Backend nicht erreichbar" })
+      );
   }, []);
 
   useEffect(() => {
@@ -158,7 +223,9 @@ function AppShell() {
         });
       })
       .catch((err) => {
-        setInviteError(err instanceof Error ? err.message : "Einladung ungültig");
+        setInviteError(
+          err instanceof Error ? err.message : "Einladung ungültig"
+        );
       })
       .finally(() => setInviteLoading(false));
   }, [inviteGroupId]);
@@ -180,7 +247,9 @@ function AppShell() {
         const data = (await res.json()) as GroupMembership[];
         setGroups(data);
       } catch (err) {
-        setGroupsError(err instanceof Error ? err.message : "Unbekannter Fehler");
+        setGroupsError(
+          err instanceof Error ? err.message : "Unbekannter Fehler"
+        );
       } finally {
         setGroupsLoading(false);
       }
@@ -238,8 +307,13 @@ function AppShell() {
     }
 
     try {
-      const headers: HeadersInit = { Authorization: `Bearer ${identity.accessToken}` };
-      const res = await fetch(`/api/groups/${groupId}`, { method: "DELETE", headers });
+      const headers: HeadersInit = {
+        Authorization: `Bearer ${identity.accessToken}`,
+      };
+      const res = await fetch(`/api/groups/${groupId}`, {
+        method: "DELETE",
+        headers,
+      });
       if (!res.ok) throw new Error(`Fehler: ${res.status}`);
       setGroups((prev) => prev.filter((g) => g.groupId !== groupId));
     } catch (err) {
@@ -250,7 +324,8 @@ function AppShell() {
   };
 
   const handleCopyInvite = async (group: GroupMembership) => {
-    const link = group.inviteLink || `${window.location.origin}/invite/${group.groupId}`;
+    const link =
+      group.inviteLink || `${window.location.origin}/invite/${group.groupId}`;
     try {
       await navigator.clipboard.writeText(link);
       toast.success("Einladungslink kopiert");
@@ -279,8 +354,13 @@ function AppShell() {
     setInviteError(null);
 
     try {
-      const headers: HeadersInit = { Authorization: `Bearer ${identity.accessToken}` };
-      const res = await fetch(`/api/groups/${inviteGroupId}/join`, { method: "POST", headers });
+      const headers: HeadersInit = {
+        Authorization: `Bearer ${identity.accessToken}`,
+      };
+      const res = await fetch(`/api/groups/${inviteGroupId}/join`, {
+        method: "POST",
+        headers,
+      });
       if (!res.ok) throw new Error(`Fehler: ${res.status}`);
       const data = (await res.json()) as JoinGroupResponse;
       setAlreadyMember(data.alreadyMember);
@@ -294,13 +374,19 @@ function AppShell() {
 
       setGroups((prev) => {
         const exists = prev.some((g) => g.groupId === membership.groupId);
-        return exists ? prev.map((g) => (g.groupId === membership.groupId ? membership : g)) : [...prev, membership];
+        return exists
+          ? prev.map((g) => (g.groupId === membership.groupId ? membership : g))
+          : [...prev, membership];
       });
       setGroupsReloadToken((value) => value + 1);
-      toast.success(data.alreadyMember ? "Du bist bereits Mitglied." : "Gruppe beigetreten.");
+      toast.success(
+        data.alreadyMember ? "Du bist bereits Mitglied." : "Gruppe beigetreten."
+      );
       handleCloseInvite();
     } catch (err) {
-      setInviteError(err instanceof Error ? err.message : "Beitritt fehlgeschlagen");
+      setInviteError(
+        err instanceof Error ? err.message : "Beitritt fehlgeschlagen"
+      );
     } finally {
       setJoining(false);
     }
@@ -313,11 +399,15 @@ function AppShell() {
       const data = await res.json();
       toast.success(
         `Mock-Transkript: ${data.audioText}. Verfügbarkeiten: ${
-          data.availability?.map((a: any) => `${a.start}→${a.end}`).join(", ") || "–"
+          data.availability
+            ?.map((a: any) => `${a.start}→${a.end}`)
+            .join(", ") || "–"
         }`
       );
     } catch (err) {
-      toast.error(err instanceof Error ? err.message : "Mock-Transcribe fehlgeschlagen");
+      toast.error(
+        err instanceof Error ? err.message : "Mock-Transcribe fehlgeschlagen"
+      );
     }
   };
 
@@ -332,14 +422,20 @@ function AppShell() {
       if (!email || !password) throw new Error("E-Mail und Passwort angeben");
 
       if (authMode === "signin") {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { error } = await supabase.auth.signInWithPassword({
+          email,
+          password,
+        });
         if (error) throw error;
       } else {
         const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         if (!data.session) {
-          const { error: signinError } = await supabase.auth.signInWithPassword({ email, password });
-          if (signinError) throw new Error("Login nach Registrierung fehlgeschlagen");
+          const { error: signinError } = await supabase.auth.signInWithPassword(
+            { email, password }
+          );
+          if (signinError)
+            throw new Error("Login nach Registrierung fehlgeschlagen");
           setAuthNotice(null);
         }
       }
@@ -366,7 +462,12 @@ function AppShell() {
 
   return (
     <div className={pageShell}>
-      <ActorNameModal open={namePromptOpen} value={pendingName} onChange={setPendingName} onSubmit={handleSaveActorName} />
+      <ActorNameModal
+        open={namePromptOpen}
+        value={pendingName}
+        onChange={setPendingName}
+        onSubmit={handleSaveActorName}
+      />
 
       <InviteModal
         open={inviteOpen}
@@ -384,7 +485,11 @@ function AppShell() {
         }}
       />
 
-      <Topbar title="Gemeinsam Termine finden" subtitle="Gruppen-Urlaubsplaner" health={health} />
+      <Topbar
+        title="Gemeinsam Termine finden"
+        subtitle="Gruppen-Urlaubsplaner"
+        health={health}
+      />
 
       <Routes>
         <Route path="/" element={<Navigate to="/groups" replace />} />
@@ -406,14 +511,36 @@ function AppShell() {
         />
         <Route
           path="/groups/:groupId"
-          element={<GroupDetailPage identity={identity} groups={groups} groupsLoading={groupsLoading} groupsError={groupsError} />}
+          element={
+            <GroupDetailPage
+              identity={identity}
+              groups={groups}
+              groupsLoading={groupsLoading}
+              groupsError={groupsError}
+            />
+          }
         />
         <Route
           path="/profile"
-          element={<ProfilePage identity={identity} authLoading={authLoading} supabaseEnabled={supabaseEnabled} health={health} onLogin={() => setAuthPanelOpen(true)} onLogout={handleLogout} />}
+          element={
+            <ProfilePage
+              identity={identity}
+              authLoading={authLoading}
+              supabaseEnabled={supabaseEnabled}
+              health={health}
+              onLogin={() => setAuthPanelOpen(true)}
+              onLogout={handleLogout}
+            />
+          }
         />
-        <Route path="/more" element={<MorePage onTestVoice={handleMockVoice} />} />
-        <Route path="/invite/:inviteId" element={<InviteRoute onInvite={(id) => setInviteGroupId(id)} />} />
+        <Route
+          path="/more"
+          element={<MorePage onTestVoice={handleMockVoice} />}
+        />
+        <Route
+          path="/invite/:inviteId"
+          element={<InviteRoute onInvite={(id) => setInviteGroupId(id)} />}
+        />
         <Route path="*" element={<Navigate to="/groups" replace />} />
       </Routes>
 

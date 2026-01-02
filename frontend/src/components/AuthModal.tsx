@@ -7,6 +7,7 @@ import {
   eyebrow,
   field,
   input,
+  muted,
   modalCard,
   modalOverlay,
   pill,
@@ -62,6 +63,11 @@ export function AuthModal({
             Schließen
           </button>
         </div>
+
+        <p className={muted}>
+          Melde dich an, um Gruppen zu erstellen und deine Verfügbarkeiten zu
+          speichern.
+        </p>
 
         <form className={stackSm} onSubmit={onSubmit}>
           <label className={field}>

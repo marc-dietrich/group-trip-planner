@@ -102,8 +102,8 @@ export function GroupDetailPage({
   return (
     <div className={stack}>
       <section className={cardMinimal}>
-        <div className="flex items-start justify-between gap-3">
-          <div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+          <div className="space-y-1">
             <p className={eyebrow}>Gruppe</p>
             <h2 className="text-xl font-semibold text-slate-900">
               {groupName}
@@ -121,7 +121,7 @@ export function GroupDetailPage({
       </section>
 
       <section className={cardMinimal}>
-        <div className="flex items-center justify-between gap-3">
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <p className={eyebrow}>Mitglieder</p>
             <h3 className="text-lg font-semibold text-slate-900">
@@ -130,7 +130,7 @@ export function GroupDetailPage({
           </div>
           {identity.kind !== "user" && <div className={pill}>Login nötig</div>}
         </div>
-        <div className="mt-3 flex flex-col gap-2">
+        <div className="mt-3 flex flex-col gap-3">
           {membersLoading && <p className={muted}>Lade Mitglieder...</p>}
           {membersError && <div className={pillDanger}>{membersError}</div>}
           {!membersLoading &&
@@ -145,8 +145,8 @@ export function GroupDetailPage({
                 key={member.memberId}
                 className="rounded-lg border border-slate-200 bg-slate-50 p-3"
               >
-                <div className="flex items-center justify-between gap-2">
-                  <div className="flex items-center gap-2">
+                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                  <div className="flex flex-wrap items-center gap-2">
                     <span className={pillNeutral}>{member.displayName}</span>
                     <span className={pill}>{member.role}</span>
                   </div>

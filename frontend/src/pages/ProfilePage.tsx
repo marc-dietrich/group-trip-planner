@@ -31,6 +31,16 @@ export function ProfilePage({
 
   return (
     <div className={stack}>
+      {!supabaseEnabled && (
+        <section className={cardMinimal}>
+          <p className={eyebrow}>Login</p>
+          <p className={muted}>
+            Supabase ist nicht konfiguriert. Stelle die Umgebungsvariablen
+            bereit, um die Anmeldung zu aktivieren.
+          </p>
+        </section>
+      )}
+
       <section className={cardMinimal}>
         <p className={eyebrow}>Profil</p>
         <div className="flex flex-col gap-2">
@@ -70,12 +80,14 @@ export function ProfilePage({
         <div className="flex items-center justify-between gap-3">
           <div>
             <p className={eyebrow}>Entwicklung</p>
-            <h3 className="text-lg font-semibold text-slate-900">
-              Tools
-            </h3>
+            <h3 className="text-lg font-semibold text-slate-900">Tools</h3>
           </div>
           <div className="flex items-center gap-2 text-sm text-slate-700">
-            <span className={`h-2 w-2 rounded-full ${isOnline ? "bg-emerald-500" : "bg-amber-500"}`} />
+            <span
+              className={`h-2 w-2 rounded-full ${
+                isOnline ? "bg-emerald-500" : "bg-amber-500"
+              }`}
+            />
             <span>{isOnline ? "Backend OK" : "Backend Fehler"}</span>
           </div>
         </div>

@@ -1,27 +1,27 @@
-export const pageShell = "mx-auto max-w-5xl px-5 pb-12 pt-9";
-export const layoutGrid = "grid grid-cols-1 items-start gap-4 lg:grid-cols-2";
+export const pageShell = "mx-auto max-w-4xl px-4 pb-16 pt-8 sm:px-6 lg:px-8";
+export const layoutGrid = "grid grid-cols-1 items-start gap-6 lg:grid-cols-2";
 
-export const card = "rounded-xl border border-slate-200 bg-white p-5 shadow-card";
-export const cardMinimal = "rounded-lg border border-slate-200 bg-white p-5";
+export const card = "rounded-xl border border-slate-200 bg-white p-5 shadow-sm sm:p-6";
+export const cardMinimal = "rounded-lg border border-slate-200 bg-white p-5 sm:p-6";
 export const cardMuted = `${card} border-dashed`;
 export const cardHeader = "mb-3 flex items-center justify-between gap-3";
 export const cardHeaderSubtle = "mb-2 flex items-center justify-between gap-3";
 
-export const stack = "flex flex-col gap-3";
-export const stackSm = "flex flex-col gap-2.5";
+export const stack = "flex flex-col gap-4";
+export const stackSm = "flex flex-col gap-3";
 export const stackXs = "flex flex-col gap-2";
 
 export const field = "flex flex-col gap-1.5 text-sm";
 export const input =
-  "w-full rounded-md border border-slate-300 bg-slate-50 px-3 py-2.5 text-base text-slate-900 shadow-none outline-none transition focus:border-transparent focus:ring-2 focus:ring-sky-400 disabled:opacity-60";
+  "w-full rounded-md border border-slate-300 bg-white px-3 py-2.5 text-base text-slate-900 shadow-none outline-none transition focus:border-transparent focus:ring-2 focus:ring-slate-400 disabled:opacity-60";
 export const select = `${input} pr-10`;
 
 const buttonBase =
-  "inline-flex items-center justify-center rounded-md text-sm font-semibold transition active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60";
+  "inline-flex items-center justify-center rounded-md text-sm font-semibold transition active:translate-y-px disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-slate-400 focus-visible:ring-offset-2 focus-visible:ring-offset-white";
 export const buttonPrimary =
-  `${buttonBase} bg-gradient-to-r from-sky-400 to-blue-600 px-4 py-2.5 text-white shadow-sm hover:-translate-y-0.5 hover:shadow-pop disabled:shadow-none disabled:transform-none`;
+  `${buttonBase} bg-slate-900 px-4 py-2.5 text-white shadow-sm hover:-translate-y-0.5 hover:bg-slate-800 disabled:shadow-none disabled:transform-none`;
 export const buttonGhost =
-  `${buttonBase} border border-slate-200 bg-slate-50 px-3 py-2 text-slate-900 hover:bg-slate-100`;
+  `${buttonBase} border border-slate-200 bg-white px-3 py-2 text-slate-900 hover:bg-slate-50`;
 export const buttonGhostSmall = `${buttonGhost} px-3 py-2 text-xs font-semibold`;
 export const buttonGhostTiny = `${buttonGhost} px-2.5 py-1.5 text-xs font-semibold`;
 export const buttonGhostDanger = `${buttonGhost} border-rose-200 text-rose-700 hover:bg-rose-50`;
@@ -47,7 +47,7 @@ export const smallMuted = "text-xs text-slate-600";
 export const modalOverlay =
   "fixed inset-0 z-20 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm";
 export const modalCard =
-  "w-full max-w-xl rounded-xl border border-slate-200 bg-white p-5 shadow-modal";
+  "w-full max-w-xl rounded-xl border border-slate-200 bg-white p-5 shadow-md sm:p-6 max-h-[90vh] overflow-y-auto";
 
 export const identityShell =
   "mx-auto mb-4 flex max-w-3xl items-center gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-card";
