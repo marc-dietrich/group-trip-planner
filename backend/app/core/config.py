@@ -22,6 +22,7 @@ class Settings(BaseSettings):
 
     # Frontend
     frontend_base_url: str = "http://localhost:3000"
+    frontend_path_prefix: str = ""
 
     # CORS
     cors_origins: list = [

@@ -17,7 +17,9 @@ router = APIRouter(prefix="/api", tags=["groups"])
 
 
 def _frontend_base_url(request: Request) -> str:
-    """Resolve the frontend base using the caller's origin when available."""
+    """Resolve the frontend base using the caller's origin plus optional path prefix."""
+
+    base = settings.frontend_base_url.rstrip("/")
 
     origins = [request.headers.get("origin"), request.headers.get("referer")]
     for raw in origins:
@@ -27,9 +29,17 @@ def _frontend_base_url(request: Request) -> str:
         parsed = urlsplit(raw)
         if parsed.scheme and parsed.netloc:
             base = urlunsplit((parsed.scheme, parsed.netloc, "", "", ""))
-            return base.rstrip("/")
+            base = base.rstrip("/")
+            break
 
-    return settings.frontend_base_url.rstrip("/")
+    path_prefix = settings.frontend_path_prefix.strip()
+    if path_prefix:
+        if not path_prefix.startswith("/"):
+            path_prefix = "/" + path_prefix
+        path_prefix = path_prefix.rstrip("/")
+        base = f"{base}{path_prefix}"
+
+    return base
 
 
 class GroupCreate(BaseModel):
