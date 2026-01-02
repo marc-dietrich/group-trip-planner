@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Redirecting…</title>
+    <meta http-equiv="refresh" content="0; url=/group-trip-planner/" />
+    <script>
+      (function () {
+        var base = "/group-trip-planner/";
+        var path = window.location.pathname.replace(/^\/+/, "");
+        // Drop the repo prefix if it is already present to avoid doubling it.
+        path = path.replace(/^group-trip-planner\//, "");
+        var search = window.location.search || "";
+        var hash = window.location.hash || "";
+        window.location.replace(base + path + search + hash);
+      })();
+    </script>
+  </head>
+  <body>
+    <p>Redirecting…</p>
+  </body>
+</html>

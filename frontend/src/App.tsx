@@ -42,6 +42,8 @@ import { ProfilePage } from "./pages/ProfilePage";
 import { MorePage } from "./pages/MorePage";
 import { pageShell } from "./ui";
 
+const basename = import.meta.env.BASE_URL || "/";
+
 class AppErrorBoundary extends React.Component<
   { children: React.ReactNode },
   { hasError: boolean; message: string }
@@ -96,7 +98,7 @@ class AppErrorBoundary extends React.Component<
 
 function App() {
   return (
-    <BrowserRouter>
+    <BrowserRouter basename={basename}>
       <AppErrorBoundary>
         <AppShell />
       </AppErrorBoundary>
@@ -341,7 +343,7 @@ function AppShell() {
     setInvitePreview(null);
     setInviteError(null);
     setAlreadyMember(false);
-    window.history.replaceState({}, "", "/");
+    window.history.replaceState({}, "", basename);
   };
 
   const handleAcceptInvite = async () => {

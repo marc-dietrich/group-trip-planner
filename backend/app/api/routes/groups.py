@@ -2,8 +2,9 @@
 
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
 from pydantic import BaseModel
+from urllib.parse import urlsplit, urlunsplit
 
 from app.core.config import get_settings
 from app.core.security import Identity, require_authenticated_identity
@@ -13,6 +14,22 @@ from app.api.deps import get_group_service
 settings = get_settings()
 
 router = APIRouter(prefix="/api", tags=["groups"])
+
+
+def _frontend_base_url(request: Request) -> str:
+    """Resolve the frontend base using the caller's origin when available."""
+
+    origins = [request.headers.get("origin"), request.headers.get("referer")]
+    for raw in origins:
+        if not raw:
+            continue
+
+        parsed = urlsplit(raw)
+        if parsed.scheme and parsed.netloc:
+            base = urlunsplit((parsed.scheme, parsed.netloc, "", "", ""))
+            return base.rstrip("/")
+
+    return settings.frontend_base_url.rstrip("/")
 
 
 class GroupCreate(BaseModel):
@@ -64,6 +81,7 @@ class JoinGroupResponse(BaseModel):
 
 @router.get("/groups")
 async def get_groups(
+    request: Request,
     identity: Identity = Depends(require_authenticated_identity),
     service: GroupService = Depends(get_group_service),
 ):
@@ -75,12 +93,13 @@ async def get_groups(
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user id") from exc
 
     rows = await service.get_groups_for_identity(user_id=user_uuid)
+    base_url = _frontend_base_url(request)
     return [
         {
             "groupId": group.id,
             "name": group.name,
             "role": member.role,
-            "inviteLink": f"{settings.frontend_base_url}/invite/{group.id}",
+            "inviteLink": f"{base_url}/invite/{group.id}",
         }
         for group, member in rows
     ]
@@ -88,6 +107,7 @@ async def get_groups(
 
 @router.post("/groups", response_model=GroupCreateResponse)
 async def create_group(
+    request: Request,
     group_data: GroupCreate,
     identity: Identity = Depends(require_authenticated_identity),
     service: GroupService = Depends(get_group_service),
@@ -109,7 +129,7 @@ async def create_group(
         user_id=user_uuid,
     )
 
-    invite_link = f"{settings.frontend_base_url}/invite/{group.id}"
+    invite_link = f"{_frontend_base_url(request)}/invite/{group.id}"
 
     return {
         "groupId": group.id,
@@ -141,6 +161,7 @@ async def delete_group(group_id: UUID, service: GroupService = Depends(get_group
 @router.post("/groups/{group_id}/join", response_model=JoinGroupResponse)
 async def join_group(
     group_id: UUID,
+    request: Request,
     identity: Identity = Depends(require_authenticated_identity),
     service: GroupService = Depends(get_group_service),
 ):
@@ -162,7 +183,7 @@ async def join_group(
     except ValueError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
-    invite_link = f"{settings.frontend_base_url}/invite/{group.id}"
+    invite_link = f"{_frontend_base_url(request)}/invite/{group.id}"
 
     return JoinGroupResponse(
         groupId=group.id,
