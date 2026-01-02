@@ -6,24 +6,16 @@
     <script>
       (function () {
         var base = "/group-trip-planner/";
-        var path = window.location.pathname;
-        var search = window.location.search || "";
-        var hash = window.location.hash || "";
 
-        // If we are already at the base, just stay (no loop).
-        if (path === base || path === base.slice(0, -1)) return;
+        // If this is already a redirect attempt, do nothing.
+        if (window.location.search.indexOf("redirect=") !== -1) return;
 
-        // Trim leading slashes and drop repo prefix if present.
-        var trimmed = path.replace(/^\/+/, "");
-        trimmed = trimmed.replace(/^group-trip-planner\/?/, "");
-
-        // Avoid looping on 404.html itself.
-        if (trimmed === "" || trimmed === "404.html") {
-          window.location.replace(base);
-          return;
-        }
-
-        window.location.replace(base + trimmed + search + hash);
+        var full =
+          window.location.pathname +
+          (window.location.search || "") +
+          (window.location.hash || "");
+        var target = base + "?redirect=" + encodeURIComponent(full);
+        window.location.replace(target);
       })();
     </script>
   </head>
