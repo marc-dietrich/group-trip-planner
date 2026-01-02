@@ -346,8 +346,11 @@ function AppShell() {
   };
 
   const handleCopyInvite = async (group: GroupMembership) => {
-    const link =
-      group.inviteLink || `${window.location.origin}/invite/${group.groupId}`;
+    const prefix = basename.endsWith("/") ? basename : `${basename}/`;
+    const fallback = `${window.location.origin}${
+      prefix.startsWith("/") ? prefix : `/${prefix}`
+    }invite/${group.groupId}`;
+    const link = group.inviteLink || fallback;
     try {
       await navigator.clipboard.writeText(link);
       toast.success("Einladungslink kopiert");
