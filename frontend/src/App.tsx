@@ -44,6 +44,16 @@ import { pageShell } from "./ui";
 
 const basename = import.meta.env.BASE_URL || "/";
 
+const stripBasename = (path: string) => {
+  if (!basename || basename === "/") return path;
+  const normalizedBase = basename.endsWith("/")
+    ? basename.slice(0, -1)
+    : basename;
+  return path.startsWith(normalizedBase)
+    ? path.slice(normalizedBase.length) || "/"
+    : path;
+};
+
 class AppErrorBoundary extends React.Component<
   { children: React.ReactNode },
   { hasError: boolean; message: string }
@@ -201,7 +211,8 @@ function AppShell() {
   }, []);
 
   useEffect(() => {
-    const match = window.location.pathname.match(/^\/invite\/([A-Za-z0-9-]+)/);
+    const relativePath = stripBasename(window.location.pathname);
+    const match = relativePath.match(/^\/?invite\/([A-Za-z0-9-]+)/);
     if (match?.[1]) {
       setInviteGroupId(match[1]);
       setInviteOpen(true);

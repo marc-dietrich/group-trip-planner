@@ -3,16 +3,27 @@
   <head>
     <meta charset="UTF-8" />
     <title>Redirecting…</title>
-    <meta http-equiv="refresh" content="0; url=/group-trip-planner/" />
     <script>
       (function () {
         var base = "/group-trip-planner/";
-        var path = window.location.pathname.replace(/^\/+/, "");
-        // Drop the repo prefix if it is already present to avoid doubling it.
-        path = path.replace(/^group-trip-planner\//, "");
+        var path = window.location.pathname;
         var search = window.location.search || "";
         var hash = window.location.hash || "";
-        window.location.replace(base + path + search + hash);
+
+        // If we are already at the base, just stay (no loop).
+        if (path === base || path === base.slice(0, -1)) return;
+
+        // Trim leading slashes and drop repo prefix if present.
+        var trimmed = path.replace(/^\/+/, "");
+        trimmed = trimmed.replace(/^group-trip-planner\/?/, "");
+
+        // Avoid looping on 404.html itself.
+        if (trimmed === "" || trimmed === "404.html") {
+          window.location.replace(base);
+          return;
+        }
+
+        window.location.replace(base + trimmed + search + hash);
       })();
     </script>
   </head>
