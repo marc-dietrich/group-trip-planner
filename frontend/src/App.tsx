@@ -4,7 +4,6 @@ import {
   Navigate,
   Route,
   Routes,
-  useLocation,
   useNavigate,
   useParams,
 } from "react-router-dom";
@@ -105,7 +104,6 @@ function App() {
 }
 
 function AppShell() {
-  const location = useLocation();
   const [actor, setActorDisplayName] = useLocalActor(DEFAULT_ACTOR_NAME);
   const [namePromptOpen, setNamePromptOpen] = useState(false);
   const [pendingName, setPendingName] = useState("");
