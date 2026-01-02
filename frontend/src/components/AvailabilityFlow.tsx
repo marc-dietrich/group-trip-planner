@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { GroupMembership, Identity } from "../types";
+import { apiPath } from "../lib/api";
 import {
   buttonGhostDanger,
   buttonGhostSmall,
@@ -329,7 +330,7 @@ export function AvailabilityFlow({
       setRangesError(null);
       try {
         const res = await fetch(
-          `/api/groups/${selectedGroupId}/availabilities`,
+          apiPath(`/api/groups/${selectedGroupId}/availabilities`),
           {
             headers: { Authorization: `Bearer ${identity.accessToken ?? ""}` },
             signal: controller.signal,
@@ -458,17 +459,20 @@ export function AvailabilityFlow({
 
     setSaving(true);
     try {
-      const res = await fetch(`/api/groups/${group.groupId}/availabilities`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${identity.accessToken ?? ""}`,
-        },
-        body: JSON.stringify({
-          startDate: draft.start,
-          endDate: draft.end,
-        }),
-      });
+      const res = await fetch(
+        apiPath(`/api/groups/${group.groupId}/availabilities`),
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${identity.accessToken ?? ""}`,
+          },
+          body: JSON.stringify({
+            startDate: draft.start,
+            endDate: draft.end,
+          }),
+        }
+      );
 
       if (!res.ok) {
         const msg = await res.text();
@@ -514,7 +518,7 @@ export function AvailabilityFlow({
 
     const doDelete = async () => {
       try {
-        const res = await fetch(`/api/availabilities/${id}`, {
+        const res = await fetch(apiPath(`/api/availabilities/${id}`), {
           method: "DELETE",
           headers: { Authorization: `Bearer ${identity.accessToken ?? ""}` },
         });

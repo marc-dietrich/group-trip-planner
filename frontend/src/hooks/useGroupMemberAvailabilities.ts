@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AvailabilityEntry } from "../types";
+import { apiPath } from "../lib/api";
 
 export type MemberAvailability = {
   memberId: string;
@@ -30,7 +31,7 @@ export function useGroupMemberAvailabilities(groupId: string | null, accessToken
     setError(null);
 
     try {
-      const res = await fetch(`/api/groups/${groupId}/member-availabilities`, {
+      const res = await fetch(apiPath(`/api/groups/${groupId}/member-availabilities`), {
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
         signal: controller.signal,
       });

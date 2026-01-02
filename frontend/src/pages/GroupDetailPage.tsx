@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { GroupMembership, Identity } from "../types";
+import { apiPath } from "../lib/api";
 import { AvailabilityFlow } from "../components/AvailabilityFlow";
 import {
   buttonGhost,
@@ -70,7 +71,7 @@ export function GroupDetailPage({
     let cancelled = false;
     const load = async () => {
       try {
-        const res = await fetch(`/api/groups/${groupId}`);
+        const res = await fetch(apiPath(`/api/groups/${groupId}`));
         if (!res.ok) throw new Error(`Fehler: ${res.status}`);
         const data = await res.json();
         if (!cancelled) {
