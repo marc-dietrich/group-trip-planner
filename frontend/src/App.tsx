@@ -555,7 +555,12 @@ function AppShell() {
         />
         <Route
           path="/invite/:inviteId"
-          element={<InviteRoute onInvite={(id) => setInviteGroupId(id)} />}
+          element={
+            <InviteRoute
+              onInvite={(id) => setInviteGroupId(id)}
+              onShow={() => setInviteOpen(true)}
+            />
+          }
         />
         <Route path="*" element={<Navigate to="/groups" replace />} />
       </Routes>
@@ -600,16 +605,23 @@ function AppShell() {
   );
 }
 
-function InviteRoute({ onInvite }: { onInvite: (id: string) => void }) {
+function InviteRoute({
+  onInvite,
+  onShow,
+}: {
+  onInvite: (id: string) => void;
+  onShow: () => void;
+}) {
   const { inviteId } = useParams();
   const navigate = useNavigate();
 
   useEffect(() => {
     if (inviteId) {
       onInvite(inviteId);
+      onShow();
       navigate("/groups", { replace: true });
     }
-  }, [inviteId, navigate, onInvite]);
+  }, [inviteId, navigate, onInvite, onShow]);
 
   return null;
 }
