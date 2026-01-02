@@ -26,6 +26,7 @@ jobs:
       VITE_SUPABASE_PUBLIC_KEY: sb_publishable_iTlkCvERUbGMbm6qND9cJw_jv2O03N-
       VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
       GITHUB_PAGES: "true"
+      FRONTEND_PATH_PREFIX: /group-trip-planner
     steps:
       - name: Checkout
         uses: actions/checkout@v4
