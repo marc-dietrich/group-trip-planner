@@ -44,12 +44,11 @@ export function GroupsPage({
 
   const listBody = useMemo(() => {
     if (groupsLoading) return <p className={muted}>Gruppen werden geladen…</p>;
-    if (groupsError)
-      return <div className={pillDanger}>{groupsError}</div>;
+    if (groupsError) return <div className={pillDanger}>{groupsError}</div>;
     if (!groups.length)
       return (
-        <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-3 text-sm text-slate-700">
-          Noch keine Gruppen. Lege die erste an.
+        <div className="rounded-lg border border-dashed border-slate-200 bg-slate-50 p-4 text-sm text-slate-700">
+          Noch keine Gruppen. Lege die erste an, um Verfügbarkeiten zu teilen.
         </div>
       );
 
@@ -69,15 +68,15 @@ export function GroupsPage({
                 className={`${cardBase} w-full text-left`}
                 onClick={() => navigate(`/groups/${group.groupId}`)}
               >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex flex-col gap-1">
-                    <p className="text-sm text-slate-600">{memberCountLabel}+</p>
+                <div className="flex flex-col gap-1">
+                  <p className="text-sm text-slate-600">{memberCountLabel}+</p>
+                  <div className="flex flex-wrap items-center gap-2">
                     <h3 className="text-lg font-semibold text-slate-900">
                       {group.name}
                     </h3>
-                    <p className="text-sm text-slate-600">{availabilityHint}</p>
+                    <span className={pillNeutral}>{group.role}</span>
                   </div>
-                  <span className={pillNeutral}>{group.role}</span>
+                  <p className="text-sm text-slate-600">{availabilityHint}</p>
                 </div>
                 <div className="mt-3 flex flex-wrap items-center gap-2 text-sm text-slate-700">
                   <button
@@ -108,17 +107,27 @@ export function GroupsPage({
         })}
       </ul>
     );
-  }, [groups, groupsError, groupsLoading, deletingId, identity.kind, navigate, onCopyInvite, onDelete]);
+  }, [
+    groups,
+    groupsError,
+    groupsLoading,
+    deletingId,
+    identity.kind,
+    navigate,
+    onCopyInvite,
+    onDelete,
+  ]);
 
   return (
     <div className={stack}>
       <section className={cardMinimal}>
-        <div className="flex items-center justify-between gap-3">
-          <div>
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+          <div className="space-y-1">
             <p className={eyebrow}>Gruppen</p>
             <h2 className="text-xl font-semibold text-slate-900">
               Deine Trips
             </h2>
+            <p className={muted}>Lege Gruppen an und teile Verfügbarkeiten.</p>
           </div>
           <button
             type="button"

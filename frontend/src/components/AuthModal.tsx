@@ -63,6 +63,11 @@ export function AuthModal({
           </button>
         </div>
 
+        <p className={muted}>
+          Melde dich an, um Gruppen zu erstellen und deine Verfügbarkeiten zu
+          speichern.
+        </p>
+
         <form className={stackSm} onSubmit={onSubmit}>
           <label className={field}>
             <span className="text-sm text-slate-700">E-Mail</span>
