@@ -29,6 +29,7 @@ import {
   Identity,
   JoinGroupResponse,
 } from "./types";
+import { apiPath } from "./lib/api";
 import { AuthModal } from "./components/AuthModal";
 import { ActorNameModal } from "./components/ActorNameModal";
 import { GroupCreateModal } from "./components/GroupCreateModal";
@@ -189,7 +190,7 @@ function AppShell() {
   }, []);
 
   useEffect(() => {
-    fetch("/api/health")
+    fetch(apiPath("/api/health"))
       .then((res) => res.json())
       .then((data: HealthCheck) => setHealth(data))
       .catch(() =>
@@ -211,7 +212,7 @@ function AppShell() {
     setInviteError(null);
     setAlreadyMember(false);
 
-    fetch(`/api/groups/${inviteGroupId}`)
+    fetch(apiPath(`/api/groups/${inviteGroupId}`))
       .then((res) => {
         if (!res.ok) throw new Error("Einladung ungültig oder abgelaufen");
         return res.json();
@@ -242,7 +243,7 @@ function AppShell() {
           return;
         }
         headers.Authorization = `Bearer ${identity.accessToken}`;
-        const res = await fetch(`/api/groups`, { headers });
+        const res = await fetch(apiPath(`/api/groups`), { headers });
         if (!res.ok) throw new Error(`Fehler: ${res.status}`);
         const data = (await res.json()) as GroupMembership[];
         setGroups(data);
@@ -276,7 +277,7 @@ function AppShell() {
       headers.Authorization = `Bearer ${identity.accessToken}`;
 
       const payload = { groupName, displayName: identity.displayName };
-      const response = await fetch("/api/groups", {
+      const response = await fetch(apiPath("/api/groups"), {
         method: "POST",
         headers,
         body: JSON.stringify(payload),
@@ -310,7 +311,7 @@ function AppShell() {
       const headers: HeadersInit = {
         Authorization: `Bearer ${identity.accessToken}`,
       };
-      const res = await fetch(`/api/groups/${groupId}`, {
+      const res = await fetch(apiPath(`/api/groups/${groupId}`), {
         method: "DELETE",
         headers,
       });
@@ -357,7 +358,7 @@ function AppShell() {
       const headers: HeadersInit = {
         Authorization: `Bearer ${identity.accessToken}`,
       };
-      const res = await fetch(`/api/groups/${inviteGroupId}/join`, {
+      const res = await fetch(apiPath(`/api/groups/${inviteGroupId}/join`), {
         method: "POST",
         headers,
       });
@@ -394,7 +395,9 @@ function AppShell() {
 
   const handleMockVoice = async () => {
     try {
-      const res = await fetch("/api/voice/transcribe", { method: "POST" });
+      const res = await fetch(apiPath("/api/voice/transcribe"), {
+        method: "POST",
+      });
       if (!res.ok) throw new Error(`Fehler: ${res.status}`);
       const data = await res.json();
       toast.success(

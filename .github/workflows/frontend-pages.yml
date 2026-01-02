@@ -25,7 +25,7 @@ jobs:
       VITE_SUPABASE_URL: https://fdlmelfgshydwrcbvryg.supabase.co
       VITE_SUPABASE_PUBLIC_KEY: sb_publishable_iTlkCvERUbGMbm6qND9cJw_jv2O03N-
       VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
-      GITHUB_PAGES: 'true'
+      GITHUB_PAGES: "true"
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -42,6 +42,9 @@ jobs:
 
       - name: Build
         run: npm run build
+
+      - name: Copy index.html to 404.html
+        run: cp frontend/dist/index.html frontend/dist/404.html
 
       - name: Configure Pages
         uses: actions/configure-pages@v4

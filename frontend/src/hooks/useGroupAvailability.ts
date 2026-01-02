@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from "react";
+import { apiPath } from "../lib/api";
 
 export type GroupAvailabilityInterval = {
   from: string;
@@ -28,7 +29,7 @@ export function useGroupAvailability(groupId: string | null, accessToken?: strin
     setError(null);
 
     try {
-      const res = await fetch(`/api/groups/${groupId}/availability-summary`, {
+      const res = await fetch(apiPath(`/api/groups/${groupId}/availability-summary`), {
         headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
         signal: controller.signal,
       });
