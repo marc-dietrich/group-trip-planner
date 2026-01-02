@@ -45,6 +45,39 @@ npm run dev
 
 Frontend läuft auf: http://localhost:3000
 
+### Backend per Docker (Supabase DB)
+
+Supabase-Postgres ist IPv6-only. Docker muss daher mit IPv6 laufen. Beispiel `/etc/docker/daemon.json`:
+
+```json
+{
+  "features": { "buildkit": true },
+  "ipv6": true,
+  "fixed-cidr-v6": "fd00:dead:beef::/48"
+}
+```
+
+Danach Docker neu starten (`sudo systemctl restart docker`). Dann:
+
+```bash
+docker build -t gtp-backend ./backend
+
+docker run --rm -p 8000:8000 \
+  -e DATABASE_URL="postgresql+asyncpg://postgres:<password>@db.fdlmelfgshydwrcbvryg.supabase.co:5432/postgres" \
+  -e DATABASE_SSL_REQUIRE=True \
+  -e SUPABASE_URL="https://fdlmelfgshydwrcbvryg.supabase.co" \
+  -e SUPABASE_JWT_SECRET="<jwt-secret>" \
+  -e SUPABASE_PUBLIC_KEY="<anon-key>" \
+  gtp-backend
+```
+
+Wichtige Variablen (siehe `backend/.env` Vorlage):
+- `DATABASE_URL` (Supabase-Postgres, asyncpg-URL)
+- `DATABASE_SSL_REQUIRE=True`
+- `SUPABASE_URL`, `SUPABASE_JWT_SECRET`, `SUPABASE_PUBLIC_KEY`
+
+Alternative lokal: nutze den lokalen Dev-Postgres (`trip_planner:trip_password@localhost/group_trip_planner_db`) und setze `DATABASE_SSL_REQUIRE=False`.
+
 ## Tests & CI
 
 - Schnelltests (ohne DB):
