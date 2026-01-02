@@ -19,7 +19,8 @@ router = APIRouter(prefix="/api", tags=["groups"])
 def _frontend_base_url(request: Request) -> str:
     """Resolve the frontend base using the caller's origin plus optional path prefix."""
 
-    base = settings.frontend_base_url.rstrip("/")
+    cfg = urlsplit(settings.frontend_base_url)
+    base = urlunsplit((cfg.scheme, cfg.netloc, "", "", "")) if cfg.scheme and cfg.netloc else settings.frontend_base_url
 
     origins = [request.headers.get("origin"), request.headers.get("referer")]
     for raw in origins:
@@ -29,15 +30,17 @@ def _frontend_base_url(request: Request) -> str:
         parsed = urlsplit(raw)
         if parsed.scheme and parsed.netloc:
             base = urlunsplit((parsed.scheme, parsed.netloc, "", "", ""))
-            base = base.rstrip("/")
             break
 
-    path_prefix = settings.frontend_path_prefix.strip()
-    if path_prefix:
+    # Prefer explicit env setting, otherwise take path from configured frontend_base_url
+    path_prefix = settings.frontend_path_prefix.strip() or cfg.path.strip()
+    if path_prefix and path_prefix != "/":
         if not path_prefix.startswith("/"):
             path_prefix = "/" + path_prefix
         path_prefix = path_prefix.rstrip("/")
-        base = f"{base}{path_prefix}"
+        base = f"{base.rstrip('/')}{path_prefix}"
+    else:
+        base = base.rstrip("/")
 
     return base
 
