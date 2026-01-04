@@ -443,7 +443,12 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
       </section>
 
       {activeEntry && (
-        <div className={modalOverlay} role="dialog" aria-modal="true">
+        <div
+          className={modalOverlay}
+          role="dialog"
+          aria-modal="true"
+          aria-label="Verfügbarkeit"
+        >
           <div className={`${modalCard} max-w-md`}>
             <div className="flex items-start justify-between gap-3">
               <div className="space-y-1">

@@ -131,14 +131,14 @@ describe("GroupDetailPage availability summary", () => {
                   displayName: "You",
                   accessToken: "token",
                 }}
-                groups=[
+                groups={[
                   {
                     groupId: "123",
                     name: "Sommertrip",
                     role: "owner",
                     inviteLink: "",
                   },
-                ]
+                ]}
               />
             }
           />
