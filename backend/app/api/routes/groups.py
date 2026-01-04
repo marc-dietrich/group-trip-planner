@@ -1,5 +1,6 @@
 """Group management endpoints."""
 
+from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
@@ -8,7 +9,7 @@ from urllib.parse import urlsplit, urlunsplit
 
 from app.core.config import get_settings
 from app.core.security import Identity, require_authenticated_identity
-from app.user_core.services import GroupService
+from app.user_core.services import GroupService, InviteExpiredError, InviteNotFoundError
 from app.api.deps import get_group_service
 
 settings = get_settings()
@@ -58,6 +59,7 @@ class GroupCreateResponse(BaseModel):
     groupId: UUID
     name: str
     inviteLink: str
+    inviteExpiresAt: datetime
     role: str
     displayName: str
 
@@ -69,6 +71,7 @@ class GroupMembership(BaseModel):
     name: str
     role: str
     inviteLink: str
+    inviteExpiresAt: datetime
 
 
 class GroupPublic(BaseModel):
@@ -76,10 +79,11 @@ class GroupPublic(BaseModel):
 
     groupId: UUID
     name: str
+    inviteExpiresAt: datetime
 
     @classmethod
-    def from_model(cls, group):
-        return cls(groupId=group.id, name=group.name)
+    def from_invite(cls, group, invite):
+        return cls(groupId=group.id, name=group.name, inviteExpiresAt=invite.expires_at)
 
 
 class JoinGroupResponse(BaseModel):
@@ -89,6 +93,7 @@ class JoinGroupResponse(BaseModel):
     name: str
     role: str
     inviteLink: str
+    inviteExpiresAt: datetime
     alreadyMember: bool
 
 
@@ -107,15 +112,20 @@ async def get_groups(
 
     rows = await service.get_groups_for_identity(user_id=user_uuid)
     base_url = _frontend_base_url(request)
-    return [
-        {
-            "groupId": group.id,
-            "name": group.name,
-            "role": member.role,
-            "inviteLink": f"{base_url}/invite/{group.id}",
-        }
-        for group, member in rows
-    ]
+    memberships: list[dict] = []
+    for group, member in rows:
+        invite = await service.ensure_invite_for_group(group=group, ttl_days=settings.invite_token_ttl_days)
+        memberships.append(
+            {
+                "groupId": group.id,
+                "name": group.name,
+                "role": member.role,
+                "inviteLink": f"{base_url}/invite/{group.id}",
+                "inviteExpiresAt": invite.expires_at,
+            }
+        )
+
+    return memberships
 
 
 @router.post("/groups", response_model=GroupCreateResponse)
@@ -140,7 +150,10 @@ async def create_group(
         actor_id=actor_id,
         display_name=creator_display,
         user_id=user_uuid,
+        invite_ttl_days=settings.invite_token_ttl_days,
     )
+
+    invite = await service.ensure_invite_for_group(group=group, ttl_days=settings.invite_token_ttl_days)
 
     invite_link = f"{_frontend_base_url(request)}/invite/{group.id}"
 
@@ -148,6 +161,7 @@ async def create_group(
         "groupId": group.id,
         "name": group.name,
         "inviteLink": invite_link,
+        "inviteExpiresAt": invite.expires_at,
         "role": member.role,
         "displayName": member.display_name,
     }
@@ -156,10 +170,16 @@ async def create_group(
 @router.get("/groups/{group_id}", response_model=GroupPublic)
 async def get_group(group_id: UUID, service: GroupService = Depends(get_group_service)):
     """Fetch a single group by id."""
-    group = await service.get_group(group_id)
-    if not group:
-        raise HTTPException(status_code=404, detail="Gruppe nicht gefunden")
-    return GroupPublic.from_model(group)
+    try:
+        group, invite = await service.get_invite_preview(
+            token=str(group_id), ttl_days=settings.invite_token_ttl_days
+        )
+    except InviteExpiredError as exc:
+        raise HTTPException(status_code=status.HTTP_410_GONE, detail=str(exc)) from exc
+    except InviteNotFoundError as exc:
+        raise HTTPException(status_code=404, detail=str(exc)) from exc
+
+    return GroupPublic.from_invite(group, invite)
 
 
 @router.delete("/groups/{group_id}", status_code=204)
@@ -188,12 +208,15 @@ async def join_group(
     display_name = identity.display_name or "Gast"
 
     try:
-        group, member, created = await service.join_group(
+        group, member, created, invite = await service.join_group(
             group_id=group_id,
             user_id=user_uuid,
             display_name=display_name,
+            invite_ttl_days=settings.invite_token_ttl_days,
         )
-    except ValueError as exc:
+    except InviteExpiredError as exc:
+        raise HTTPException(status_code=status.HTTP_410_GONE, detail=str(exc)) from exc
+    except InviteNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
     invite_link = f"{_frontend_base_url(request)}/invite/{group.id}"
@@ -203,5 +226,6 @@ async def join_group(
         name=group.name,
         role=member.role,
         inviteLink=invite_link,
+        inviteExpiresAt=invite.expires_at,
         alreadyMember=not created,
     )
