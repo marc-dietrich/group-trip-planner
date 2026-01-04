@@ -33,6 +33,12 @@ jobs:
       - name: Run frontend tests
         run: npm run test -- --run
 
+      - name: Install Playwright browsers
+        run: npx playwright install --with-deps
+
+      - name: Run Playwright tests
+        run: npm run test:e2e -- --reporter=line
+
       - name: Type check and build
         run: npm run build
 
