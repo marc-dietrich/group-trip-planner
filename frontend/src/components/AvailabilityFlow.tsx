@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { GroupMembership, Identity } from "../types";
 import { apiPath } from "../lib/api";
@@ -68,6 +68,8 @@ type AvailabilityFlowProps = {
   identity: Identity;
   fixedGroupId?: string | null;
   hideSavedList?: boolean;
+  embedded?: boolean;
+  renderTrigger?: (args: { open: () => void; disabled: boolean }) => ReactNode;
   onChange?: () => void;
 };
 
@@ -264,6 +266,8 @@ export function AvailabilityFlow({
   identity,
   fixedGroupId = null,
   hideSavedList = false,
+  embedded = false,
+  renderTrigger,
   onChange,
 }: AvailabilityFlowProps) {
   const [draft, setDraft] = useState<DraftRange>(initialDraft);
@@ -367,6 +371,8 @@ export function AvailabilityFlow({
     return lastDay?.iso ?? todayIso;
   }, [monthGroups, todayIso]);
 
+  const showGroupName = !fixedGroupId && groups.length > 1;
+
   const hasMonths = monthGroups.length > 0;
   const atStart = monthIndex === 0;
   const atEnd = hasMonths ? monthIndex === monthGroups.length - 1 : true;
@@ -409,6 +415,14 @@ export function AvailabilityFlow({
 
     setDraft({ ...initialDraft, groupId: fallbackGroupId });
     setStep("start");
+  };
+
+  const openDialog = () => {
+    if (identity.kind !== "user") {
+      toast.error("Bitte zuerst anmelden, um Verfügbarkeiten zu erfassen.");
+      return;
+    }
+    setOpen(true);
   };
 
   const handleSave = async () => {
@@ -527,39 +541,45 @@ export function AvailabilityFlow({
     }
   }, [draft.start, monthGroups]);
 
-  return (
-    <section className={`${card} flex flex-col gap-4`}>
-      <div className={cardHeaderSubtle}>
-        <div>
-          <p className={eyebrow}>Verfügbarkeiten</p>
-          <h3 className="text-xl font-semibold text-slate-900">
-            Wann passt es dir?
-          </h3>
-          <p className={muted}>
-            Kurze Zeiträume hinzufügen, die für dich funktionieren.
-          </p>
-        </div>
-        <div className={buttonRow}>
-          <button
-            type="button"
-            className={buttonPrimary}
-            onClick={() => {
-              if (identity.kind !== "user") {
-                toast.error(
-                  "Bitte zuerst anmelden, um Verfügbarkeiten zu erfassen."
-                );
-                return;
-              }
-              setOpen(true);
-            }}
-            disabled={identity.kind !== "user"}
-          >
-            + Hinzufügen
-          </button>
-        </div>
-      </div>
+  const triggerNode = renderTrigger ? (
+    renderTrigger({ open: openDialog, disabled: identity.kind !== "user" })
+  ) : (
+    <div className={buttonRow}>
+      <button
+        type="button"
+        className={buttonPrimary}
+        onClick={openDialog}
+        disabled={identity.kind !== "user"}
+      >
+        + Hinzufügen
+      </button>
+    </div>
+  );
 
-      {identity.kind !== "user" && (
+  return (
+    <section className={`${embedded ? "flex flex-col gap-3" : `${card} flex flex-col gap-4`}`}>
+      {embedded ? (
+        <div className="flex flex-wrap items-center justify-end gap-2">{triggerNode}</div>
+      ) : (
+        <div
+          className={`${cardHeaderSubtle} flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between`}
+        >
+          <div>
+            <p className={eyebrow}>Verfügbarkeiten</p>
+            <h3 className="text-xl font-semibold text-slate-900">
+              Wann passt es dir?
+            </h3>
+            <p className={`${muted} hidden sm:block`}>
+              Kurze Zeiträume hinzufügen, die für dich funktionieren.
+            </p>
+          </div>
+          <div className="flex w-full flex-wrap justify-end gap-2 sm:w-auto sm:flex-nowrap">
+            {triggerNode}
+          </div>
+        </div>
+      )}
+
+      {!embedded && identity.kind !== "user" && (
         <div className={`${pillWarning} mt-1`}>
           Bitte melde dich an, bevor du Verfügbarkeiten hinzufügst.
         </div>
@@ -684,10 +704,12 @@ export function AvailabilityFlow({
 
       {!hideSavedList && (
         <div className="space-y-3">
-          <div className={cardHeaderSubtle}>
+          <div
+            className={`${cardHeaderSubtle} flex flex-col gap-1 sm:flex-row sm:items-center sm:justify-between`}
+          >
             <div>
               <p className={eyebrow}>Gespeicherte Zeiträume</p>
-              <h4 className="text-lg font-semibold text-slate-900">
+              <h4 className="text-base font-semibold text-slate-900 sm:text-lg">
                 {rangesLoading
                   ? "Lade..."
                   : ranges.length
@@ -700,7 +722,7 @@ export function AvailabilityFlow({
           {rangesError && <div className={pillDanger}>{rangesError}</div>}
 
           {!rangesLoading && !ranges.length && (
-            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-2">
+            <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-sm sm:text-base">
               <p className={muted}>
                 Füge einen Zeitraum hinzu, um deine Teilnahme zu teilen.
               </p>
@@ -712,10 +734,10 @@ export function AvailabilityFlow({
               {(listOpen ? ranges : ranges.slice(0, 2)).map((range) => (
                 <li
                   key={range.id}
-                  className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3"
+                  className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-2 sm:p-3"
                 >
                   <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex flex-wrap items-center gap-2">
+                    <div className="flex flex-wrap items-center gap-1 sm:gap-2">
                       <span className={availableChipClass}>
                         {AVAILABLE_TAG}
                       </span>
@@ -725,11 +747,11 @@ export function AvailabilityFlow({
                       <span className={muted}>
                         {dayDiffInclusive(range.start, range.end)} Tage
                       </span>
-                      <span className={smallMuted}>
-                        Gruppe: {range.groupName}
-                      </span>
+                      {showGroupName && (
+                        <span className={smallMuted}>Gruppe: {range.groupName}</span>
+                      )}
                     </div>
-                    <div className={buttonRow}>
+                    <div className={`${buttonRow} justify-start sm:justify-end`}>
                       <button
                         type="button"
                         className={`${buttonGhostTiny} ${buttonGhostDanger}`}
@@ -747,7 +769,7 @@ export function AvailabilityFlow({
           {ranges.length > 2 && (
             <button
               type="button"
-              className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-left font-semibold text-slate-900 hover:bg-slate-50"
+              className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-sm font-semibold text-slate-900 hover:bg-slate-50 sm:text-base"
               onClick={() => setListOpen((open) => !open)}
               aria-expanded={listOpen}
             >
