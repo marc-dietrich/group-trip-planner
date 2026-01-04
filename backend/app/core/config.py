@@ -20,6 +20,9 @@ class Settings(BaseSettings):
     app_version: str = "0.1.0"
     debug: bool = True
 
+    # Invites
+    invite_token_ttl_days: int = 7
+
     # Frontend
     frontend_base_url: str = "http://localhost:3000"
     frontend_path_prefix: str = ""

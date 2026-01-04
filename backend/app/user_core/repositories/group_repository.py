@@ -1,5 +1,6 @@
 """Group repository abstractions for persistence (user core)."""
 
+from datetime import datetime
 from typing import List, Optional, Protocol, Tuple
 from uuid import UUID
 
@@ -7,7 +8,7 @@ from sqlalchemy import or_, update
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlmodel import select
 
-from app.user_core.models import Group, GroupMember, User
+from app.user_core.models import Group, GroupInvite, GroupMember, User
 
 
 class GroupRepository(Protocol):
@@ -54,6 +55,15 @@ class GroupRepository(Protocol):
         display_name: str,
         role: str = "member",
     ) -> GroupMember:
+        ...
+
+    async def create_invite(self, group_id: UUID, token: str, expires_at: datetime) -> GroupInvite:
+        ...
+
+    async def get_invite_by_token(self, token: str) -> Optional[GroupInvite]:
+        ...
+
+    async def increment_invite_used_count(self, invite_id: UUID) -> GroupInvite:
         ...
 
     async def commit(self) -> None:
@@ -178,6 +188,30 @@ class SQLModelGroupRepository(GroupRepository):
         await self.session.refresh(member)
         return member
 
+    async def create_invite(self, group_id: UUID, token: str, expires_at: datetime) -> GroupInvite:
+        invite = GroupInvite(group_id=group_id, token=token, expires_at=expires_at)
+        self.session.add(invite)
+        await self.session.commit()
+        await self.session.refresh(invite)
+        return invite
+
+    async def get_invite_by_token(self, token: str) -> Optional[GroupInvite]:
+        stmt = select(GroupInvite).where(GroupInvite.token == token)
+        result = await self.session.execute(stmt)
+        return result.scalars().first()
+
+    async def increment_invite_used_count(self, invite_id: UUID) -> GroupInvite:
+        stmt = (
+            update(GroupInvite)
+            .where(GroupInvite.id == invite_id)
+            .values(used_count=GroupInvite.used_count + 1)
+            .returning(GroupInvite)
+        )
+        result = await self.session.execute(stmt)
+        await self.session.commit()
+        updated = result.scalar_one()
+        return updated
+
     async def commit(self) -> None:
         await self.session.commit()
 
@@ -188,6 +222,7 @@ class InMemoryGroupRepository(GroupRepository):
     def __init__(self) -> None:
         self.groups: dict[UUID, Group] = {}
         self.members: dict[UUID, GroupMember] = {}
+        self.invites: dict[str, GroupInvite] = {}
 
     async def create_group(
         self,
@@ -281,6 +316,23 @@ class InMemoryGroupRepository(GroupRepository):
         )
         self.members[member.id] = member
         return member
+
+    async def create_invite(self, group_id: UUID, token: str, expires_at: datetime) -> GroupInvite:
+        from uuid import uuid4
+
+        invite = GroupInvite(id=uuid4(), group_id=group_id, token=token, expires_at=expires_at, used_count=0)
+        self.invites[token] = invite
+        return invite
+
+    async def get_invite_by_token(self, token: str) -> Optional[GroupInvite]:
+        return self.invites.get(token)
+
+    async def increment_invite_used_count(self, invite_id: UUID) -> GroupInvite:
+        for invite in self.invites.values():
+            if invite.id == invite_id:
+                invite.used_count += 1
+                return invite
+        raise ValueError(f"Invite {invite_id} not found")
 
     async def commit(self) -> None:  # pragma: no cover - no-op for in-memory
         return None

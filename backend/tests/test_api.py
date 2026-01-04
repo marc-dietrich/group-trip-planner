@@ -1,5 +1,6 @@
 """API tests with mocked persistence (no real database)."""
 
+from datetime import datetime, timedelta
 from uuid import uuid4
 
 import pytest
@@ -155,3 +156,77 @@ async def test_join_group_via_invite_link():
         list_res = await client.get("/api/groups", headers=guest_headers)
         assert list_res.status_code == 200
         assert any(g["groupId"] == group_id for g in list_res.json())
+
+
+@pytest.mark.asyncio
+async def test_invite_preview_returns_410_when_expired(fake_group_repo):
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        owner_headers, _ = _auth_headers(display_name="Owner")
+        create_res = await client.post(
+            "/api/groups",
+            json={"groupName": "Expiring", "displayName": "Owner"},
+            headers=owner_headers,
+        )
+        assert create_res.status_code == 200
+        group_id = create_res.json()["groupId"]
+
+        invite = await fake_group_repo.get_invite_by_token(str(group_id))
+        assert invite is not None
+        invite.expires_at = datetime.utcnow() - timedelta(days=1)
+
+        preview_res = await client.get(f"/api/groups/{group_id}")
+        assert preview_res.status_code == 410
+        assert preview_res.json()["detail"] == "Einladung abgelaufen"
+
+
+@pytest.mark.asyncio
+async def test_join_rejects_expired_invite(fake_group_repo):
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        owner_headers, _ = _auth_headers(display_name="Owner")
+        create_res = await client.post(
+            "/api/groups",
+            json={"groupName": "Expired Join", "displayName": "Owner"},
+            headers=owner_headers,
+        )
+        assert create_res.status_code == 200
+        group_id = create_res.json()["groupId"]
+
+        invite = await fake_group_repo.get_invite_by_token(str(group_id))
+        assert invite is not None
+        invite.expires_at = datetime.utcnow() - timedelta(days=1)
+
+        guest_headers, _ = _auth_headers(display_name="Guest")
+        join_res = await client.post(f"/api/groups/{group_id}/join", headers=guest_headers)
+        assert join_res.status_code == 410
+        assert join_res.json()["detail"] == "Einladung abgelaufen"
+
+
+@pytest.mark.asyncio
+async def test_invite_used_count_increments(fake_group_repo):
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        owner_headers, _ = _auth_headers(display_name="Owner")
+        create_res = await client.post(
+            "/api/groups",
+            json={"groupName": "Usage Count", "displayName": "Owner"},
+            headers=owner_headers,
+        )
+        assert create_res.status_code == 200
+        group_id = create_res.json()["groupId"]
+
+        guest_headers, _ = _auth_headers(display_name="Guest")
+        join_res = await client.post(f"/api/groups/{group_id}/join", headers=guest_headers)
+        assert join_res.status_code == 200
+
+        invite = await fake_group_repo.get_invite_by_token(str(group_id))
+        assert invite is not None
+        assert invite.used_count == 1
+
+        repeat = await client.post(f"/api/groups/{group_id}/join", headers=guest_headers)
+        assert repeat.status_code == 200
+
+        invite_again = await fake_group_repo.get_invite_by_token(str(group_id))
+        assert invite_again is not None
+        assert invite_again.used_count == 1
