@@ -593,7 +593,12 @@ export function AvailabilityFlow({
           <div className={modalCard}>
             <div className="flex items-center justify-between gap-3">
               <span className="inline-flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-semibold text-sky-800">
-                {stepNumber}/3 {step === "start" ? "Startdatum" : step === "end" ? "Enddatum" : "Prüfen"}
+                {stepNumber}/3{" "}
+                {step === "start"
+                  ? "Startdatum"
+                  : step === "end"
+                  ? "Enddatum"
+                  : "Prüfen"}
               </span>
               <button
                 type="button"
@@ -651,7 +656,9 @@ export function AvailabilityFlow({
                         ✓
                       </div>
                       <div className="space-y-1">
-                        <div className="text-sm font-semibold text-slate-900">Zusammenfassung</div>
+                        <div className="text-sm font-semibold text-slate-900">
+                          Zusammenfassung
+                        </div>
                         <div className="flex flex-col gap-2 text-left">
                           <hr className="border-slate-200" />
                           <div className="flex flex-wrap items-baseline gap-2">
@@ -673,12 +680,15 @@ export function AvailabilityFlow({
                           <hr className="border-slate-200" />
                         </div>
                         <div className="text-xs font-medium uppercase tracking-[0.12em] text-slate-500">
-                          {dayDiffInclusive(draft.start, draft.end)} Tage eingeplant
+                          {dayDiffInclusive(draft.start, draft.end)} Tage
+                          eingeplant
                         </div>
                       </div>
                     </div>
                   </div>
-                  <div className={`${buttonRow} shrink-0 justify-end min-h-[44px]`}>
+                  <div
+                    className={`${buttonRow} shrink-0 justify-end min-h-[44px]`}
+                  >
                     <button
                       type="button"
                       className={buttonPrimary}
