@@ -25,15 +25,8 @@ const dateFormatter = new Intl.DateTimeFormat("de-DE", {
 type GroupDetailPageProps = {
   identity: Identity;
   groups: GroupMembership[];
-  groupsLoading: boolean;
-  groupsError: string | null;
 };
-export function GroupDetailPage({
-  identity,
-  groups,
-  groupsLoading,
-  groupsError,
-}: GroupDetailPageProps) {
+export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
   const { groupId } = useParams();
   const navigate = useNavigate();
   const [groupName, setGroupName] = useState<string>("Gruppe");
@@ -202,8 +195,6 @@ export function GroupDetailPage({
         <div className="mt-4">
           <AvailabilityFlow
             groups={singleGroupList}
-            groupsLoading={groupsLoading}
-            groupsError={groupsError}
             identity={identity}
             fixedGroupId={groupId ?? null}
             hideSavedList

@@ -79,8 +79,6 @@ export function DialogSandbox() {
     <div className="min-h-screen w-screen overflow-hidden bg-slate-50 flex items-center justify-center p-3">
       <AvailabilityFlow
         groups={groups}
-        groupsLoading={false}
-        groupsError={null}
         identity={identity}
         fixedGroupId="sandbox-group"
         hideSavedList

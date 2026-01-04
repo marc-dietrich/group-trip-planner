@@ -11,16 +11,12 @@ import {
   card,
   cardHeaderSubtle,
   eyebrow,
-  field,
   modalCard,
   modalOverlay,
   muted,
   pillDanger,
   pillWarning,
-  select,
   smallMuted,
-  stackSm,
-  stackXs,
 } from "../ui";
 
 type Step = "start" | "end" | "review";
@@ -69,8 +65,6 @@ type MonthCalendarProps = {
 
 type AvailabilityFlowProps = {
   groups: GroupMembership[];
-  groupsLoading: boolean;
-  groupsError: string | null;
   identity: Identity;
   fixedGroupId?: string | null;
   hideSavedList?: boolean;
@@ -267,8 +261,6 @@ function MonthCalendar({
 
 export function AvailabilityFlow({
   groups,
-  groupsLoading,
-  groupsError,
   identity,
   fixedGroupId = null,
   hideSavedList = false,
@@ -283,11 +275,6 @@ export function AvailabilityFlow({
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
-
-  const selectedGroup = useMemo(
-    () => groups.find((g) => g.groupId === selectedGroupId) ?? null,
-    [selectedGroupId, groups]
-  );
 
   useEffect(() => {
     if (fixedGroupId) {
@@ -394,16 +381,6 @@ export function AvailabilityFlow({
     );
 
   const stepNumber = step === "start" ? 1 : step === "end" ? 2 : 3;
-  const stepLabel: Record<Step, string> = {
-    start: "Startdatum wählen",
-    end: "Enddatum festlegen",
-    review: "Prüfen und speichern",
-  };
-
-  const durationLabel =
-    draft.start && draft.end
-      ? `${dayDiffInclusive(draft.start, draft.end)} Tage`
-      : "–";
 
   const canSave = Boolean(
     draft.start &&

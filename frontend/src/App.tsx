@@ -549,14 +549,7 @@ function AppShell() {
         />
         <Route
           path="/groups/:groupId"
-          element={
-            <GroupDetailPage
-              identity={identity}
-              groups={groups}
-              groupsLoading={groupsLoading}
-              groupsError={groupsError}
-            />
-          }
+          element={<GroupDetailPage identity={identity} groups={groups} />}
         />
         <Route
           path="/profile"
