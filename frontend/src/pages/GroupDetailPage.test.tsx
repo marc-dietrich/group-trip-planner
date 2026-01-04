@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
+import type { Mock } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -45,7 +46,7 @@ function mockResponse(body: unknown, status = 200) {
 }
 
 describe("GroupDetailPage availability summary", () => {
-  let fetchMock: ReturnType<typeof vi.fn>;
+  let fetchMock: Mock<[string, RequestInit?], Promise<Response>>;
 
   beforeEach(() => {
     fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
@@ -53,10 +54,13 @@ describe("GroupDetailPage availability summary", () => {
         return mockResponse({}, 204);
       }
 
-      if (url.includes("availability-summary")) return mockResponse(summaryResponse);
-      if (url.includes("member-availabilities")) return mockResponse(memberAvailabilityResponse);
+      if (url.includes("availability-summary"))
+        return mockResponse(summaryResponse);
+      if (url.includes("member-availabilities"))
+        return mockResponse(memberAvailabilityResponse);
       if (url.endsWith("/availabilities")) return mockResponse([]);
-      if (/\/api\/groups\/.+/.test(url)) return mockResponse({ name: "Sommertrip" });
+      if (/\/api\/groups\/.+/.test(url))
+        return mockResponse({ name: "Sommertrip" });
       return mockResponse({}, 404);
     });
 
@@ -156,13 +160,19 @@ describe("GroupDetailPage availability summary", () => {
     });
     await user.click(availabilityButton);
 
-    expect(screen.getByRole("dialog", { name: /Verfügbarkeit/i })).toBeInTheDocument();
-    expect(screen.getByRole("button", { name: /Löschen/i })).toBeInTheDocument();
+    expect(
+      screen.getByRole("dialog", { name: /Verfügbarkeit/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Löschen/i })
+    ).toBeInTheDocument();
 
     await user.click(screen.getByRole("button", { name: /Löschen/i }));
 
     await waitFor(() => {
-      expect(screen.queryByRole("dialog", { name: /Verfügbarkeit/i })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole("dialog", { name: /Verfügbarkeit/i })
+      ).not.toBeInTheDocument();
     });
 
     expect(
