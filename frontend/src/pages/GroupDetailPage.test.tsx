@@ -1,5 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
+import type { Mock } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -45,20 +46,25 @@ function mockResponse(body: unknown, status = 200) {
 }
 
 describe("GroupDetailPage availability summary", () => {
+  let fetchMock: Mock<[string, RequestInit?], Promise<Response>>;
+
   beforeEach(() => {
-    vi.stubGlobal(
-      "fetch",
-      vi.fn(async (url: string) => {
-        if (url.includes("availability-summary"))
-          return mockResponse(summaryResponse);
-        if (url.includes("member-availabilities"))
-          return mockResponse(memberAvailabilityResponse);
-        if (url.endsWith("/availabilities")) return mockResponse([]);
-        if (/\/api\/groups\/.+/.test(url))
-          return mockResponse({ name: "Sommertrip" });
-        return mockResponse({}, 404);
-      })
-    );
+    fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
+      if (init?.method === "DELETE" && url.includes("/api/availabilities/")) {
+        return mockResponse({}, 204);
+      }
+
+      if (url.includes("availability-summary"))
+        return mockResponse(summaryResponse);
+      if (url.includes("member-availabilities"))
+        return mockResponse(memberAvailabilityResponse);
+      if (url.endsWith("/availabilities")) return mockResponse([]);
+      if (/\/api\/groups\/.+/.test(url))
+        return mockResponse({ name: "Sommertrip" });
+      return mockResponse({}, 404);
+    });
+
+    vi.stubGlobal("fetch", fetchMock);
   });
 
   afterEach(() => {
@@ -111,5 +117,71 @@ describe("GroupDetailPage availability summary", () => {
     expect(
       screen.getByText(/2 von 5 Mitgliedern verfügbar/)
     ).toBeInTheDocument();
+  });
+
+  it("allows deleting own availability from detail modal", async () => {
+    const user = userEvent.setup();
+
+    render(
+      <MemoryRouter initialEntries={["/groups/123"]}>
+        <Routes>
+          <Route
+            path="/groups/:groupId"
+            element={
+              <GroupDetailPage
+                identity={{
+                  kind: "user",
+                  userId: "u1",
+                  displayName: "You",
+                  accessToken: "token",
+                }}
+                groups={[
+                  {
+                    groupId: "123",
+                    name: "Sommertrip",
+                    role: "owner",
+                    inviteLink: "",
+                  },
+                ]}
+              />
+            }
+          />
+        </Routes>
+      </MemoryRouter>
+    );
+
+    // Expand member card
+    const memberButton = await screen.findByRole("button", { name: /You/i });
+    await user.click(memberButton);
+
+    // Open availability detail modal
+    const availabilityButton = await screen.findByRole("button", {
+      name: /01\. Juli 2025/i,
+    });
+    await user.click(availabilityButton);
+
+    expect(
+      screen.getByRole("dialog", { name: /Verfügbarkeit/i })
+    ).toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Löschen/i })
+    ).toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: /Löschen/i }));
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("dialog", { name: /Verfügbarkeit/i })
+      ).not.toBeInTheDocument();
+    });
+
+    expect(
+      fetchMock.mock.calls.some(
+        ([url, init]) =>
+          typeof url === "string" &&
+          url.includes("/api/availabilities/a1") &&
+          init?.method === "DELETE"
+      )
+    ).toBe(true);
   });
 });
