@@ -1,13 +1,17 @@
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { useNavigate, useParams } from "react-router-dom";
 import { GroupMembership, Identity } from "../types";
 import { apiPath } from "../lib/api";
 import { AvailabilityFlow } from "../components/AvailabilityFlow";
 import {
   buttonGhost,
+  buttonGhostDanger,
   buttonPrimary,
   cardMinimal,
   eyebrow,
+  modalCard,
+  modalOverlay,
   muted,
   pill,
   pillDanger,
@@ -18,6 +22,13 @@ import { useGroupAvailability } from "../hooks/useGroupAvailability";
 import { useGroupMemberAvailabilities } from "../hooks/useGroupMemberAvailabilities";
 
 const dateFormatter = new Intl.DateTimeFormat("de-DE", {
+  day: "2-digit",
+  month: "short",
+  year: "numeric",
+});
+
+const fullFormatter = new Intl.DateTimeFormat("de-DE", {
+  weekday: "short",
   day: "2-digit",
   month: "short",
   year: "numeric",
@@ -36,6 +47,14 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
   const [expandedMembers, setExpandedMembers] = useState<
     Record<string, boolean>
   >({});
+  const [memberDeleteError, setMemberDeleteError] = useState<string | null>(
+    null
+  );
+  const [activeEntry, setActiveEntry] = useState<{
+    entry: { id: string; startDate: string; endDate: string };
+    memberName: string;
+    isSelf: boolean;
+  } | null>(null);
 
   const {
     data: summary,
@@ -144,6 +163,46 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
 
   const toggleMember = (memberId: string) => {
     setExpandedMembers((prev) => ({ ...prev, [memberId]: !prev[memberId] }));
+  };
+
+  const openEntry = (
+    entry: { id: string; startDate: string; endDate: string },
+    memberName: string,
+    isSelf: boolean
+  ) => {
+    setActiveEntry({ entry, memberName, isSelf });
+  };
+
+  const closeEntry = () => setActiveEntry(null);
+
+  const dayDiffInclusive = (startIso: string, endIso: string): number => {
+    const start = new Date(startIso);
+    const end = new Date(endIso);
+    const diff = end.getTime() - start.getTime();
+    return Math.floor(diff / (1000 * 60 * 60 * 24)) + 1;
+  };
+
+  const handleDeleteAvailability = async (availabilityId: string) => {
+    if (identity.kind !== "user") return;
+    setMemberDeleteError(null);
+    try {
+      const res = await fetch(
+        apiPath(`/api/availabilities/${availabilityId}`),
+        {
+          method: "DELETE",
+          headers: { Authorization: `Bearer ${identity.accessToken}` },
+        }
+      );
+      if (!res.ok) throw new Error(`Fehler: ${res.status}`);
+      await refetchSummary();
+      await refetchMembers();
+      setActiveEntry(null);
+      toast.success("Verfügbarkeit gelöscht");
+    } catch (err) {
+      setMemberDeleteError(
+        err instanceof Error ? err.message : "Löschen fehlgeschlagen"
+      );
+    }
   };
 
   return (
@@ -288,6 +347,9 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
         <div className="mt-3 flex flex-col gap-3">
           {membersLoading && <p className={muted}>Lade Mitglieder...</p>}
           {membersError && <div className={pillDanger}>{membersError}</div>}
+          {memberDeleteError && (
+            <div className={pillDanger}>{memberDeleteError}</div>
+          )}
           {!membersLoading &&
             !membersError &&
             memberAvailabilities.length === 0 && (
@@ -336,9 +398,30 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
                         {member.availabilities.map((entry) => (
                           <li
                             key={entry.id}
-                            className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                            className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:border-slate-300 hover:shadow-sm transition"
+                            role="button"
+                            tabIndex={0}
+                            onClick={() =>
+                              openEntry(
+                                entry,
+                                formatMemberName(member.displayName),
+                                identity.kind === "user" &&
+                                  member.userId === identity.userId
+                              )
+                            }
+                            onKeyDown={(e) => {
+                              if (e.key === "Enter" || e.key === " ") {
+                                e.preventDefault();
+                                openEntry(
+                                  entry,
+                                  formatMemberName(member.displayName),
+                                  identity.kind === "user" &&
+                                    member.userId === identity.userId
+                                );
+                              }
+                            }}
                           >
-                            <div className="flex flex-wrap items-center gap-2">
+                            <div className="flex w-full flex-wrap items-center gap-2 sm:flex-nowrap">
                               <span className={pillNeutral}>Verfügbar</span>
                               <span className="font-semibold text-slate-900">
                                 {dateFormatter.format(
@@ -358,6 +441,53 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
             ))}
         </div>
       </section>
+
+      {activeEntry && (
+        <div className={modalOverlay} role="dialog" aria-modal="true">
+          <div className={`${modalCard} max-w-md`}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="space-y-1">
+                <p className={eyebrow}>Verfügbarkeit</p>
+                <h4 className="text-lg font-semibold text-slate-900">
+                  {fullFormatter.format(new Date(activeEntry.entry.startDate))}{" "}
+                  – {fullFormatter.format(new Date(activeEntry.entry.endDate))}
+                </h4>
+                <p className={muted}>
+                  {dayDiffInclusive(
+                    activeEntry.entry.startDate,
+                    activeEntry.entry.endDate
+                  )}{" "}
+                  Tage eingeplant
+                </p>
+                <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-semibold text-slate-700">
+                  {activeEntry.memberName}
+                </div>
+              </div>
+            </div>
+
+            <hr className="my-3 border-slate-200" />
+
+            <div className="flex justify-end gap-2">
+              {activeEntry.isSelf && identity.kind === "user" && (
+                <button
+                  type="button"
+                  className={buttonGhostDanger}
+                  onClick={() => handleDeleteAvailability(activeEntry.entry.id)}
+                >
+                  Löschen
+                </button>
+              )}
+              <button
+                type="button"
+                className={buttonPrimary}
+                onClick={closeEntry}
+              >
+                Okay
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

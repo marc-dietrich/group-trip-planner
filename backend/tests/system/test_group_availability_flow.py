@@ -37,6 +37,17 @@ async def test_group_user_availability_flow(client, user_identity):
     assert items[0]["startDate"] == payload["startDate"]
     assert items[0]["endDate"] == payload["endDate"]
 
+    delete_res = await client.delete(
+        f"/api/availabilities/{availability['id']}", headers=user_identity["headers"]
+    )
+    assert delete_res.status_code == 204
+
+    after_delete_res = await client.get(
+        f"/api/groups/{group_id}/availabilities", headers=user_identity["headers"]
+    )
+    assert after_delete_res.status_code == 200
+    assert after_delete_res.json() == []
+
     groups_res = await client.get("/api/groups", headers=user_identity["headers"])
     assert groups_res.status_code == 200
     groups = groups_res.json()
