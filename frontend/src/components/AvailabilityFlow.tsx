@@ -557,9 +557,15 @@ export function AvailabilityFlow({
   );
 
   return (
-    <section className={`${embedded ? "flex flex-col gap-3" : `${card} flex flex-col gap-4`}`}>
+    <section
+      className={`${
+        embedded ? "flex flex-col gap-3" : `${card} flex flex-col gap-4`
+      }`}
+    >
       {embedded ? (
-        <div className="flex flex-wrap items-center justify-end gap-2">{triggerNode}</div>
+        <div className="flex flex-wrap items-center justify-end gap-2">
+          {triggerNode}
+        </div>
       ) : (
         <div
           className={`${cardHeaderSubtle} flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between`}
@@ -748,10 +754,14 @@ export function AvailabilityFlow({
                         {dayDiffInclusive(range.start, range.end)} Tage
                       </span>
                       {showGroupName && (
-                        <span className={smallMuted}>Gruppe: {range.groupName}</span>
+                        <span className={smallMuted}>
+                          Gruppe: {range.groupName}
+                        </span>
                       )}
                     </div>
-                    <div className={`${buttonRow} justify-start sm:justify-end`}>
+                    <div
+                      className={`${buttonRow} justify-start sm:justify-end`}
+                    >
                       <button
                         type="button"
                         className={`${buttonGhostTiny} ${buttonGhostDanger}`}

@@ -103,7 +103,9 @@ describe("GroupDetailPage availability summary", () => {
     });
 
     // Expand the collapsed list to reveal additional intervals
-    const expandButton = screen.getByRole("button", { name: /Weitere Zeiträume/i });
+    const expandButton = screen.getByRole("button", {
+      name: /Weitere Zeiträume/i,
+    });
     await user.click(expandButton);
 
     expect(

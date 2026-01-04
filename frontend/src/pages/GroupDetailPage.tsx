@@ -33,7 +33,9 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
   const [groupName, setGroupName] = useState<string>("Gruppe");
   const [groupError, setGroupError] = useState<string | null>(null);
   const [summaryExpanded, setSummaryExpanded] = useState(false);
-  const [expandedMembers, setExpandedMembers] = useState<Record<string, boolean>>({});
+  const [expandedMembers, setExpandedMembers] = useState<
+    Record<string, boolean>
+  >({});
 
   const {
     data: summary,
@@ -122,7 +124,10 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
 
   const bestInterval = bestSummaryIndex >= 0 ? summary[bestSummaryIndex] : null;
   const otherIntervals = useMemo(
-    () => (bestSummaryIndex >= 0 ? summary.filter((_, idx) => idx !== bestSummaryIndex) : []),
+    () =>
+      bestSummaryIndex >= 0
+        ? summary.filter((_, idx) => idx !== bestSummaryIndex)
+        : [],
     [bestSummaryIndex, summary]
   );
 
@@ -187,12 +192,13 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
             <div className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm">
               <div className="flex flex-wrap items-center gap-2">
                 <span className="font-semibold text-slate-900">
-                  {dateFormatter.format(new Date(bestInterval.from))} – {" "}
+                  {dateFormatter.format(new Date(bestInterval.from))} –{" "}
                   {dateFormatter.format(new Date(bestInterval.to))}
                 </span>
                 <span className={pillNeutral}>Meiste Zusagen</span>
                 <span className={pillNeutral}>
-                  {bestInterval.availableCount} von {bestInterval.totalMembers} Mitgliedern verfügbar
+                  {bestInterval.availableCount} von {bestInterval.totalMembers}{" "}
+                  Mitgliedern verfügbar
                 </span>
               </div>
             </div>
@@ -206,8 +212,12 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
                 onClick={() => setSummaryExpanded((open) => !open)}
               >
                 <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-semibold text-slate-900">Weitere Zeiträume</span>
-                  <span className={pillNeutral}>{otherIntervals.length} Einträge</span>
+                  <span className="font-semibold text-slate-900">
+                    Weitere Zeiträume
+                  </span>
+                  <span className={pillNeutral}>
+                    {otherIntervals.length} Einträge
+                  </span>
                 </div>
                 <span className="text-xs font-semibold text-slate-600">
                   {summaryExpanded ? "Schließen" : "Anzeigen"}
@@ -223,11 +233,12 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
                     >
                       <div className="flex flex-wrap items-center gap-2">
                         <span className="font-semibold text-slate-900">
-                          {dateFormatter.format(new Date(item.from))} – {" "}
+                          {dateFormatter.format(new Date(item.from))} –{" "}
                           {dateFormatter.format(new Date(item.to))}
                         </span>
                         <span className={pillNeutral}>
-                          {item.availableCount} von {item.totalMembers} Mitgliedern verfügbar
+                          {item.availableCount} von {item.totalMembers}{" "}
+                          Mitgliedern verfügbar
                         </span>
                       </div>
                     </li>
@@ -248,7 +259,9 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
             </h3>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {identity.kind !== "user" && <div className={pill}>Login nötig</div>}
+            {identity.kind !== "user" && (
+              <div className={pill}>Login nötig</div>
+            )}
             <AvailabilityFlow
               groups={singleGroupList}
               identity={identity}
@@ -293,18 +306,23 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
                   onClick={() => toggleMember(member.memberId)}
                 >
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className={pillNeutral}>{formatMemberName(member.displayName)}</span>
+                    <span className={pillNeutral}>
+                      {formatMemberName(member.displayName)}
+                    </span>
                     <span className={pill}>{member.role}</span>
                     <span className={pillNeutral}>
                       {member.availabilities.length} Zeitraum
                       {member.availabilities.length === 1 ? "" : "e"}
                     </span>
-                    {identity.kind === "user" && member.userId === identity.userId ? (
+                    {identity.kind === "user" &&
+                    member.userId === identity.userId ? (
                       <span className={pillNeutral}>Du</span>
                     ) : null}
                   </div>
                   <span className="text-xs font-semibold text-slate-600">
-                    {expandedMembers[member.memberId] ? "Schließen" : "Anzeigen"}
+                    {expandedMembers[member.memberId]
+                      ? "Schließen"
+                      : "Anzeigen"}
                   </span>
                 </button>
 
@@ -323,7 +341,10 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
                             <div className="flex flex-wrap items-center gap-2">
                               <span className={pillNeutral}>Verfügbar</span>
                               <span className="font-semibold text-slate-900">
-                                {dateFormatter.format(new Date(entry.startDate))} – {" "}
+                                {dateFormatter.format(
+                                  new Date(entry.startDate)
+                                )}{" "}
+                                –{" "}
                                 {dateFormatter.format(new Date(entry.endDate))}
                               </span>
                             </div>
