@@ -40,6 +40,7 @@ import { GroupsPage } from "./pages/GroupsPage";
 import { GroupDetailPage } from "./pages/GroupDetailPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { MorePage } from "./pages/MorePage";
+import { DialogSandbox } from "./pages/DialogSandbox";
 import { pageShell } from "./ui";
 
 const basename = import.meta.env.BASE_URL || "/";
@@ -125,6 +126,14 @@ function App() {
 }
 
 function AppShell() {
+  const isDialogSandbox =
+    typeof window !== "undefined" &&
+    window.location.pathname.includes("__dialog-sandbox");
+
+  if (isDialogSandbox) {
+    return <DialogSandbox />;
+  }
+
   const [actor, setActorDisplayName] = useLocalActor(DEFAULT_ACTOR_NAME);
   const [namePromptOpen, setNamePromptOpen] = useState(false);
   const [pendingName, setPendingName] = useState("");
@@ -540,14 +549,7 @@ function AppShell() {
         />
         <Route
           path="/groups/:groupId"
-          element={
-            <GroupDetailPage
-              identity={identity}
-              groups={groups}
-              groupsLoading={groupsLoading}
-              groupsError={groupsError}
-            />
-          }
+          element={<GroupDetailPage identity={identity} groups={groups} />}
         />
         <Route
           path="/profile"

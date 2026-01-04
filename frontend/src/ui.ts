@@ -47,7 +47,7 @@ export const smallMuted = "text-xs text-slate-600";
 export const modalOverlay =
   "fixed inset-0 z-20 flex items-center justify-center bg-slate-900/40 p-4 backdrop-blur-sm";
 export const modalCard =
-  "w-full max-w-xl rounded-xl border border-slate-200 bg-white p-5 shadow-md sm:p-6 max-h-[90vh] overflow-y-auto";
+  "w-full max-w-xl rounded-xl border border-slate-200 bg-white p-4 shadow-md sm:p-5 max-h-[90vh] overflow-hidden flex flex-col";
 
 export const identityShell =
   "mx-auto mb-4 flex max-w-3xl items-center gap-4 rounded-xl border border-slate-200 bg-white p-5 shadow-card";

@@ -11,16 +11,12 @@ import {
   card,
   cardHeaderSubtle,
   eyebrow,
-  field,
   modalCard,
   modalOverlay,
   muted,
   pillDanger,
   pillWarning,
-  select,
   smallMuted,
-  stackSm,
-  stackXs,
 } from "../ui";
 
 type Step = "start" | "end" | "review";
@@ -69,8 +65,6 @@ type MonthCalendarProps = {
 
 type AvailabilityFlowProps = {
   groups: GroupMembership[];
-  groupsLoading: boolean;
-  groupsError: string | null;
   identity: Identity;
   fixedGroupId?: string | null;
   hideSavedList?: boolean;
@@ -267,8 +261,6 @@ function MonthCalendar({
 
 export function AvailabilityFlow({
   groups,
-  groupsLoading,
-  groupsError,
   identity,
   fixedGroupId = null,
   hideSavedList = false,
@@ -283,11 +275,6 @@ export function AvailabilityFlow({
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
-
-  const selectedGroup = useMemo(
-    () => groups.find((g) => g.groupId === selectedGroupId) ?? null,
-    [selectedGroupId, groups]
-  );
 
   useEffect(() => {
     if (fixedGroupId) {
@@ -394,16 +381,6 @@ export function AvailabilityFlow({
     );
 
   const stepNumber = step === "start" ? 1 : step === "end" ? 2 : 3;
-  const stepLabel: Record<Step, string> = {
-    start: "Startdatum wählen",
-    end: "Enddatum festlegen",
-    review: "Prüfen und speichern",
-  };
-
-  const durationLabel =
-    draft.start && draft.end
-      ? `${dayDiffInclusive(draft.start, draft.end)} Tage`
-      : "–";
 
   const canSave = Boolean(
     draft.start &&
@@ -591,185 +568,116 @@ export function AvailabilityFlow({
       {open && (
         <div className={modalOverlay} role="dialog" aria-modal="true">
           <div className={modalCard}>
-            <div className={cardHeaderSubtle}>
-              <div>
-                <p className={eyebrow}>Neuer Zeitraum</p>
-                <h3 className="text-lg font-semibold text-slate-900">
-                  Wann passt es dir?
-                </h3>
-              </div>
-              <div className={buttonRow}>
-                <button
-                  type="button"
-                  className={buttonGhostSmall}
-                  onClick={closeDialog}
-                >
-                  Schließen
-                </button>
-              </div>
+            <div className="flex items-center justify-between gap-3">
+              <span className="inline-flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-semibold text-sky-800">
+                {stepNumber}/3{" "}
+                {step === "start"
+                  ? "Startdatum"
+                  : step === "end"
+                  ? "Enddatum"
+                  : "Prüfen"}
+              </span>
+              <button
+                type="button"
+                className={buttonGhostSmall}
+                onClick={closeDialog}
+              >
+                Schließen
+              </button>
             </div>
 
-            <p className={muted}>
-              Start und Ende wählen, kurz prüfen und dann speichern. Nicht
-              markierte Tage gelten als nicht verfügbar.
-            </p>
+            <hr className="my-3 border-slate-200" />
 
-            <div className={stackXs}>
-              {!fixedGroupId ? (
-                <label className={field}>
-                  <span className="text-sm text-slate-700">
-                    Gruppe auswählen
-                  </span>
-                  <select
-                    className={select}
-                    value={selectedGroupId ?? ""}
-                    onChange={(e) => {
-                      const nextId = e.target.value || null;
-                      setSelectedGroupId(nextId);
-                      setDraft((prev) => ({ ...prev, groupId: nextId }));
-                    }}
-                    disabled={groupsLoading || !groups.length}
-                    required
-                  >
-                    <option value="" disabled>
-                      {groupsLoading ? "Lade Gruppen..." : "Gruppe wählen"}
-                    </option>
-                    {groups.map((group) => (
-                      <option key={group.groupId} value={group.groupId}>
-                        {group.name}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              ) : (
-                <div className={field}>
-                  <span className="text-sm text-slate-700">Gruppe</span>
-                  <div className="rounded-lg border border-slate-200 bg-slate-50 px-3 py-2 text-sm font-semibold text-slate-900">
-                    {selectedGroup?.name ?? "Ausgewählte Gruppe"}
-                  </div>
+            <div className="flex-1 overflow-hidden pt-1">
+              {step === "start" && currentMonth && (
+                <div className="flex h-full flex-col gap-3">
+                  <MonthCalendar
+                    month={currentMonth}
+                    selected={draft.start}
+                    minDate={todayIso}
+                    maxDate={maxIso}
+                    todayIso={todayIso}
+                    atStart={atStart}
+                    atEnd={atEnd}
+                    onPrev={goPrevMonth}
+                    onNext={goNextMonth}
+                    onSelect={handleStartSelect}
+                  />
+                  <div className="min-h-[44px]" aria-hidden="true" />
                 </div>
               )}
 
-              {groupsError && <div className={pillDanger}>{groupsError}</div>}
-              {!groupsLoading && !groups.length && !fixedGroupId && (
-                <p className={smallMuted}>
-                  Lege zuerst eine Gruppe an, um Verfügbarkeiten zuzuordnen.
-                </p>
+              {step === "end" && currentMonth && (
+                <div className="flex flex-col gap-3">
+                  <MonthCalendar
+                    month={currentMonth}
+                    selected={draft.end}
+                    minDate={draft.start ?? todayIso}
+                    maxDate={maxIso}
+                    todayIso={todayIso}
+                    atStart={atStart}
+                    atEnd={atEnd}
+                    onPrev={goPrevMonth}
+                    onNext={goNextMonth}
+                    onSelect={handleEndSelect}
+                  />
+                  <div className="min-h-[44px]" aria-hidden="true" />
+                </div>
+              )}
+
+              {step === "review" && draft.start && draft.end && (
+                <div className="flex flex-col gap-3">
+                  <div className="rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100 p-3 shadow-inner">
+                    <div className="flex items-start gap-3">
+                      <div className="mt-0.5 h-8 w-8 shrink-0 rounded-full bg-slate-900 text-white grid place-items-center text-sm font-bold">
+                        ✓
+                      </div>
+                      <div className="space-y-1">
+                        <div className="text-sm font-semibold text-slate-900">
+                          Zusammenfassung
+                        </div>
+                        <div className="flex flex-col gap-2 text-left">
+                          <hr className="border-slate-200" />
+                          <div className="flex flex-wrap items-baseline gap-2">
+                            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                              Von
+                            </span>
+                            <span className="text-base font-bold text-slate-900 leading-tight">
+                              {fullFormatter.format(new Date(draft.start))}
+                            </span>
+                          </div>
+                          <div className="flex flex-wrap items-baseline gap-2">
+                            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                              Bis
+                            </span>
+                            <span className="text-base font-bold text-slate-900 leading-tight">
+                              {fullFormatter.format(new Date(draft.end))}
+                            </span>
+                          </div>
+                          <hr className="border-slate-200" />
+                        </div>
+                        <div className="text-xs font-medium uppercase tracking-[0.12em] text-slate-500">
+                          {dayDiffInclusive(draft.start, draft.end)} Tage
+                          eingeplant
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    className={`${buttonRow} shrink-0 justify-end min-h-[44px]`}
+                  >
+                    <button
+                      type="button"
+                      className={buttonPrimary}
+                      disabled={!canSave}
+                      onClick={handleSave}
+                    >
+                      {saving ? "Speichere..." : "Bestätigen"}
+                    </button>
+                  </div>
+                </div>
               )}
             </div>
-
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <div className={availableChipClass}>{AVAILABLE_TAG}</div>
-              <div className="flex flex-wrap gap-2">
-                <button
-                  type="button"
-                  className={buttonGhostTiny}
-                  onClick={resetFlow}
-                >
-                  Neu starten
-                </button>
-              </div>
-            </div>
-
-            <div className="flex flex-wrap items-center gap-2 text-sm text-slate-700">
-              <span className="inline-flex h-8 w-12 items-center justify-center rounded-lg bg-sky-500 text-xs font-bold text-white">
-                {stepNumber}/3
-              </span>
-              <span className="font-semibold text-slate-900">
-                {stepLabel[step]}
-              </span>
-              <span className={muted}>{durationLabel}</span>
-            </div>
-
-            {step === "start" && currentMonth && (
-              <div className={stackSm}>
-                <p className={muted}>Wähle zuerst den Start im Kalender.</p>
-                <MonthCalendar
-                  month={currentMonth}
-                  selected={draft.start}
-                  minDate={todayIso}
-                  maxDate={maxIso}
-                  todayIso={todayIso}
-                  atStart={atStart}
-                  atEnd={atEnd}
-                  onPrev={goPrevMonth}
-                  onNext={goNextMonth}
-                  onSelect={handleStartSelect}
-                />
-              </div>
-            )}
-
-            {step === "end" && currentMonth && (
-              <div className={stackSm}>
-                <p className={muted}>
-                  Ende muss am gleichen oder späteren Tag liegen.
-                </p>
-                <MonthCalendar
-                  month={currentMonth}
-                  selected={draft.end}
-                  minDate={draft.start ?? todayIso}
-                  maxDate={maxIso}
-                  todayIso={todayIso}
-                  atStart={atStart}
-                  atEnd={atEnd}
-                  onPrev={goPrevMonth}
-                  onNext={goNextMonth}
-                  onSelect={handleEndSelect}
-                />
-                <div className={buttonRow}>
-                  <button
-                    type="button"
-                    className={buttonGhostSmall}
-                    onClick={() => setStep("start")}
-                  >
-                    Zurück
-                  </button>
-                  <button
-                    type="button"
-                    className={buttonPrimary}
-                    disabled={!draft.end || !draft.start}
-                    onClick={() => setStep("review")}
-                  >
-                    Weiter
-                  </button>
-                </div>
-              </div>
-            )}
-
-            {step === "review" && draft.start && draft.end && (
-              <div className={stackSm}>
-                <div className="space-y-2 rounded-xl border border-slate-200 bg-slate-50 p-3">
-                  <div className="flex flex-wrap items-center justify-between gap-2">
-                    <span className={availableChipClass}>{AVAILABLE_TAG}</span>
-                    <span className={muted}>{durationLabel}</span>
-                  </div>
-                  <div className="text-lg font-semibold text-slate-900">
-                    {formatRange(draft.start, draft.end)}
-                  </div>
-                  <div className={smallMuted}>
-                    Gruppe: {selectedGroup?.name ?? "Keine Gruppe"}
-                  </div>
-                  <p className={smallMuted}>Kurz prüfen und dann speichern.</p>
-                </div>
-                <div className={buttonRow}>
-                  <button
-                    type="button"
-                    className={buttonGhostSmall}
-                    onClick={() => setStep("end")}
-                  >
-                    Zurück
-                  </button>
-                  <button
-                    type="button"
-                    className={buttonPrimary}
-                    disabled={!canSave}
-                    onClick={handleSave}
-                  >
-                    {saving ? "Speichere..." : "Speichern"}
-                  </button>
-                </div>
-              </div>
-            )}
           </div>
         </div>
       )}

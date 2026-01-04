@@ -86,8 +86,6 @@ describe("GroupDetailPage availability summary", () => {
                     inviteLink: "",
                   },
                 ]}
-                groupsLoading={false}
-                groupsError={null}
               />
             }
           />
