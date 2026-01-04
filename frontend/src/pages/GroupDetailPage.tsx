@@ -5,6 +5,7 @@ import { apiPath } from "../lib/api";
 import { AvailabilityFlow } from "../components/AvailabilityFlow";
 import {
   buttonGhost,
+  buttonPrimary,
   cardMinimal,
   eyebrow,
   muted,
@@ -31,6 +32,10 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
   const navigate = useNavigate();
   const [groupName, setGroupName] = useState<string>("Gruppe");
   const [groupError, setGroupError] = useState<string | null>(null);
+  const [summaryExpanded, setSummaryExpanded] = useState(false);
+  const [expandedMembers, setExpandedMembers] = useState<
+    Record<string, boolean>
+  >({});
 
   const {
     data: summary,
@@ -93,6 +98,54 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
     return match ? [match] : [];
   }, [groupId, groups]);
 
+  const bestSummaryIndex = useMemo(() => {
+    if (summary.length === 0) return -1;
+
+    let bestIndex = 0;
+    for (let i = 1; i < summary.length; i += 1) {
+      const candidate = summary[i];
+      const currentBest = summary[bestIndex];
+      if (candidate.availableCount > currentBest.availableCount) {
+        bestIndex = i;
+        continue;
+      }
+
+      if (candidate.availableCount === currentBest.availableCount) {
+        const candidateStart = new Date(candidate.from).getTime();
+        const bestStart = new Date(currentBest.from).getTime();
+        if (candidateStart < bestStart) {
+          bestIndex = i;
+        }
+      }
+    }
+
+    return bestIndex;
+  }, [summary]);
+
+  const bestInterval = bestSummaryIndex >= 0 ? summary[bestSummaryIndex] : null;
+  const otherIntervals = useMemo(
+    () =>
+      bestSummaryIndex >= 0
+        ? summary.filter((_, idx) => idx !== bestSummaryIndex)
+        : [],
+    [bestSummaryIndex, summary]
+  );
+
+  const formatMemberName = (value: string) => {
+    const trimmed = (value || "").trim();
+    if (!trimmed) return "Unbekanntes Mitglied";
+    const emailLike = /^[^@]+@[^@]+\.[^@]+$/;
+    if (emailLike.test(trimmed)) {
+      const [namePart] = trimmed.split("@");
+      return namePart || trimmed;
+    }
+    return trimmed;
+  };
+
+  const toggleMember = (memberId: string) => {
+    setExpandedMembers((prev) => ({ ...prev, [memberId]: !prev[memberId] }));
+  };
+
   return (
     <div className={stack}>
       <section className={cardMinimal}>
@@ -111,98 +164,6 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
           >
             Zurück
           </button>
-        </div>
-      </section>
-
-      <section className={cardMinimal}>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className={eyebrow}>Mitglieder</p>
-            <h3 className="text-lg font-semibold text-slate-900">
-              Verfügbarkeiten
-            </h3>
-          </div>
-          {identity.kind !== "user" && <div className={pill}>Login nötig</div>}
-        </div>
-        <div className="mt-3 flex flex-col gap-3">
-          {membersLoading && <p className={muted}>Lade Mitglieder...</p>}
-          {membersError && <div className={pillDanger}>{membersError}</div>}
-          {!membersLoading &&
-            !membersError &&
-            memberAvailabilities.length === 0 && (
-              <p className={muted}>Noch keine Mitglieder gefunden.</p>
-            )}
-
-          {Array.isArray(memberAvailabilities) &&
-            memberAvailabilities.map((member) => (
-              <div
-                key={member.memberId}
-                className="rounded-lg border border-slate-200 bg-slate-50 p-3"
-              >
-                <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className={pillNeutral}>{member.displayName}</span>
-                    <span className={pill}>{member.role}</span>
-                  </div>
-                  {identity.kind === "user" &&
-                  member.userId === identity.userId ? (
-                    <span className={pillNeutral}>Du</span>
-                  ) : null}
-                </div>
-                <div className="mt-3 flex flex-col gap-2">
-                  {member.availabilities.length === 0 && (
-                    <p className={muted}>Keine Zeiträume hinterlegt.</p>
-                  )}
-                  {member.availabilities.length > 0 && (
-                    <ul className="flex flex-col gap-2">
-                      {member.availabilities.map((entry) => (
-                        <li
-                          key={entry.id}
-                          className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
-                        >
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className={pillNeutral}>Verfügbar</span>
-                            <span className="font-semibold text-slate-900">
-                              {dateFormatter.format(new Date(entry.startDate))}{" "}
-                              – {dateFormatter.format(new Date(entry.endDate))}
-                            </span>
-                          </div>
-                        </li>
-                      ))}
-                    </ul>
-                  )}
-                </div>
-              </div>
-            ))}
-        </div>
-      </section>
-      <section className={cardMinimal}>
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className={eyebrow}>Deine Angaben</p>
-            <h3 className="text-lg font-semibold text-slate-900">
-              Verfügbarkeiten
-            </h3>
-          </div>
-          <span className={pillNeutral}>
-            {identity.kind === "user" ? "Eingeloggt" : "Gast"}
-          </span>
-        </div>
-        <p className={`${muted} mt-2`}>
-          Nutzt den bestehenden Kalender-Dialog, um Zeiträume hinzuzufügen oder
-          zu löschen.
-        </p>
-        <div className="mt-4">
-          <AvailabilityFlow
-            groups={singleGroupList}
-            identity={identity}
-            fixedGroupId={groupId ?? null}
-            hideSavedList
-            onChange={() => {
-              void refetchSummary();
-              void refetchMembers();
-            }}
-          />
         </div>
       </section>
 
@@ -226,27 +187,175 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
           {!summaryLoading && !summaryError && summary.length === 0 && (
             <p className={muted}>Keine Überschneidungen vorhanden.</p>
           )}
-          {summary.length > 0 && (
-            <ul className="flex flex-col gap-2">
-              {summary.map((item, idx) => (
-                <li
-                  key={`${item.from}-${item.to}-${idx}`}
-                  className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+
+          {bestInterval && (
+            <div className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="font-semibold text-slate-900">
+                  {dateFormatter.format(new Date(bestInterval.from))} –{" "}
+                  {dateFormatter.format(new Date(bestInterval.to))}
+                </span>
+                <span className={pillNeutral}>Meiste Zusagen</span>
+                <span className={pillNeutral}>
+                  {bestInterval.availableCount} von {bestInterval.totalMembers}{" "}
+                  Mitgliedern verfügbar
+                </span>
+              </div>
+            </div>
+          )}
+
+          {otherIntervals.length > 0 && (
+            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+              <button
+                type="button"
+                className="flex w-full items-center justify-between gap-2 text-left"
+                onClick={() => setSummaryExpanded((open) => !open)}
+              >
+                <div className="flex flex-wrap items-center gap-2">
+                  <span className="font-semibold text-slate-900">
+                    Weitere Zeiträume
+                  </span>
+                  <span className={pillNeutral}>
+                    {otherIntervals.length} Einträge
+                  </span>
+                </div>
+                <span className="text-xs font-semibold text-slate-600">
+                  {summaryExpanded ? "Schließen" : "Anzeigen"}
+                </span>
+              </button>
+
+              {summaryExpanded && (
+                <ul className="mt-2 flex flex-col gap-2">
+                  {otherIntervals.map((item, idx) => (
+                    <li
+                      key={`${item.from}-${item.to}-${idx}`}
+                      className="rounded-md border border-slate-200 bg-white px-3 py-2"
+                    >
+                      <div className="flex flex-wrap items-center gap-2">
+                        <span className="font-semibold text-slate-900">
+                          {dateFormatter.format(new Date(item.from))} –{" "}
+                          {dateFormatter.format(new Date(item.to))}
+                        </span>
+                        <span className={pillNeutral}>
+                          {item.availableCount} von {item.totalMembers}{" "}
+                          Mitgliedern verfügbar
+                        </span>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+          )}
+        </div>
+      </section>
+
+      <section className={cardMinimal}>
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <p className={eyebrow}>Mitglieder</p>
+            <h3 className="text-lg font-semibold text-slate-900">
+              Verfügbarkeiten
+            </h3>
+          </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {identity.kind !== "user" && (
+              <div className={pill}>Login nötig</div>
+            )}
+            <AvailabilityFlow
+              groups={singleGroupList}
+              identity={identity}
+              fixedGroupId={groupId ?? null}
+              hideSavedList
+              embedded
+              renderTrigger={({ open, disabled }) => (
+                <button
+                  type="button"
+                  className={buttonPrimary}
+                  onClick={open}
+                  disabled={disabled}
+                >
+                  + Verfügbarkeit
+                </button>
+              )}
+              onChange={() => {
+                void refetchSummary();
+                void refetchMembers();
+              }}
+            />
+          </div>
+        </div>
+        <div className="mt-3 flex flex-col gap-3">
+          {membersLoading && <p className={muted}>Lade Mitglieder...</p>}
+          {membersError && <div className={pillDanger}>{membersError}</div>}
+          {!membersLoading &&
+            !membersError &&
+            memberAvailabilities.length === 0 && (
+              <p className={muted}>Noch keine Mitglieder gefunden.</p>
+            )}
+
+          {Array.isArray(memberAvailabilities) &&
+            memberAvailabilities.map((member) => (
+              <div
+                key={member.memberId}
+                className="rounded-lg border border-slate-200 bg-slate-50 p-3"
+              >
+                <button
+                  type="button"
+                  className="flex w-full flex-col gap-2 text-left sm:flex-row sm:items-center sm:justify-between"
+                  onClick={() => toggleMember(member.memberId)}
                 >
                   <div className="flex flex-wrap items-center gap-2">
-                    <span className="font-semibold text-slate-900">
-                      {dateFormatter.format(new Date(item.from))} –{" "}
-                      {dateFormatter.format(new Date(item.to))}
-                    </span>
                     <span className={pillNeutral}>
-                      {item.availableCount} von {item.totalMembers} Mitgliedern
-                      verfügbar
+                      {formatMemberName(member.displayName)}
                     </span>
+                    <span className={pill}>{member.role}</span>
+                    <span className={pillNeutral}>
+                      {member.availabilities.length} Zeitraum
+                      {member.availabilities.length === 1 ? "" : "e"}
+                    </span>
+                    {identity.kind === "user" &&
+                    member.userId === identity.userId ? (
+                      <span className={pillNeutral}>Du</span>
+                    ) : null}
                   </div>
-                </li>
-              ))}
-            </ul>
-          )}
+                  <span className="text-xs font-semibold text-slate-600">
+                    {expandedMembers[member.memberId]
+                      ? "Schließen"
+                      : "Anzeigen"}
+                  </span>
+                </button>
+
+                {expandedMembers[member.memberId] && (
+                  <div className="mt-3 flex flex-col gap-2">
+                    {member.availabilities.length === 0 && (
+                      <p className={muted}>Keine Zeiträume hinterlegt.</p>
+                    )}
+                    {member.availabilities.length > 0 && (
+                      <ul className="flex flex-col gap-2">
+                        {member.availabilities.map((entry) => (
+                          <li
+                            key={entry.id}
+                            className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm"
+                          >
+                            <div className="flex flex-wrap items-center gap-2">
+                              <span className={pillNeutral}>Verfügbar</span>
+                              <span className="font-semibold text-slate-900">
+                                {dateFormatter.format(
+                                  new Date(entry.startDate)
+                                )}{" "}
+                                –{" "}
+                                {dateFormatter.format(new Date(entry.endDate))}
+                              </span>
+                            </div>
+                          </li>
+                        ))}
+                      </ul>
+                    )}
+                  </div>
+                )}
+              </div>
+            ))}
         </div>
       </section>
     </div>

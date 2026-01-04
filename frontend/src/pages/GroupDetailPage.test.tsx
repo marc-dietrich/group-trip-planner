@@ -1,6 +1,7 @@
 import "@testing-library/jest-dom/vitest";
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 import { GroupDetailPage } from "./GroupDetailPage";
@@ -65,6 +66,8 @@ describe("GroupDetailPage availability summary", () => {
   });
 
   it("renders summary rows with counts", async () => {
+    const user = userEvent.setup();
+
     render(
       <MemoryRouter initialEntries={["/groups/123"]}>
         <Routes>
@@ -97,9 +100,16 @@ describe("GroupDetailPage availability summary", () => {
       expect(
         screen.getByText(/3 von 5 Mitgliedern verfügbar/)
       ).toBeInTheDocument();
-      expect(
-        screen.getByText(/2 von 5 Mitgliedern verfügbar/)
-      ).toBeInTheDocument();
     });
+
+    // Expand the collapsed list to reveal additional intervals
+    const expandButton = screen.getByRole("button", {
+      name: /Weitere Zeiträume/i,
+    });
+    await user.click(expandButton);
+
+    expect(
+      screen.getByText(/2 von 5 Mitgliedern verfügbar/)
+    ).toBeInTheDocument();
   });
 });
