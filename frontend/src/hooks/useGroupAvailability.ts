@@ -1,61 +1,38 @@
-import { useCallback, useEffect, useRef, useState } from "react";
-import { apiPath } from "../lib/api";
-import { buildIdentityHeaders } from "../lib/identity";
-import { ensureActorRemote } from "../lib/actor";
+import { useEffect } from "react";
 import { Identity } from "../types";
+import { useGroupStore } from "../state/groupStore";
 
-export type GroupAvailabilityInterval = {
-  from: string;
-  to: string;
-  availableCount: number;
-  totalMembers: number;
-};
+const POLL_INTERVAL_MS = 8_000;
 
 export function useGroupAvailability(groupId: string | null, identity: Identity) {
-  const [data, setData] = useState<GroupAvailabilityInterval[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const abortRef = useRef<AbortController | null>(null);
-
-  const fetchData = useCallback(async () => {
-    if (!groupId) {
-      setData([]);
-      setError(null);
-      return;
-    }
-
-    abortRef.current?.abort();
-    const controller = new AbortController();
-    abortRef.current = controller;
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      if (identity.kind === "actor") {
-        await ensureActorRemote(identity);
-      }
-      const res = await fetch(apiPath(`/api/groups/${groupId}/availability-summary`), {
-        headers: buildIdentityHeaders(identity),
-        signal: controller.signal,
-      });
-      if (!res.ok) throw new Error(`Fehler: ${res.status}`);
-      const body = (await res.json()) as GroupAvailabilityInterval[];
-      setData(body);
-    } catch (err) {
-      if (controller.signal.aborted) return;
-      setError(err instanceof Error ? err.message : "Laden fehlgeschlagen");
-    } finally {
-      if (!controller.signal.aborted) {
-        setLoading(false);
-      }
-    }
-  }, [groupId, identity]);
+  const summaryCache = useGroupStore((state) =>
+    groupId ? state.summaries[groupId] : undefined
+  );
+  const fetchGroupSummary = useGroupStore((state) => state.fetchGroupSummary);
 
   useEffect(() => {
-    void fetchData();
-    return () => abortRef.current?.abort();
-  }, [fetchData]);
+    if (!groupId) return;
+    const hasCache = Boolean(summaryCache?.data?.length);
+    void fetchGroupSummary(groupId, identity, { background: hasCache });
+  }, [fetchGroupSummary, groupId, identity, summaryCache?.data?.length]);
 
-  return { data, loading, error, refetch: fetchData };
+  useEffect(() => {
+    if (!groupId) return;
+    // Poll in the background to pick up changes from other users.
+    const timer = window.setInterval(() => {
+      void fetchGroupSummary(groupId, identity, {
+        force: true,
+        background: true,
+      });
+    }, POLL_INTERVAL_MS);
+
+    return () => window.clearInterval(timer);
+  }, [fetchGroupSummary, groupId, identity]);
+
+  return {
+    data: summaryCache?.data ?? [],
+    loading: summaryCache?.loading ?? false,
+    error: summaryCache?.error ?? null,
+    refetch: () => (groupId ? fetchGroupSummary(groupId, identity, { force: true }) : Promise.resolve()),
+  };
 }

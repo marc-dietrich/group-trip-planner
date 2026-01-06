@@ -3,6 +3,19 @@ export type HealthCheck = {
   message: string;
 };
 
+export type Actor = {
+  actorId: string;
+  displayName: string;
+  userId?: string | null;
+};
+
+export type Group = {
+  groupId: string;
+  name: string;
+  inviteLink: string;
+  role?: string;
+};
+
 export type GroupCreateResult = {
   groupId: string;
   name: string;
@@ -42,4 +55,21 @@ export type AvailabilityEntry = {
   endDate: string;
   actorId?: string;
   userId?: string | null;
+  displayName?: string;
+};
+
+export type MemberAvailability = {
+  memberId: string;
+  actorId: string;
+  userId: string | null;
+  displayName: string;
+  role: string;
+  availabilities: AvailabilityEntry[];
+};
+
+export type GroupAvailabilityInterval = {
+  from: string;
+  to: string;
+  availableCount: number;
+  totalMembers: number;
 };
