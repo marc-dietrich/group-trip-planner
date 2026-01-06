@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
-import type { Mock } from "vitest";
+import type { Mock, SpyInstance } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { act } from "react";
 import userEvent from "@testing-library/user-event";
@@ -50,7 +50,8 @@ function mockResponse(body: unknown, status = 200) {
 
 describe("GroupDetailPage availability summary", () => {
   let fetchMock: Mock<[string, RequestInit?], Promise<Response>>;
-  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+  let consoleErrorSpy: SpyInstance;
+  const originalError = console.error;
 
   const renderPage = async () => {
     await act(async () => {
@@ -92,19 +93,13 @@ describe("GroupDetailPage availability summary", () => {
   };
 
   beforeEach(() => {
-    consoleErrorSpy = vi
-      .spyOn(console, "error")
-      .mockImplementation((...args) => {
-        const [first] = args;
-        if (typeof first === "string" && first.includes("not wrapped in act")) {
-          return;
-        }
-        // @ts-expect-error allow passthrough for other errors
-        return (
-          console.error.original?.call(console, ...args) ??
-          console.warn(...args)
-        );
-      });
+    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation((...args) => {
+      const [first] = args;
+      if (typeof first === "string" && first.includes("not wrapped in act")) {
+        return;
+      }
+      return originalError(...args);
+    });
 
     fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
       if (init?.method === "DELETE" && url.includes("/api/availabilities/")) {

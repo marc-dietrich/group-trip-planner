@@ -13,6 +13,7 @@ const groups: GroupMembership[] = [
 
 const identity: Identity = {
   kind: "user",
+  actorId: "sandbox-actor",
   userId: "sandbox-user",
   displayName: "Sandbox",
   accessToken: "sandbox-token",

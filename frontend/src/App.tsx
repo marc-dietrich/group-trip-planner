@@ -535,7 +535,6 @@ function AppShell() {
               onCreate={() => setCreateOpen(true)}
               onDelete={handleDeleteGroup}
               onCopyInvite={handleCopyInvite}
-              onRequireLogin={() => setAuthPanelOpen(true)}
             />
           }
         />

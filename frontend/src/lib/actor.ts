@@ -47,11 +47,9 @@ async function upsertActorRemote(actor: LocalActor) {
 }
 
 export async function ensureActorRemote(identityOrActor: Identity | LocalActor) {
-  const actorId = "actorId" in identityOrActor ? identityOrActor.actorId : identityOrActor.actorId;
+  const actorId = (identityOrActor as LocalActor).actorId || (identityOrActor as Identity).actorId;
   const displayName =
-    "displayName" in identityOrActor && identityOrActor.displayName
-      ? identityOrActor.displayName
-      : DEFAULT_ACTOR_NAME;
+    (identityOrActor as { displayName?: string }).displayName?.trim() || DEFAULT_ACTOR_NAME;
 
   if (!actorId) return;
 

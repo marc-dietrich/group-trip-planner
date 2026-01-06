@@ -26,7 +26,6 @@ type GroupsPageProps = {
   onCreate: () => void;
   onDelete: (groupId: string) => void;
   onCopyInvite: (group: GroupMembership) => void;
-  onRequireLogin: () => void;
 };
 
 export function GroupsPage({
@@ -38,7 +37,6 @@ export function GroupsPage({
   onCreate,
   onDelete,
   onCopyInvite,
-  onRequireLogin,
 }: GroupsPageProps) {
   const navigate = useNavigate();
 
