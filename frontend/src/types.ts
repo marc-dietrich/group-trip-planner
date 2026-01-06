@@ -33,11 +33,13 @@ export type JoinGroupResponse = {
 
 export type Identity =
   | { kind: "actor"; actorId: string; displayName: string }
-  | { kind: "user"; userId: string; displayName: string; accessToken: string };
+  | { kind: "user"; actorId: string; userId: string; displayName: string; accessToken: string };
 
 export type AvailabilityEntry = {
   id: string;
   groupId: string;
   startDate: string;
   endDate: string;
+  actorId?: string;
+  userId?: string | null;
 };

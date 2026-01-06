@@ -77,7 +77,8 @@ async def test_auth_required_for_protected_availability(client, user_identity):
         start="2025-01-01",
         end="2025-01-02",
     )
-    assert res.status_code == 401
+    assert res.status_code == 400
+    assert res.json()["detail"] == "actorId header required"
 
 
 async def test_group_lists_for_owner(client, user_identity):

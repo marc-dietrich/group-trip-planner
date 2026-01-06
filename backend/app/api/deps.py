@@ -11,8 +11,10 @@ from app.user_core.repositories import (
     SQLModelIdentityRepository,
     AvailabilityRepository,
     SQLModelAvailabilityRepository,
+    ActorRepository,
+    SQLModelActorRepository,
 )
-from app.user_core.services import AuthService, GroupService, AvailabilityService
+from app.user_core.services import AuthService, GroupService, AvailabilityService, ActorService
 
 
 async def get_group_repository(session: AsyncSession = Depends(get_session)) -> GroupRepository:
@@ -25,6 +27,14 @@ async def get_identity_repository(session: AsyncSession = Depends(get_session)) 
 
 async def get_group_service(repo: GroupRepository = Depends(get_group_repository)) -> GroupService:
     return GroupService(repo)
+
+
+async def get_actor_repository(session: AsyncSession = Depends(get_session)) -> ActorRepository:
+    return SQLModelActorRepository(session)
+
+
+async def get_actor_service(repo: ActorRepository = Depends(get_actor_repository)) -> ActorService:
+    return ActorService(repo)
 
 
 async def get_auth_service(

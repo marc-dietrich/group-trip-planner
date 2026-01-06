@@ -2,6 +2,7 @@ import "@testing-library/jest-dom/vitest";
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import type { Mock } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
+import { act } from "react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
@@ -15,6 +16,7 @@ const summaryResponse = [
 const memberAvailabilityResponse = [
   {
     memberId: "m1",
+    actorId: "actor-1",
     userId: "u1",
     displayName: "You",
     role: "owner",
@@ -29,6 +31,7 @@ const memberAvailabilityResponse = [
   },
   {
     memberId: "m2",
+    actorId: "actor-2",
     userId: "u2",
     displayName: "Alex",
     role: "member",
@@ -47,8 +50,62 @@ function mockResponse(body: unknown, status = 200) {
 
 describe("GroupDetailPage availability summary", () => {
   let fetchMock: Mock<[string, RequestInit?], Promise<Response>>;
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
+
+  const renderPage = async () => {
+    await act(async () => {
+      render(
+        <MemoryRouter
+          initialEntries={["/groups/123"]}
+          future={{ v7_startTransition: true, v7_relativeSplatPath: true }}
+        >
+          <Routes>
+            <Route
+              path="/groups/:groupId"
+              element={
+                <GroupDetailPage
+                  identity={{
+                    kind: "user",
+                    actorId: "actor-1",
+                    userId: "u1",
+                    displayName: "You",
+                    accessToken: "token",
+                  }}
+                  groups={[
+                    {
+                      groupId: "123",
+                      name: "Sommertrip",
+                      role: "owner",
+                      inviteLink: "",
+                    },
+                  ]}
+                />
+              }
+            />
+          </Routes>
+        </MemoryRouter>
+      );
+    });
+
+    // Ensure async effects settle to avoid act warnings
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
+  };
 
   beforeEach(() => {
+    consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation((...args) => {
+        const [first] = args;
+        if (typeof first === "string" && first.includes("not wrapped in act")) {
+          return;
+        }
+        // @ts-expect-error allow passthrough for other errors
+        return (
+          console.error.original?.call(console, ...args) ??
+          console.warn(...args)
+        );
+      });
+
     fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
       if (init?.method === "DELETE" && url.includes("/api/availabilities/")) {
         return mockResponse({}, 204);
@@ -68,39 +125,14 @@ describe("GroupDetailPage availability summary", () => {
   });
 
   afterEach(() => {
+    consoleErrorSpy.mockRestore();
     vi.restoreAllMocks();
   });
 
   it("renders summary rows with counts", async () => {
     const user = userEvent.setup();
 
-    render(
-      <MemoryRouter initialEntries={["/groups/123"]}>
-        <Routes>
-          <Route
-            path="/groups/:groupId"
-            element={
-              <GroupDetailPage
-                identity={{
-                  kind: "user",
-                  userId: "u1",
-                  displayName: "You",
-                  accessToken: "token",
-                }}
-                groups={[
-                  {
-                    groupId: "123",
-                    name: "Sommertrip",
-                    role: "owner",
-                    inviteLink: "",
-                  },
-                ]}
-              />
-            }
-          />
-        </Routes>
-      </MemoryRouter>
-    );
+    await renderPage();
 
     await waitFor(() => {
       expect(
@@ -122,33 +154,7 @@ describe("GroupDetailPage availability summary", () => {
   it("allows deleting own availability from detail modal", async () => {
     const user = userEvent.setup();
 
-    render(
-      <MemoryRouter initialEntries={["/groups/123"]}>
-        <Routes>
-          <Route
-            path="/groups/:groupId"
-            element={
-              <GroupDetailPage
-                identity={{
-                  kind: "user",
-                  userId: "u1",
-                  displayName: "You",
-                  accessToken: "token",
-                }}
-                groups={[
-                  {
-                    groupId: "123",
-                    name: "Sommertrip",
-                    role: "owner",
-                    inviteLink: "",
-                  },
-                ]}
-              />
-            }
-          />
-        </Routes>
-      </MemoryRouter>
-    );
+    await renderPage();
 
     // Expand member card
     const memberButton = await screen.findByRole("button", { name: /You/i });

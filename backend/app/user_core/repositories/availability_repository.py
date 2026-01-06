@@ -17,13 +17,14 @@ class AvailabilityRepository(Protocol):
         self,
         *,
         group_id: UUID,
-        user_id: UUID,
+        actor_id: str,
+        user_id: UUID | None,
         start_date: date,
         end_date: date,
     ) -> Availability:
         ...
 
-    async def list_for_user_in_group(self, *, user_id: UUID, group_id: UUID) -> List[Availability]:
+    async def list_for_actor_in_group(self, *, actor_id: str, group_id: UUID) -> List[Availability]:
         ...
 
     async def list_for_group(self, *, group_id: UUID) -> List[Availability]:
@@ -32,7 +33,7 @@ class AvailabilityRepository(Protocol):
     async def get_by_id(self, availability_id: UUID) -> Availability | None:
         ...
 
-    async def delete_for_user(self, *, availability_id: UUID, user_id: UUID) -> bool:
+    async def delete_for_actor(self, *, availability_id: UUID, actor_id: str) -> bool:
         ...
 
     async def commit(self) -> None:
@@ -49,13 +50,15 @@ class SQLModelAvailabilityRepository(AvailabilityRepository):
         self,
         *,
         group_id: UUID,
-        user_id: UUID,
+        actor_id: str,
+        user_id: UUID | None,
         start_date: date,
         end_date: date,
     ) -> Availability:
         record = Availability(
                         id=uuid4(),  # stable id even before flush for consistent tests
                         group_id=group_id,
+                        actor_id=actor_id,
                         user_id=user_id,
                         start_date=start_date,
                         end_date=end_date,
@@ -66,10 +69,10 @@ class SQLModelAvailabilityRepository(AvailabilityRepository):
         await self.session.refresh(record)
         return record
 
-    async def list_for_user_in_group(self, *, user_id: UUID, group_id: UUID) -> List[Availability]:
+    async def list_for_actor_in_group(self, *, actor_id: str, group_id: UUID) -> List[Availability]:
         stmt = select(Availability).where(
             Availability.group_id == group_id,
-            Availability.user_id == user_id,
+            Availability.actor_id == actor_id,
         )
         result = await self.session.execute(stmt)
         return list(result.scalars().all())
@@ -82,9 +85,9 @@ class SQLModelAvailabilityRepository(AvailabilityRepository):
     async def get_by_id(self, availability_id: UUID) -> Availability | None:
         return await self.session.get(Availability, availability_id)
 
-    async def delete_for_user(self, *, availability_id: UUID, user_id: UUID) -> bool:
+    async def delete_for_actor(self, *, availability_id: UUID, actor_id: str) -> bool:
         record = await self.session.get(Availability, availability_id)
-        if not record or record.user_id != user_id:
+        if not record or record.actor_id != actor_id:
             return False
         await self.session.delete(record)
         await self.session.flush()
@@ -104,13 +107,15 @@ class InMemoryAvailabilityRepository(AvailabilityRepository):
         self,
         *,
         group_id: UUID,
-        user_id: UUID,
+        actor_id: str,
+        user_id: UUID | None,
         start_date: date,
         end_date: date,
     ) -> Availability:
         record = Availability(
             id=uuid4(),
             group_id=group_id,
+            actor_id=actor_id,
             user_id=user_id,
             start_date=start_date,
             end_date=end_date,
@@ -119,8 +124,8 @@ class InMemoryAvailabilityRepository(AvailabilityRepository):
         self._rows.append(record)
         return record
 
-    async def list_for_user_in_group(self, *, user_id: UUID, group_id: UUID) -> List[Availability]:
-        return [r for r in self._rows if r.group_id == group_id and r.user_id == user_id]
+    async def list_for_actor_in_group(self, *, actor_id: str, group_id: UUID) -> List[Availability]:
+        return [r for r in self._rows if r.group_id == group_id and r.actor_id == actor_id]
 
     async def list_for_group(self, *, group_id: UUID) -> List[Availability]:
         return [r for r in self._rows if r.group_id == group_id]
@@ -128,9 +133,9 @@ class InMemoryAvailabilityRepository(AvailabilityRepository):
     async def get_by_id(self, availability_id: UUID) -> Availability | None:
         return next((r for r in self._rows if r.id == availability_id), None)
 
-    async def delete_for_user(self, *, availability_id: UUID, user_id: UUID) -> bool:
+    async def delete_for_actor(self, *, availability_id: UUID, actor_id: str) -> bool:
         before = len(self._rows)
-        self._rows = [r for r in self._rows if not (r.id == availability_id and r.user_id == user_id)]
+        self._rows = [r for r in self._rows if not (r.id == availability_id and r.actor_id == actor_id)]
         return len(self._rows) != before
 
     async def commit(self) -> None:  # pragma: no cover - nothing to do

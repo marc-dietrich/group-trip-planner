@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { useNavigate, useParams } from "react-router-dom";
 import { GroupMembership, Identity } from "../types";
+import { buildIdentityHeaders } from "../lib/identity";
 import { apiPath } from "../lib/api";
 import { AvailabilityFlow } from "../components/AvailabilityFlow";
 import {
@@ -61,20 +62,14 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
     loading: summaryLoading,
     error: summaryError,
     refetch: refetchSummary,
-  } = useGroupAvailability(
-    groupId ?? null,
-    identity.kind === "user" ? identity.accessToken : null
-  );
+  } = useGroupAvailability(groupId ?? null, identity);
 
   const {
     data: memberAvailabilities,
     loading: membersLoading,
     error: membersError,
     refetch: refetchMembers,
-  } = useGroupMemberAvailabilities(
-    groupId ?? null,
-    identity.kind === "user" ? identity.accessToken : null
-  );
+  } = useGroupMemberAvailabilities(groupId ?? null, identity);
 
   useEffect(() => {
     const fallback = groups.find((g) => g.groupId === groupId);
@@ -88,7 +83,9 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
     let cancelled = false;
     const load = async () => {
       try {
-        const res = await fetch(apiPath(`/api/groups/${groupId}`));
+        const res = await fetch(apiPath(`/api/groups/${groupId}`), {
+          headers: buildIdentityHeaders(identity),
+        });
         if (!res.ok) throw new Error(`Fehler: ${res.status}`);
         const data = await res.json();
         if (!cancelled) {
@@ -109,7 +106,7 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
     return () => {
       cancelled = true;
     };
-  }, [groupId, groups]);
+  }, [groupId, groups, identity]);
 
   const singleGroupList = useMemo(() => {
     if (!groupId) return [] as GroupMembership[];
@@ -183,14 +180,13 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
   };
 
   const handleDeleteAvailability = async (availabilityId: string) => {
-    if (identity.kind !== "user") return;
     setMemberDeleteError(null);
     try {
       const res = await fetch(
         apiPath(`/api/availabilities/${availabilityId}`),
         {
           method: "DELETE",
-          headers: { Authorization: `Bearer ${identity.accessToken}` },
+          headers: buildIdentityHeaders(identity),
         }
       );
       if (!res.ok) throw new Error(`Fehler: ${res.status}`);
@@ -318,9 +314,6 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
             </h3>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            {identity.kind !== "user" && (
-              <div className={pill}>Login nötig</div>
-            )}
             <AvailabilityFlow
               groups={singleGroupList}
               identity={identity}
@@ -376,8 +369,7 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
                       {member.availabilities.length} Zeitraum
                       {member.availabilities.length === 1 ? "" : "e"}
                     </span>
-                    {identity.kind === "user" &&
-                    member.userId === identity.userId ? (
+                    {identity.actorId === member.actorId ? (
                       <span className={pillNeutral}>Du</span>
                     ) : null}
                   </div>
@@ -405,8 +397,7 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
                               openEntry(
                                 entry,
                                 formatMemberName(member.displayName),
-                                identity.kind === "user" &&
-                                  member.userId === identity.userId
+                                identity.actorId === member.actorId
                               )
                             }
                             onKeyDown={(e) => {
@@ -415,8 +406,7 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
                                 openEntry(
                                   entry,
                                   formatMemberName(member.displayName),
-                                  identity.kind === "user" &&
-                                    member.userId === identity.userId
+                                  identity.actorId === member.actorId
                                 );
                               }
                             }}
@@ -473,7 +463,7 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
             <hr className="my-3 border-slate-200" />
 
             <div className="flex justify-end gap-2">
-              {activeEntry.isSelf && identity.kind === "user" && (
+              {activeEntry.isSelf && (
                 <button
                   type="button"
                   className={buttonGhostDanger}

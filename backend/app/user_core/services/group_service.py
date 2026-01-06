@@ -134,8 +134,9 @@ class GroupService:
     async def join_group(
         self,
         group_id: UUID,
-        user_id: UUID,
+        actor_id: str,
         display_name: str,
+        user_id: UUID | None = None,
         invite_ttl_days: int = 7,
     ) -> Tuple[Group, GroupMember, bool, GroupInvite]:
         """Join a group by creating a membership when missing.
@@ -145,12 +146,13 @@ class GroupService:
 
         group, invite = await self.get_invite_preview(token=str(group_id), ttl_days=invite_ttl_days)
 
-        existing = await self.repo.get_member_by_user(group_id=group.id, user_id=user_id)
+        existing = await self.repo.get_member_by_actor(group_id=group.id, actor_id=actor_id)
         if existing:
             return group, existing, False, invite
 
         member = await self.repo.add_member_to_group(
             group_id=group.id,
+            actor_id=actor_id,
             user_id=user_id,
             display_name=display_name,
             role="member",

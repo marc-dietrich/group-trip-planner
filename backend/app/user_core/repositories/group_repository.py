@@ -45,13 +45,14 @@ class GroupRepository(Protocol):
     async def claim_memberships_for_user(self, actor_id: str, user_id: UUID) -> int:
         ...
 
-    async def get_member_by_user(self, group_id: UUID, user_id: UUID) -> Optional[GroupMember]:
+    async def get_member_by_actor(self, group_id: UUID, actor_id: str) -> Optional[GroupMember]:
         ...
 
     async def add_member_to_group(
         self,
         group_id: UUID,
-        user_id: UUID,
+        actor_id: str,
+        user_id: Optional[UUID],
         display_name: str,
         role: str = "member",
     ) -> GroupMember:
@@ -83,9 +84,8 @@ class SQLModelGroupRepository(GroupRepository):
         display_name: str,
         user_id: Optional[UUID] = None,
     ) -> tuple[Group, GroupMember]:
-        user_actor_id = str(user_id) if user_id else ""
-        creator_actor_id = actor_id or user_actor_id
-        member_actor_id = actor_id or user_actor_id
+        creator_actor_id = actor_id or (str(user_id) if user_id else "")
+        member_actor_id = actor_id or (str(user_id) if user_id else "")
 
         if user_id:
             existing_user = await self.session.get(User, user_id)
@@ -134,7 +134,7 @@ class SQLModelGroupRepository(GroupRepository):
     async def get_groups_for_identity(
         self,
         actor_id: Optional[str] = None,
-        user_id: Optional[str] = None,
+        user_id: Optional[UUID] = None,
     ) -> List[Tuple[Group, GroupMember]]:
         conditions = []
         if actor_id:
@@ -154,10 +154,10 @@ class SQLModelGroupRepository(GroupRepository):
         result = await self.session.execute(stmt)
         return result.rowcount or 0
 
-    async def get_member_by_user(self, group_id: UUID, user_id: UUID) -> Optional[GroupMember]:
+    async def get_member_by_actor(self, group_id: UUID, actor_id: str) -> Optional[GroupMember]:
         stmt = select(GroupMember).where(
             GroupMember.group_id == group_id,
-            GroupMember.user_id == user_id,
+            GroupMember.actor_id == actor_id,
         )
         result = await self.session.execute(stmt)
         return result.scalars().first()
@@ -165,21 +165,23 @@ class SQLModelGroupRepository(GroupRepository):
     async def add_member_to_group(
         self,
         group_id: UUID,
-        user_id: UUID,
+        actor_id: str,
+        user_id: Optional[UUID],
         display_name: str,
         role: str = "member",
     ) -> GroupMember:
         # Ensure a user row exists for the FK constraint; reuse display_name if available.
-        user = await self.session.get(User, user_id)
-        if not user:
-            user = User(id=user_id, display_name=display_name, email=None)
-            self.session.add(user)
-            await self.session.flush()
+        if user_id:
+            user = await self.session.get(User, user_id)
+            if not user:
+                user = User(id=user_id, display_name=display_name, email=None)
+                self.session.add(user)
+                await self.session.flush()
 
         member = GroupMember(
             group_id=group_id,
             user_id=user_id,
-            actor_id=str(user_id),
+            actor_id=actor_id,
             display_name=display_name,
             role=role,
         )
@@ -268,7 +270,7 @@ class InMemoryGroupRepository(GroupRepository):
     async def get_groups_for_identity(
         self,
         actor_id: Optional[str] = None,
-        user_id: Optional[str] = None,
+        user_id: Optional[UUID] = None,
     ) -> List[Tuple[Group, GroupMember]]:
         rows: list[tuple[Group, GroupMember]] = []
         for member in self.members.values():
@@ -291,16 +293,17 @@ class InMemoryGroupRepository(GroupRepository):
                 updated += 1
         return updated
 
-    async def get_member_by_user(self, group_id: UUID, user_id: UUID) -> Optional[GroupMember]:
+    async def get_member_by_actor(self, group_id: UUID, actor_id: str) -> Optional[GroupMember]:
         for member in self.members.values():
-            if member.group_id == group_id and member.user_id and str(member.user_id) == str(user_id):
+            if member.group_id == group_id and member.actor_id == actor_id:
                 return member
         return None
 
     async def add_member_to_group(
         self,
         group_id: UUID,
-        user_id: UUID,
+        actor_id: str,
+        user_id: Optional[UUID],
         display_name: str,
         role: str = "member",
     ) -> GroupMember:
@@ -309,7 +312,7 @@ class InMemoryGroupRepository(GroupRepository):
         member = GroupMember(
             id=uuid4(),
             group_id=group_id,
-            actor_id=str(user_id),
+            actor_id=actor_id,
             user_id=user_id,
             display_name=display_name,
             role=role,
