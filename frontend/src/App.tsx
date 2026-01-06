@@ -186,8 +186,12 @@ function AppShell() {
     };
   }, [actor.actorId, actor.displayName, session]);
 
-  const { groups, groupsLoading, groupsError, refetch: refetchGroups } =
-    useGroups(identity);
+  const {
+    groups,
+    groupsLoading,
+    groupsError,
+    refetch: refetchGroups,
+  } = useGroups(identity);
   const upsertGroup = useGroupStore((state) => state.upsertGroup);
   const removeGroup = useGroupStore((state) => state.removeGroup);
 

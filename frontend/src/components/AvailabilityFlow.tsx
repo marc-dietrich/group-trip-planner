@@ -272,7 +272,9 @@ export function AvailabilityFlow({
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [monthIndex, setMonthIndex] = useState(0);
 
-  const optimisticAdd = useGroupStore((state) => state.optimisticAddAvailability);
+  const optimisticAdd = useGroupStore(
+    (state) => state.optimisticAddAvailability
+  );
   const optimisticDelete = useGroupStore(
     (state) => state.optimisticDeleteAvailability
   );
@@ -663,18 +665,25 @@ export function AvailabilityFlow({
                   >
                     <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
                       <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                        <span className={availableChipClass}>{AVAILABLE_TAG}</span>
+                        <span className={availableChipClass}>
+                          {AVAILABLE_TAG}
+                        </span>
                         <span className="font-semibold text-slate-900">
                           {formatRange(range.startDate, range.endDate)}
                         </span>
                         <span className={muted}>
-                          {dayDiffInclusive(range.startDate, range.endDate)} Tage
+                          {dayDiffInclusive(range.startDate, range.endDate)}{" "}
+                          Tage
                         </span>
                         {showGroupName && (
-                          <span className={smallMuted}>Gruppe: {selectedGroupName}</span>
+                          <span className={smallMuted}>
+                            Gruppe: {selectedGroupName}
+                          </span>
                         )}
                       </div>
-                      <div className={`${buttonRow} justify-start sm:justify-end`}>
+                      <div
+                        className={`${buttonRow} justify-start sm:justify-end`}
+                      >
                         <button
                           type="button"
                           className={`${buttonGhostTiny} ${buttonGhostDanger}`}
@@ -702,7 +711,9 @@ export function AvailabilityFlow({
                   ? "Einklappen"
                   : `Alle anzeigen (+${orderedRanges.length - 2})`}
               </span>
-              <span className={`text-lg transition ${listOpen ? "rotate-180" : ""}`}>
+              <span
+                className={`text-lg transition ${listOpen ? "rotate-180" : ""}`}
+              >
                 ⌄
               </span>
             </button>
