@@ -18,7 +18,8 @@ class AvailabilityService:
     async def add_availability(
         self,
         *,
-        user_id: UUID,
+        actor_id: str,
+        user_id: UUID | None,
         group_id: UUID,
         start_date: date,
         end_date: date,
@@ -31,12 +32,23 @@ class AvailabilityService:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found")
 
         members = await self.group_repo.get_group_members(group_id)
-        is_member = any(m.user_id and str(m.user_id) == str(user_id) for m in members)
-        if not is_member:
+        matched_member = next(
+            (
+                m
+                for m in members
+                if m.actor_id == actor_id or (user_id and m.user_id and str(m.user_id) == str(user_id))
+            ),
+            None,
+        )
+
+        if not matched_member:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a member of this group")
+
+        actor_for_record = matched_member.actor_id
 
         record = await self.availability_repo.create_availability(
             group_id=group_id,
+            actor_id=actor_for_record,
             user_id=user_id,
             start_date=start_date,
             end_date=end_date,
@@ -44,18 +56,24 @@ class AvailabilityService:
         await self.availability_repo.commit()
         return record
 
-    async def list_for_user(self, *, user_id: UUID, group_id: UUID):
+    async def list_for_user(self, *, actor_id: str, group_id: UUID):
         members = await self.group_repo.get_group_members(group_id)
-        is_member = any(m.user_id and str(m.user_id) == str(user_id) for m in members)
-        if not is_member:
+        matched_member = next(
+            (m for m in members if m.actor_id == actor_id or (m.user_id and str(m.user_id) == actor_id)),
+            None,
+        )
+        if not matched_member:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a member of this group")
-        return await self.availability_repo.list_for_user_in_group(user_id=user_id, group_id=group_id)
+        return await self.availability_repo.list_for_actor_in_group(actor_id=matched_member.actor_id, group_id=group_id)
 
-    async def list_group_member_availabilities(self, *, group_id: UUID, user_id: UUID):
+    async def list_group_member_availabilities(self, *, group_id: UUID, actor_id: str):
         """Return all members with their availabilities (may be empty per member)."""
 
         members = await self.group_repo.get_group_members(group_id)
-        is_member = any(m.user_id and str(m.user_id) == str(user_id) for m in members)
+        is_member = any(
+            m.actor_id == actor_id or (m.user_id and str(m.user_id) == actor_id)
+            for m in members
+        )
         if not is_member:
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a member of this group")
 
@@ -71,6 +89,7 @@ class AvailabilityService:
             results.append(
                 {
                     "memberId": member.id,
+                    "actorId": member.actor_id,
                     "userId": member.user_id,
                     "displayName": member.display_name,
                     "role": member.role,
@@ -80,7 +99,7 @@ class AvailabilityService:
 
         return results
 
-    async def calculate_group_availability(self, *, group_id: UUID, user_id: UUID | None = None):
+    async def calculate_group_availability(self, *, group_id: UUID, actor_id: str | None = None):
         """Compute overlapping availability intervals for a group (inclusive dates).
 
         Uses a simple sweep-line to emit contiguous ranges where at least one member is available,
@@ -88,8 +107,8 @@ class AvailabilityService:
         """
 
         members = await self.group_repo.get_group_members(group_id)
-        if user_id:
-            is_member = any(m.user_id and str(m.user_id) == str(user_id) for m in members)
+        if actor_id:
+            is_member = any(m.actor_id == actor_id or (m.user_id and str(m.user_id) == actor_id) for m in members)
             if not is_member:
                 raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a member of this group")
 
@@ -100,9 +119,9 @@ class AvailabilityService:
             return []
 
         # Merge per-user ranges first to avoid double-counting a member with overlapping intervals.
-        by_user: dict[UUID, list[tuple[date, date]]] = {}
+        by_user: dict[str, list[tuple[date, date]]] = {}
         for record in records:
-            by_user.setdefault(record.user_id, []).append((record.start_date, record.end_date))
+            by_user.setdefault(record.actor_id, []).append((record.start_date, record.end_date))
 
         def merge_ranges(ranges: list[tuple[date, date]]) -> list[tuple[int, int]]:
             merged: list[tuple[int, int]] = []
@@ -159,14 +178,17 @@ class AvailabilityService:
 
         return merged
 
-    async def delete_availability(self, *, availability_id: UUID, user_id: UUID) -> None:
+    async def delete_availability(self, *, availability_id: UUID, actor_id: str, user_id: UUID | None = None) -> None:
         record = await self.availability_repo.get_by_id(availability_id)
         if not record:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Availability not found")
-        if str(record.user_id) != str(user_id):
+        if record.actor_id != actor_id and not (user_id and record.user_id and str(record.user_id) == str(user_id)):
             raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not allowed")
 
-        deleted = await self.availability_repo.delete_for_user(availability_id=availability_id, user_id=user_id)
+        target_actor = actor_id if record.actor_id == actor_id else record.actor_id
+        deleted = await self.availability_repo.delete_for_actor(
+            availability_id=availability_id, actor_id=target_actor
+        )
         if not deleted:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Availability not found")
         await self.availability_repo.commit()

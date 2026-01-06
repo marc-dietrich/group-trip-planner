@@ -1,16 +1,20 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { AvailabilityEntry } from "../types";
 import { apiPath } from "../lib/api";
+import { buildIdentityHeaders } from "../lib/identity";
+import { ensureActorRemote } from "../lib/actor";
+import { Identity } from "../types";
 
 export type MemberAvailability = {
   memberId: string;
+  actorId: string;
   userId: string | null;
   displayName: string;
   role: string;
   availabilities: AvailabilityEntry[];
 };
 
-export function useGroupMemberAvailabilities(groupId: string | null, accessToken?: string | null) {
+export function useGroupMemberAvailabilities(groupId: string | null, identity: Identity) {
   const [data, setData] = useState<MemberAvailability[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -31,8 +35,11 @@ export function useGroupMemberAvailabilities(groupId: string | null, accessToken
     setError(null);
 
     try {
+      if (identity.kind === "actor") {
+        await ensureActorRemote(identity);
+      }
       const res = await fetch(apiPath(`/api/groups/${groupId}/member-availabilities`), {
-        headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : undefined,
+        headers: buildIdentityHeaders(identity),
         signal: controller.signal,
       });
       if (!res.ok) throw new Error(`Fehler: ${res.status}`);
@@ -44,7 +51,7 @@ export function useGroupMemberAvailabilities(groupId: string | null, accessToken
     } finally {
       if (!controller.signal.aborted) setLoading(false);
     }
-  }, [groupId, accessToken]);
+  }, [groupId, identity]);
 
   useEffect(() => {
     void fetchData();

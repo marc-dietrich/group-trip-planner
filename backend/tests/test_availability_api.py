@@ -11,7 +11,7 @@ from app.api.deps import (
     get_availability_service,
     get_group_service,
 )
-from app.core.security import Identity, require_authenticated_identity
+from app.core.security import Identity, get_identity
 from app.main import app
 from app.user_core.repositories import (
     InMemoryAvailabilityRepository,
@@ -39,7 +39,7 @@ async def overrides(fake_group_repo, fake_availability_repo):
     app.dependency_overrides[get_availability_service] = lambda: AvailabilityService(
         fake_availability_repo, fake_group_repo
     )
-    app.dependency_overrides[require_authenticated_identity] = lambda: Identity(user_id=USER_ID)
+    app.dependency_overrides[get_identity] = lambda: Identity(user_id=USER_ID)
     yield
     app.dependency_overrides.clear()
 
@@ -51,7 +51,7 @@ async def test_add_and_list_availability(fake_group_repo):
         group_name="Test Trip",
         actor_id=None,
         display_name="Tester",
-        user_id=USER_ID,
+        user_id=UUID(USER_ID),
     )
 
     transport = ASGITransport(app=app)
@@ -94,23 +94,30 @@ async def test_availability_summary_endpoint(fake_group_repo, fake_availability_
         group_name="Summary Trip",
         actor_id=None,
         display_name="Owner",
-        user_id=USER_ID,
+        user_id=UUID(USER_ID),
     )
 
     other_user = UUID("33333333-4444-5555-6666-777777777777")
-    await fake_group_repo.add_member_to_group(group.id, user_id=other_user, display_name="Member")
-
-    await fake_availability_repo.create_availability(
-        group_id=group.id,
-        user_id=USER_ID,
-        start_date=date(2025, 1, 1),
-        end_date=date(2025, 1, 3),
+    await fake_group_repo.add_member_to_group(
+        group.id,
+        actor_id=str(other_user),
+        user_id=other_user,
+        display_name="Member",
     )
     await fake_availability_repo.create_availability(
         group_id=group.id,
+        actor_id=str(other_user),
         user_id=other_user,
         start_date=date(2025, 1, 2),
         end_date=date(2025, 1, 4),
+    )
+
+    await fake_availability_repo.create_availability(
+        group_id=group.id,
+        actor_id=str(USER_ID),
+        user_id=UUID(USER_ID),
+        start_date=date(2025, 1, 1),
+        end_date=date(2025, 1, 3),
     )
 
     transport = ASGITransport(app=app)

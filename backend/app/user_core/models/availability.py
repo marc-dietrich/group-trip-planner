@@ -13,7 +13,8 @@ class Availability(SQLModel, table=True):
 
     id: UUID = Field(default_factory=uuid4, primary_key=True, description="Primary identifier")
     group_id: UUID = Field(foreign_key="groups.id", description="Group id")
-    user_id: UUID = Field(foreign_key="users.id", description="Supabase user id")
+    actor_id: str = Field(max_length=255, description="Opaque actor id")
+    user_id: UUID | None = Field(default=None, foreign_key="users.id", description="Supabase user id (when claimed)")
     start_date: date = Field(description="Start date of availability (inclusive)")
     end_date: date = Field(description="End date of availability (inclusive)")
     kind: str = Field(

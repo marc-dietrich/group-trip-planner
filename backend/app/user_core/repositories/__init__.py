@@ -7,6 +7,7 @@ from .availability_repository import (
     InMemoryAvailabilityRepository,
     SQLModelAvailabilityRepository,
 )
+from .actor_repository import ActorRepository, InMemoryActorRepository, SQLModelActorRepository
 
 __all__ = [
     "GroupRepository",
@@ -18,4 +19,7 @@ __all__ = [
     "AvailabilityRepository",
     "InMemoryAvailabilityRepository",
     "SQLModelAvailabilityRepository",
+    "ActorRepository",
+    "InMemoryActorRepository",
+    "SQLModelActorRepository",
 ]

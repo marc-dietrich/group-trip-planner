@@ -1,4 +1,6 @@
 import React from "react";
+import { apiPath } from "./api";
+import type { Identity } from "../types";
 
 export type LocalActor = {
   actorId: string;
@@ -32,6 +34,36 @@ function persistActor(actor: LocalActor) {
   window.localStorage.setItem(STORAGE_KEY, JSON.stringify(actor));
 }
 
+async function upsertActorRemote(actor: LocalActor) {
+  try {
+    await fetch(apiPath("/api/actors"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ actorId: actor.actorId, displayName: actor.displayName }),
+    });
+  } catch (error) {
+    console.warn("Failed to sync actor with backend", error);
+  }
+}
+
+export async function ensureActorRemote(identityOrActor: Identity | LocalActor) {
+  const actorId = (identityOrActor as LocalActor).actorId || (identityOrActor as Identity).actorId;
+  const displayName =
+    (identityOrActor as { displayName?: string }).displayName?.trim() || DEFAULT_ACTOR_NAME;
+
+  if (!actorId) return;
+
+  try {
+    await fetch(apiPath("/api/actors"), {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ actorId, displayName }),
+    });
+  } catch (error) {
+    console.warn("Failed to ensure actor with backend", error);
+  }
+}
+
 export function isPlaceholderActorName(name: string | null | undefined): boolean {
   if (!name) return true;
   const trimmed = name.trim();
@@ -45,6 +77,7 @@ export function createActor(displayName: string): LocalActor {
     displayName: safeName,
   } satisfies LocalActor;
   persistActor(actor);
+  void upsertActorRemote(actor);
   return actor;
 }
 
@@ -58,6 +91,7 @@ export function updateActorDisplayName(actor: LocalActor, displayName: string): 
   const updatedName = displayName.trim();
   const updated: LocalActor = { ...actor, displayName: updatedName || actor.displayName };
   persistActor(updated);
+  void upsertActorRemote(updated);
   return updated;
 }
 
@@ -75,6 +109,7 @@ export function useLocalActor(defaultName: string = DEFAULT_ACTOR_NAME): [LocalA
 
   React.useEffect(() => {
     persistActor(actor);
+    void upsertActorRemote(actor);
   }, [actor]);
 
   return [actor, setDisplayName];

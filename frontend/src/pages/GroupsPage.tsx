@@ -26,7 +26,6 @@ type GroupsPageProps = {
   onCreate: () => void;
   onDelete: (groupId: string) => void;
   onCopyInvite: (group: GroupMembership) => void;
-  onRequireLogin: () => void;
 };
 
 export function GroupsPage({
@@ -38,7 +37,6 @@ export function GroupsPage({
   onCreate,
   onDelete,
   onCopyInvite,
-  onRequireLogin,
 }: GroupsPageProps) {
   const navigate = useNavigate();
 
@@ -57,9 +55,7 @@ export function GroupsPage({
         {groups.map((group) => {
           const memberCountLabel = "1 (du)";
           const availabilityHint =
-            identity.kind === "user"
-              ? "Öffne die Gruppe, um Verfügbarkeiten zu sehen"
-              : "Einloggen, um Verfügbarkeiten zu sehen";
+            "Öffne die Gruppe, um Verfügbarkeiten zu sehen";
 
           return (
             <li key={group.groupId}>
@@ -132,10 +128,7 @@ export function GroupsPage({
           <button
             type="button"
             className={buttonPrimary}
-            onClick={() => {
-              if (identity.kind === "user") onCreate();
-              else onRequireLogin();
-            }}
+            onClick={() => onCreate()}
           >
             Neue Gruppe
           </button>
@@ -144,7 +137,7 @@ export function GroupsPage({
           {identity.kind === "user" ? (
             <div className={pillSuccess}>Eingeloggt</div>
           ) : (
-            <div className={pill}>Bitte einloggen, um Gruppen zu sehen</div>
+            <div className={pill}>Gastmodus aktiv</div>
           )}
         </div>
       </section>

@@ -3,12 +3,12 @@
 from datetime import datetime
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, Request, Response, status
+from fastapi import APIRouter, Depends, HTTPException, Request, Response, status, Header
 from pydantic import BaseModel
 from urllib.parse import urlsplit, urlunsplit
 
 from app.core.config import get_settings
-from app.core.security import Identity, require_authenticated_identity
+from app.core.security import Identity, get_identity
 from app.user_core.services import GroupService, InviteExpiredError, InviteNotFoundError
 from app.api.deps import get_group_service
 
@@ -44,6 +44,15 @@ def _frontend_base_url(request: Request) -> str:
         base = base.rstrip("/")
 
     return base
+
+
+def _parse_uuid(value: str | None) -> UUID | None:
+    if not value:
+        return None
+    try:
+        return UUID(value)
+    except ValueError:
+        return None
 
 
 class GroupCreate(BaseModel):
@@ -100,17 +109,18 @@ class JoinGroupResponse(BaseModel):
 @router.get("/groups")
 async def get_groups(
     request: Request,
-    identity: Identity = Depends(require_authenticated_identity),
+    actor_id: str | None = Header(default=None, alias="X-Actor-Id"),
+    identity: Identity = Depends(get_identity),
     service: GroupService = Depends(get_group_service),
 ):
-    """Return all groups for the authenticated user."""
+    """Return all groups for the caller (guest actor or authenticated user)."""
 
-    try:
-        user_uuid = UUID(identity.user_id)
-    except (TypeError, ValueError) as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user id") from exc
+    user_uuid = _parse_uuid(identity.user_id)
+    actor = (actor_id or identity.user_id or "").strip() or None
+    if not actor and not user_uuid:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="actorId header required")
 
-    rows = await service.get_groups_for_identity(user_id=user_uuid)
+    rows = await service.get_groups_for_identity(actor_id=actor, user_id=user_uuid)
     base_url = _frontend_base_url(request)
     memberships: list[dict] = []
     for group, member in rows:
@@ -132,22 +142,22 @@ async def get_groups(
 async def create_group(
     request: Request,
     group_data: GroupCreate,
-    identity: Identity = Depends(require_authenticated_identity),
+    actor_id: str | None = Header(default=None, alias="X-Actor-Id"),
+    identity: Identity = Depends(get_identity),
     service: GroupService = Depends(get_group_service),
 ):
     """Create a group and store the creator as owner."""
 
-    try:
-        user_uuid = UUID(identity.user_id)
-    except (TypeError, ValueError) as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user id") from exc
+    user_uuid = _parse_uuid(identity.user_id)
+    resolved_actor = (actor_id or identity.user_id or "").strip() or None
+    if not resolved_actor:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="actorId header required")
 
     creator_display = group_data.displayName or identity.display_name or "Gast"
-    actor_id = str(user_uuid)
 
     group, member = await service.create_group(
         group_name=group_data.groupName,
-        actor_id=actor_id,
+        actor_id=resolved_actor,
         display_name=creator_display,
         user_id=user_uuid,
         invite_ttl_days=settings.invite_token_ttl_days,
@@ -195,21 +205,23 @@ async def delete_group(group_id: UUID, service: GroupService = Depends(get_group
 async def join_group(
     group_id: UUID,
     request: Request,
-    identity: Identity = Depends(require_authenticated_identity),
+    actor_id: str | None = Header(default=None, alias="X-Actor-Id"),
+    identity: Identity = Depends(get_identity),
     service: GroupService = Depends(get_group_service),
 ):
     """Allow an authenticated user to join a group via invite link."""
 
-    try:
-        user_uuid = UUID(identity.user_id)
-    except (TypeError, ValueError) as exc:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user id") from exc
+    user_uuid = _parse_uuid(identity.user_id)
+    resolved_actor = (actor_id or identity.user_id or "").strip() or None
+    if not resolved_actor:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="actorId header required")
 
     display_name = identity.display_name or "Gast"
 
     try:
         group, member, created, invite = await service.join_group(
             group_id=group_id,
+            actor_id=resolved_actor,
             user_id=user_uuid,
             display_name=display_name,
             invite_ttl_days=settings.invite_token_ttl_days,

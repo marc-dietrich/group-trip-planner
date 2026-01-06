@@ -23,12 +23,14 @@ async def test_auth_required_for_protected_availability(client):
         f"/api/groups/{group_id}/availabilities",
         json={"startDate": "2025-01-01", "endDate": "2025-01-02"},
     )
-    assert res.status_code == 401
+    assert res.status_code == 400
+    assert res.json()["detail"] == "actorId header required"
 
 
 async def test_group_creation_requires_auth(client):
     res = await client.post("/api/groups", json={"groupName": "No Auth", "displayName": "Anon"})
-    assert res.status_code == 401
+    assert res.status_code == 400
+    assert res.json()["detail"] == "actorId header required"
 
 
 async def test_availability_requires_membership(client, token_factory):

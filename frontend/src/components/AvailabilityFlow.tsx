@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { GroupMembership, Identity } from "../types";
 import { apiPath } from "../lib/api";
+import { buildIdentityHeaders } from "../lib/identity";
+import { ensureActorRemote } from "../lib/actor";
 import {
   buttonGhostDanger,
   buttonGhostSmall,
@@ -308,7 +310,6 @@ export function AvailabilityFlow({
   }, [groups, fixedGroupId]);
 
   useEffect(() => {
-    if (identity.kind !== "user") return;
     if (!selectedGroupId) {
       setRanges([]);
       setRangesError(null);
@@ -320,10 +321,13 @@ export function AvailabilityFlow({
       setRangesLoading(true);
       setRangesError(null);
       try {
+        if (identity.kind === "actor") {
+          await ensureActorRemote(identity);
+        }
         const res = await fetch(
           apiPath(`/api/groups/${selectedGroupId}/availabilities`),
           {
-            headers: { Authorization: `Bearer ${identity.accessToken ?? ""}` },
+            headers: buildIdentityHeaders(identity),
             signal: controller.signal,
           }
         );
@@ -388,13 +392,7 @@ export function AvailabilityFlow({
 
   const stepNumber = step === "start" ? 1 : step === "end" ? 2 : 3;
 
-  const canSave = Boolean(
-    draft.start &&
-      draft.end &&
-      draft.groupId &&
-      identity.kind === "user" &&
-      !saving
-  );
+  const canSave = Boolean(draft.start && draft.end && draft.groupId && !saving);
 
   const handleStartSelect = (iso: string) => {
     setDraft((prev) => ({ ...prev, start: iso, end: iso }));
@@ -418,10 +416,6 @@ export function AvailabilityFlow({
   };
 
   const openDialog = () => {
-    if (identity.kind !== "user") {
-      toast.error("Bitte zuerst anmelden, um Verfügbarkeiten zu erfassen.");
-      return;
-    }
     setOpen(true);
   };
 
@@ -429,11 +423,6 @@ export function AvailabilityFlow({
     if (!draft.start || !draft.end) return;
     if (!draft.groupId) {
       toast.error("Bitte wähle eine Gruppe");
-      return;
-    }
-
-    if (identity.kind !== "user") {
-      toast.error("Bitte melde dich an, um Verfügbarkeiten zu speichern.");
       return;
     }
 
@@ -450,14 +439,16 @@ export function AvailabilityFlow({
 
     setSaving(true);
     try {
+      if (identity.kind === "actor") {
+        await ensureActorRemote(identity);
+      }
       const res = await fetch(
         apiPath(`/api/groups/${group.groupId}/availabilities`),
         {
           method: "POST",
-          headers: {
+          headers: buildIdentityHeaders(identity, {
             "Content-Type": "application/json",
-            Authorization: `Bearer ${identity.accessToken ?? ""}`,
-          },
+          }),
           body: JSON.stringify({
             startDate: draft.start,
             endDate: draft.end,
@@ -502,16 +493,11 @@ export function AvailabilityFlow({
   };
 
   const handleDelete = (id: string) => {
-    if (identity.kind !== "user") {
-      toast.error("Bitte anmelden, um zu löschen");
-      return;
-    }
-
     const doDelete = async () => {
       try {
         const res = await fetch(apiPath(`/api/availabilities/${id}`), {
           method: "DELETE",
-          headers: { Authorization: `Bearer ${identity.accessToken ?? ""}` },
+          headers: buildIdentityHeaders(identity),
         });
         if (!res.ok) throw new Error(`Fehler: ${res.status}`);
         setRanges((prev) => prev.filter((item) => item.id !== id));
@@ -542,14 +528,14 @@ export function AvailabilityFlow({
   }, [draft.start, monthGroups]);
 
   const triggerNode = renderTrigger ? (
-    renderTrigger({ open: openDialog, disabled: identity.kind !== "user" })
+    renderTrigger({ open: openDialog, disabled: false })
   ) : (
     <div className={buttonRow}>
       <button
         type="button"
         className={buttonPrimary}
         onClick={openDialog}
-        disabled={identity.kind !== "user"}
+        disabled={false}
       >
         + Hinzufügen
       </button>

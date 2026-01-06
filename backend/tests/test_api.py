@@ -58,14 +58,34 @@ async def test_health_endpoint():
 
 
 @pytest.mark.asyncio
-async def test_group_creation_requires_authentication():
+async def test_group_creation_requires_actor_id_when_unauthenticated():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         response = await client.post(
             "/api/groups",
             json={"groupName": "Unauthed", "displayName": "Anon"},
         )
-        assert response.status_code == 401
+        assert response.status_code == 400
+        assert response.json()["detail"] == "actorId header required"
+
+
+@pytest.mark.asyncio
+async def test_guest_can_create_and_list_group_with_actor_header():
+    transport = ASGITransport(app=app)
+    actor_id = "guest-actor-123"
+
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        create_res = await client.post(
+            "/api/groups",
+            json={"groupName": "Guest Trip", "displayName": "Guest"},
+            headers={"X-Actor-Id": actor_id},
+        )
+        assert create_res.status_code == 200
+        group_id = create_res.json()["groupId"]
+
+        list_res = await client.get("/api/groups", headers={"X-Actor-Id": actor_id})
+        assert list_res.status_code == 200
+        assert any(g["groupId"] == group_id for g in list_res.json())
 
 
 @pytest.mark.asyncio

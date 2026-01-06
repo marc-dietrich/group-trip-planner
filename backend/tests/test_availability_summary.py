@@ -23,22 +23,24 @@ async def test_calculate_group_availability_overlaps():
         display_name="Owner",
         user_id=user_one,
     )
-    await group_repo.add_member_to_group(group.id, user_two, display_name="Member")
+    await group_repo.add_member_to_group(group.id, actor_id=str(user_two), user_id=user_two, display_name="Member")
 
     await availability_repo.create_availability(
         group_id=group.id,
+        actor_id=str(user_one),
         user_id=user_one,
         start_date=date(2025, 1, 1),
         end_date=date(2025, 1, 5),
     )
     await availability_repo.create_availability(
         group_id=group.id,
+        actor_id=str(user_two),
         user_id=user_two,
         start_date=date(2025, 1, 3),
         end_date=date(2025, 1, 6),
     )
 
-    summary = await service.calculate_group_availability(group_id=group.id, user_id=user_one)
+    summary = await service.calculate_group_availability(group_id=group.id, actor_id=str(user_one))
 
     assert summary == [
         {"from": date(2025, 1, 1), "to": date(2025, 1, 2), "availableCount": 1, "totalMembers": 2},
@@ -63,7 +65,7 @@ async def test_calculate_group_availability_rejects_non_member():
     outsider = uuid4()
 
     with pytest.raises(HTTPException) as exc:
-        await service.calculate_group_availability(group_id=group.id, user_id=outsider)
+        await service.calculate_group_availability(group_id=group.id, actor_id=str(outsider))
     assert exc.value.status_code == 403
 
 
@@ -80,7 +82,7 @@ async def test_calculate_group_availability_empty():
         user_id=uuid4(),
     )
 
-    summary = await service.calculate_group_availability(group_id=group.id, user_id=owner.user_id)
+    summary = await service.calculate_group_availability(group_id=group.id, actor_id=str(owner.actor_id))
     assert summary == []
 
 
@@ -99,17 +101,19 @@ async def test_calculate_group_availability_merges_adjacent_and_clamps():
         display_name="Owner",
         user_id=user_one,
     )
-    await group_repo.add_member_to_group(group.id, user_two, display_name="Member")
+    await group_repo.add_member_to_group(group.id, actor_id=str(user_two), user_id=user_two, display_name="Member")
 
     # User one has two adjacent ranges; user two overlaps partially
     await availability_repo.create_availability(
         group_id=group.id,
+        actor_id=str(user_one),
         user_id=user_one,
         start_date=date(2025, 1, 1),
         end_date=date(2025, 1, 2),
     )
     await availability_repo.create_availability(
         group_id=group.id,
+        actor_id=str(user_one),
         user_id=user_one,
         start_date=date(2025, 1, 3),
         end_date=date(2025, 1, 4),
@@ -117,12 +121,13 @@ async def test_calculate_group_availability_merges_adjacent_and_clamps():
     # Overlapping interval that should not push count beyond 2
     await availability_repo.create_availability(
         group_id=group.id,
+        actor_id=str(user_two),
         user_id=user_two,
         start_date=date(2025, 1, 2),
         end_date=date(2025, 1, 3),
     )
 
-    summary = await service.calculate_group_availability(group_id=group.id, user_id=user_one)
+    summary = await service.calculate_group_availability(group_id=group.id, actor_id=str(user_one))
 
     assert summary == [
         {"from": date(2025, 1, 1), "to": date(2025, 1, 1), "availableCount": 1, "totalMembers": 2},

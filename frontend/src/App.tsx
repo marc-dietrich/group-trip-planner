@@ -21,6 +21,7 @@ import {
   supabase,
   supabaseEnabled,
 } from "./lib/supabase";
+import { buildIdentityHeaders } from "./lib/identity";
 import {
   GroupCreateResult,
   GroupInvitePreview,
@@ -170,6 +171,7 @@ function AppShell() {
     if (session?.user) {
       return {
         kind: "user",
+        actorId: actor.actorId,
         userId: session.user.id,
         displayName: getUserDisplayName(session.user) || actor.displayName,
         accessToken: session.access_token,
@@ -191,6 +193,23 @@ function AppShell() {
       setPendingName(actor.displayName);
     }
   }, [actor.displayName, namePromptOpen]);
+
+  useEffect(() => {
+    if (identity.kind !== "user") return;
+    const controller = new AbortController();
+
+    const headers = buildIdentityHeaders(identity, {
+      "Content-Type": "application/json",
+    });
+    fetch(apiPath("/api/auth/claim"), {
+      method: "POST",
+      headers,
+      body: JSON.stringify({ actorId: identity.actorId }),
+      signal: controller.signal,
+    }).catch((err) => console.warn("Actor claim failed", err));
+
+    return () => controller.abort();
+  }, [identity]);
 
   useEffect(() => {
     let isActive = true;
@@ -266,13 +285,7 @@ function AppShell() {
       setGroupsLoading(true);
       setGroupsError(null);
       try {
-        const headers: HeadersInit = {};
-        if (identity.kind !== "user") {
-          setGroups([]);
-          setGroupsError("Bitte einloggen, um Gruppen zu sehen.");
-          return;
-        }
-        headers.Authorization = `Bearer ${identity.accessToken}`;
+        const headers: HeadersInit = buildIdentityHeaders(identity);
         const res = await fetch(apiPath(`/api/groups`), { headers });
         if (!res.ok) throw new Error(`Fehler: ${res.status}`);
         const data = (await res.json()) as GroupMembership[];
@@ -295,16 +308,10 @@ function AppShell() {
     setError(null);
     setResult(null);
 
-    if (identity.kind !== "user") {
-      setError("Bitte erst einloggen, um eine Gruppe zu erstellen.");
-      setAuthPanelOpen(true);
-      setCreating(false);
-      return;
-    }
-
     try {
-      const headers: HeadersInit = { "Content-Type": "application/json" };
-      headers.Authorization = `Bearer ${identity.accessToken}`;
+      const headers: HeadersInit = buildIdentityHeaders(identity, {
+        "Content-Type": "application/json",
+      });
 
       const payload = { groupName, displayName: identity.displayName };
       const response = await fetch(apiPath("/api/groups"), {
@@ -330,17 +337,8 @@ function AppShell() {
     setGroupsError(null);
     setDeletingId(groupId);
 
-    if (identity.kind !== "user") {
-      setGroupsError("Nur angemeldete Nutzer können Gruppen löschen.");
-      setDeletingId(null);
-      setAuthPanelOpen(true);
-      return;
-    }
-
     try {
-      const headers: HeadersInit = {
-        Authorization: `Bearer ${identity.accessToken}`,
-      };
+      const headers: HeadersInit = buildIdentityHeaders(identity);
       const res = await fetch(apiPath(`/api/groups/${groupId}`), {
         method: "DELETE",
         headers,
@@ -379,18 +377,12 @@ function AppShell() {
 
   const handleAcceptInvite = async () => {
     if (!inviteGroupId) return;
-    if (identity.kind !== "user") {
-      setAuthPanelOpen(true);
-      return;
-    }
 
     setJoining(true);
     setInviteError(null);
 
     try {
-      const headers: HeadersInit = {
-        Authorization: `Bearer ${identity.accessToken}`,
-      };
+      const headers: HeadersInit = buildIdentityHeaders(identity);
       const res = await fetch(apiPath(`/api/groups/${inviteGroupId}/join`), {
         method: "POST",
         headers,
@@ -512,7 +504,7 @@ function AppShell() {
         error={inviteError}
         joining={joining}
         alreadyMember={alreadyMember}
-        requireLogin={identity.kind !== "user"}
+        requireLogin={false}
         onJoin={handleAcceptInvite}
         onClose={handleCloseInvite}
         onLogin={() => {
@@ -543,7 +535,6 @@ function AppShell() {
               onCreate={() => setCreateOpen(true)}
               onDelete={handleDeleteGroup}
               onCopyInvite={handleCopyInvite}
-              onRequireLogin={() => setAuthPanelOpen(true)}
             />
           }
         />
