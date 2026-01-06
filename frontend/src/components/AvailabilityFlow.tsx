@@ -1,9 +1,6 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
 import { GroupMembership, Identity } from "../types";
-import { apiPath } from "../lib/api";
-import { buildIdentityHeaders } from "../lib/identity";
-import { ensureActorRemote } from "../lib/actor";
 import {
   buttonGhostDanger,
   buttonGhostSmall,
@@ -20,6 +17,8 @@ import {
   pillWarning,
   smallMuted,
 } from "../ui";
+import { useSelfAvailabilities } from "../hooks/useSelfAvailabilities";
+import { useGroupStore } from "../state/groupStore";
 
 type Step = "start" | "end" | "review";
 
@@ -27,14 +26,6 @@ type DraftRange = {
   start: string | null;
   end: string | null;
   groupId: string | null;
-};
-
-type AvailabilityRange = {
-  id: string;
-  start: string;
-  end: string;
-  groupId: string;
-  groupName: string;
 };
 
 type DayOption = {
@@ -274,13 +265,26 @@ export function AvailabilityFlow({
 }: AvailabilityFlowProps) {
   const [draft, setDraft] = useState<DraftRange>(initialDraft);
   const [step, setStep] = useState<Step>("start");
-  const [ranges, setRanges] = useState<AvailabilityRange[]>([]);
-  const [rangesLoading, setRangesLoading] = useState(false);
-  const [rangesError, setRangesError] = useState<string | null>(null);
   const [listOpen, setListOpen] = useState(false);
   const [open, setOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
+  const [mutationError, setMutationError] = useState<string | null>(null);
+  const [monthIndex, setMonthIndex] = useState(0);
+
+  const optimisticAdd = useGroupStore(
+    (state) => state.optimisticAddAvailability
+  );
+  const optimisticDelete = useGroupStore(
+    (state) => state.optimisticDeleteAvailability
+  );
+
+  const {
+    data: ranges,
+    loading: rangesLoading,
+    error: rangesError,
+    refetch: refetchSelf,
+  } = useSelfAvailabilities(selectedGroupId, identity);
 
   useEffect(() => {
     if (fixedGroupId) {
@@ -288,7 +292,6 @@ export function AvailabilityFlow({
       setDraft((prev) => ({ ...prev, groupId: fixedGroupId }));
       return;
     }
-
     if (!groups.length) {
       setSelectedGroupId(null);
       setDraft((prev) => ({ ...prev, groupId: null }));
@@ -310,63 +313,10 @@ export function AvailabilityFlow({
   }, [groups, fixedGroupId]);
 
   useEffect(() => {
-    if (!selectedGroupId) {
-      setRanges([]);
-      setRangesError(null);
-      return;
-    }
-
-    const controller = new AbortController();
-    const load = async () => {
-      setRangesLoading(true);
-      setRangesError(null);
-      try {
-        if (identity.kind === "actor") {
-          await ensureActorRemote(identity);
-        }
-        const res = await fetch(
-          apiPath(`/api/groups/${selectedGroupId}/availabilities`),
-          {
-            headers: buildIdentityHeaders(identity),
-            signal: controller.signal,
-          }
-        );
-        if (!res.ok) throw new Error(`Fehler: ${res.status}`);
-        const data = (await res.json()) as Array<{
-          id: string;
-          startDate: string;
-          endDate: string;
-        }>;
-        const mapped: AvailabilityRange[] = data
-          .map((item) => ({
-            id: item.id,
-            start: item.startDate,
-            end: item.endDate,
-            groupId: selectedGroupId,
-            groupName:
-              groups.find((g) => g.groupId === selectedGroupId)?.name ||
-              "Unbekannte Gruppe",
-          }))
-          .sort((a, b) => a.start.localeCompare(b.start));
-        setRanges(mapped);
-        setListOpen(false);
-      } catch (err) {
-        if (controller.signal.aborted) return;
-        setRangesError(
-          err instanceof Error ? err.message : "Laden fehlgeschlagen"
-        );
-      } finally {
-        if (controller.signal.aborted) return;
-        setRangesLoading(false);
-      }
-    };
-
-    load();
-    return () => controller.abort();
-  }, [identity, selectedGroupId, groups]);
+    setListOpen(false);
+  }, [ranges]);
 
   const monthGroups = useMemo(() => buildMonthGroups(730), []);
-  const [monthIndex, setMonthIndex] = useState(0);
 
   const todayIso = useMemo(() => toLocalISO(new Date()), []);
   const maxIso = useMemo(() => {
@@ -393,6 +343,16 @@ export function AvailabilityFlow({
   const stepNumber = step === "start" ? 1 : step === "end" ? 2 : 3;
 
   const canSave = Boolean(draft.start && draft.end && draft.groupId && !saving);
+
+  const orderedRanges = useMemo(
+    () => [...ranges].sort((a, b) => a.startDate.localeCompare(b.startDate)),
+    [ranges]
+  );
+
+  const selectedGroupName = useMemo(() => {
+    if (!selectedGroupId) return "";
+    return groups.find((g) => g.groupId === selectedGroupId)?.name ?? "";
+  }, [groups, selectedGroupId]);
 
   const handleStartSelect = (iso: string) => {
     setDraft((prev) => ({ ...prev, start: iso, end: iso }));
@@ -437,80 +397,52 @@ export function AvailabilityFlow({
       return;
     }
 
+    setMutationError(null);
     setSaving(true);
     try {
-      if (identity.kind === "actor") {
-        await ensureActorRemote(identity);
-      }
-      const res = await fetch(
-        apiPath(`/api/groups/${group.groupId}/availabilities`),
-        {
-          method: "POST",
-          headers: buildIdentityHeaders(identity, {
-            "Content-Type": "application/json",
-          }),
-          body: JSON.stringify({
-            startDate: draft.start,
-            endDate: draft.end,
-          }),
-        }
-      );
-
-      if (!res.ok) {
-        const msg = await res.text();
-        throw new Error(msg || `Fehler: ${res.status}`);
-      }
-
-      const data = (await res.json()) as {
-        id: string;
-        startDate: string;
-        endDate: string;
-      };
-
-      const payload: AvailabilityRange = {
-        id: data.id,
-        start: data.startDate,
-        end: data.endDate,
+      await optimisticAdd({
         groupId: group.groupId,
-        groupName: group.name,
-      };
-
-      setRanges((prev) =>
-        [...prev, payload].sort((a, b) => a.start.localeCompare(b.start))
-      );
-
+        startDate: draft.start,
+        endDate: draft.end,
+        identity,
+      });
       toast.success("Zeitraum gespeichert");
       if (onChange) onChange();
+      setListOpen(false);
       resetFlow();
       setOpen(false);
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Speichern fehlgeschlagen"
-      );
+      const message =
+        err instanceof Error ? err.message : "Speichern fehlgeschlagen";
+      setMutationError(message);
+      toast.error(message);
+      void refetchSelf();
     } finally {
       setSaving(false);
     }
   };
 
   const handleDelete = (id: string) => {
-    const doDelete = async () => {
+    if (!selectedGroupId) return;
+    setMutationError(null);
+
+    void (async () => {
       try {
-        const res = await fetch(apiPath(`/api/availabilities/${id}`), {
-          method: "DELETE",
-          headers: buildIdentityHeaders(identity),
+        await optimisticDelete({
+          availabilityId: id,
+          groupId: selectedGroupId,
+          identity,
         });
-        if (!res.ok) throw new Error(`Fehler: ${res.status}`);
-        setRanges((prev) => prev.filter((item) => item.id !== id));
         toast.success("Gelöscht");
         if (onChange) onChange();
       } catch (err) {
-        toast.error(
-          err instanceof Error ? err.message : "Löschen fehlgeschlagen"
-        );
+        const message =
+          err instanceof Error ? err.message : "Löschen fehlgeschlagen";
+        setMutationError(message);
+        toast.error(message);
+        void refetchSelf();
       }
-    };
-
-    void doDelete();
+    })();
   };
 
   const closeDialog = () => {
@@ -704,16 +636,18 @@ export function AvailabilityFlow({
               <h4 className="text-base font-semibold text-slate-900 sm:text-lg">
                 {rangesLoading
                   ? "Lade..."
-                  : ranges.length
-                  ? `${ranges.length} Einträge`
+                  : orderedRanges.length
+                  ? `${orderedRanges.length} Einträge`
                   : "Noch nichts gespeichert"}
               </h4>
             </div>
           </div>
 
-          {rangesError && <div className={pillDanger}>{rangesError}</div>}
+          {(rangesError || mutationError) && (
+            <div className={pillDanger}>{rangesError || mutationError}</div>
+          )}
 
-          {!rangesLoading && !ranges.length && (
+          {!rangesLoading && !orderedRanges.length && (
             <div className="rounded-xl border border-dashed border-slate-200 bg-slate-50 px-3 py-2 text-sm sm:text-base">
               <p className={muted}>
                 Füge einen Zeitraum hinzu, um deine Teilnahme zu teilen.
@@ -721,48 +655,51 @@ export function AvailabilityFlow({
             </div>
           )}
 
-          {ranges.length > 0 && (
+          {orderedRanges.length > 0 && (
             <ul className="flex flex-col gap-2">
-              {(listOpen ? ranges : ranges.slice(0, 2)).map((range) => (
-                <li
-                  key={range.id}
-                  className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-2 sm:p-3"
-                >
-                  <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-                    <div className="flex flex-wrap items-center gap-1 sm:gap-2">
-                      <span className={availableChipClass}>
-                        {AVAILABLE_TAG}
-                      </span>
-                      <span className="font-semibold text-slate-900">
-                        {formatRange(range.start, range.end)}
-                      </span>
-                      <span className={muted}>
-                        {dayDiffInclusive(range.start, range.end)} Tage
-                      </span>
-                      {showGroupName && (
-                        <span className={smallMuted}>
-                          Gruppe: {range.groupName}
+              {(listOpen ? orderedRanges : orderedRanges.slice(0, 2)).map(
+                (range) => (
+                  <li
+                    key={range.id}
+                    className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-2 sm:p-3"
+                  >
+                    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                      <div className="flex flex-wrap items-center gap-1 sm:gap-2">
+                        <span className={availableChipClass}>
+                          {AVAILABLE_TAG}
                         </span>
-                      )}
-                    </div>
-                    <div
-                      className={`${buttonRow} justify-start sm:justify-end`}
-                    >
-                      <button
-                        type="button"
-                        className={`${buttonGhostTiny} ${buttonGhostDanger}`}
-                        onClick={() => handleDelete(range.id)}
+                        <span className="font-semibold text-slate-900">
+                          {formatRange(range.startDate, range.endDate)}
+                        </span>
+                        <span className={muted}>
+                          {dayDiffInclusive(range.startDate, range.endDate)}{" "}
+                          Tage
+                        </span>
+                        {showGroupName && (
+                          <span className={smallMuted}>
+                            Gruppe: {selectedGroupName}
+                          </span>
+                        )}
+                      </div>
+                      <div
+                        className={`${buttonRow} justify-start sm:justify-end`}
                       >
-                        Löschen
-                      </button>
+                        <button
+                          type="button"
+                          className={`${buttonGhostTiny} ${buttonGhostDanger}`}
+                          onClick={() => handleDelete(range.id)}
+                        >
+                          Löschen
+                        </button>
+                      </div>
                     </div>
-                  </div>
-                </li>
-              ))}
+                  </li>
+                )
+              )}
             </ul>
           )}
 
-          {ranges.length > 2 && (
+          {orderedRanges.length > 2 && (
             <button
               type="button"
               className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-sm font-semibold text-slate-900 hover:bg-slate-50 sm:text-base"
@@ -772,7 +709,7 @@ export function AvailabilityFlow({
               <span className={muted}>
                 {listOpen
                   ? "Einklappen"
-                  : `Alle anzeigen (+${ranges.length - 2})`}
+                  : `Alle anzeigen (+${orderedRanges.length - 2})`}
               </span>
               <span
                 className={`text-lg transition ${listOpen ? "rotate-180" : ""}`}

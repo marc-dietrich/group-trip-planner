@@ -43,6 +43,8 @@ import { ProfilePage } from "./pages/ProfilePage";
 import { MorePage } from "./pages/MorePage";
 import { DialogSandbox } from "./pages/DialogSandbox";
 import { pageShell } from "./ui";
+import { useGroups } from "./hooks/useGroups";
+import { useGroupStore } from "./state/groupStore";
 
 const basename = import.meta.env.BASE_URL || "/";
 const buildCommit =
@@ -150,13 +152,12 @@ function AppShell() {
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<GroupCreateResult | null>(null);
-  const [groups, setGroups] = useState<GroupMembership[]>([]);
-  const [groupsLoading, setGroupsLoading] = useState(false);
-  const [groupsError, setGroupsError] = useState<string | null>(null);
+  const [groupsActionError, setGroupsActionError] = useState<string | null>(
+    null
+  );
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [authPanelOpen, setAuthPanelOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
-  const [groupsReloadToken, setGroupsReloadToken] = useState(0);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteGroupId, setInviteGroupId] = useState<string | null>(null);
   const [invitePreview, setInvitePreview] = useState<GroupInvitePreview | null>(
@@ -184,6 +185,15 @@ function AppShell() {
       displayName: actor.displayName,
     };
   }, [actor.actorId, actor.displayName, session]);
+
+  const {
+    groups,
+    groupsLoading,
+    groupsError,
+    refetch: refetchGroups,
+  } = useGroups(identity);
+  const upsertGroup = useGroupStore((state) => state.upsertGroup);
+  const removeGroup = useGroupStore((state) => state.removeGroup);
 
   useEffect(() => {
     if (isPlaceholderActorName(actor.displayName)) {
@@ -280,33 +290,12 @@ function AppShell() {
       .finally(() => setInviteLoading(false));
   }, [inviteGroupId]);
 
-  useEffect(() => {
-    const fetchGroups = async () => {
-      setGroupsLoading(true);
-      setGroupsError(null);
-      try {
-        const headers: HeadersInit = buildIdentityHeaders(identity);
-        const res = await fetch(apiPath(`/api/groups`), { headers });
-        if (!res.ok) throw new Error(`Fehler: ${res.status}`);
-        const data = (await res.json()) as GroupMembership[];
-        setGroups(data);
-      } catch (err) {
-        setGroupsError(
-          err instanceof Error ? err.message : "Unbekannter Fehler"
-        );
-      } finally {
-        setGroupsLoading(false);
-      }
-    };
-
-    fetchGroups();
-  }, [identity, result, groupsReloadToken]);
-
   const handleCreateGroup = async (event: FormEvent) => {
     event.preventDefault();
     setCreating(true);
     setError(null);
     setResult(null);
+    setGroupsActionError(null);
 
     try {
       const headers: HeadersInit = buildIdentityHeaders(identity, {
@@ -325,7 +314,14 @@ function AppShell() {
       const data = (await response.json()) as GroupCreateResult;
       setResult(data);
       setGroupName("");
-      setGroupsReloadToken((v) => v + 1);
+      const membership: GroupMembership = {
+        groupId: data.groupId,
+        name: data.name,
+        role: data.role,
+        inviteLink: data.inviteLink,
+      };
+      upsertGroup(membership);
+      void refetchGroups();
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unbekannter Fehler");
     } finally {
@@ -334,7 +330,7 @@ function AppShell() {
   };
 
   const handleDeleteGroup = async (groupId: string) => {
-    setGroupsError(null);
+    setGroupsActionError(null);
     setDeletingId(groupId);
 
     try {
@@ -344,9 +340,12 @@ function AppShell() {
         headers,
       });
       if (!res.ok) throw new Error(`Fehler: ${res.status}`);
-      setGroups((prev) => prev.filter((g) => g.groupId !== groupId));
+      removeGroup(groupId);
+      void refetchGroups();
     } catch (err) {
-      setGroupsError(err instanceof Error ? err.message : "Unbekannter Fehler");
+      setGroupsActionError(
+        err instanceof Error ? err.message : "Unbekannter Fehler"
+      );
     } finally {
       setDeletingId(null);
     }
@@ -398,13 +397,8 @@ function AppShell() {
         inviteLink: data.inviteLink,
       };
 
-      setGroups((prev) => {
-        const exists = prev.some((g) => g.groupId === membership.groupId);
-        return exists
-          ? prev.map((g) => (g.groupId === membership.groupId ? membership : g))
-          : [...prev, membership];
-      });
-      setGroupsReloadToken((value) => value + 1);
+      upsertGroup(membership);
+      void refetchGroups();
       toast.success(
         data.alreadyMember ? "Du bist bereits Mitglied." : "Gruppe beigetreten."
       );
@@ -529,7 +523,7 @@ function AppShell() {
             <GroupsPage
               groups={groups}
               groupsLoading={groupsLoading}
-              groupsError={groupsError}
+              groupsError={groupsError || groupsActionError}
               deletingId={deletingId}
               identity={identity}
               onCreate={() => setCreateOpen(true)}
