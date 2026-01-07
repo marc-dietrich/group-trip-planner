@@ -19,6 +19,69 @@ from testcontainers.postgres import PostgresContainer
 MIGRATIONS_PATH = Path(__file__).resolve().parents[2] / "migrations"
 
 
+def _split_sql_statements(sql: str) -> list[str]:
+    """Split SQL while respecting $, single, and double-quoted blocks."""
+
+    statements: list[str] = []
+    buf: list[str] = []
+    in_single = False
+    in_double = False
+    dollar_tag: str | None = None
+    i = 0
+
+    while i < len(sql):
+        ch = sql[i]
+
+        if dollar_tag:
+            if sql.startswith(dollar_tag, i):
+                buf.append(dollar_tag)
+                i += len(dollar_tag)
+                dollar_tag = None
+                continue
+            buf.append(ch)
+            i += 1
+            continue
+
+        if ch == "'" and not in_double:
+            in_single = not in_single
+            buf.append(ch)
+            i += 1
+            continue
+
+        if ch == '"' and not in_single:
+            in_double = not in_double
+            buf.append(ch)
+            i += 1
+            continue
+
+        if ch == '$' and not in_single and not in_double:
+            j = i + 1
+            while j < len(sql) and (sql[j].isalnum() or sql[j] == '_'):
+                j += 1
+            if j < len(sql) and sql[j] == '$':
+                tag = sql[i : j + 1]
+                dollar_tag = tag
+                buf.append(tag)
+                i = j + 1
+                continue
+
+        if ch == ';' and not in_single and not in_double and not dollar_tag:
+            statement = "".join(buf).strip()
+            if statement:
+                statements.append(statement)
+            buf.clear()
+            i += 1
+            continue
+
+        buf.append(ch)
+        i += 1
+
+    trailing = "".join(buf).strip()
+    if trailing:
+        statements.append(trailing)
+    return statements
+
+
 def _to_asyncpg_url(sync_url: str) -> str:
     return sync_url.replace("postgresql+psycopg2://", "postgresql+asyncpg://").replace(
         "postgresql://", "postgresql+asyncpg://"
@@ -84,9 +147,8 @@ async def database_url(postgres_container: PostgresContainer) -> AsyncIterator[s
     async with engine.begin() as conn:
         for path in sorted(MIGRATIONS_PATH.glob("*.sql")):
             sql = path.read_text(encoding="utf-8")
-            for stmt in (s.strip() for s in sql.split(";")):
-                if stmt:
-                    await conn.exec_driver_sql(stmt + ";")
+            for stmt in _split_sql_statements(sql):
+                await conn.exec_driver_sql(stmt + ";")
 
     yield async_url
 
