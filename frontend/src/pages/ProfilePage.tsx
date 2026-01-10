@@ -5,6 +5,7 @@ import {
   cardMinimal,
   eyebrow,
   muted,
+  pill,
   pillSuccess,
   stack,
   stackSm,
@@ -71,6 +72,65 @@ export function ProfilePage({
               >
                 Login / Signup
               </button>
+            )}
+          </div>
+
+          <div className="mt-2 text-sm text-slate-700">
+            {identity.kind === "user" ? (
+              <div className="flex flex-col gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3">
+                <div className="flex flex-wrap items-center gap-2">
+                  <div className={pillSuccess}>Eingeloggt</div>
+                  <p className="font-semibold text-slate-900">
+                    Deine Gruppen sind gesichert.
+                  </p>
+                </div>
+                <p className={muted}>
+                  Gruppen und Verfügbarkeiten werden geräteübergreifend
+                  gespeichert und gehen nicht verloren, wenn du den Cache
+                  leerst.
+                </p>
+              </div>
+            ) : (
+              <div className="relative">
+                <div className="group inline-flex items-center gap-2 rounded-lg border border-slate-200 bg-slate-50 p-3 shadow-sm">
+                  <div className={pill}>Gastmodus</div>
+                  <p className="font-semibold text-slate-900">
+                    Schnellstart ohne Konto
+                  </p>
+                  <button
+                    type="button"
+                    className="inline-flex h-7 w-7 items-center justify-center rounded-full border border-slate-200 bg-white text-xs font-semibold text-slate-600 shadow-sm transition hover:-translate-y-0.5 hover:bg-slate-50 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-slate-400"
+                    aria-label="Mehr Infos zum Gastmodus"
+                  >
+                    i
+                  </button>
+                  <div className="absolute left-0 top-full z-20 mt-2 hidden w-80 rounded-lg border border-slate-200 bg-white p-3 text-sm text-slate-700 shadow-lg group-hover:block group-focus-within:block">
+                    <p className="font-semibold text-slate-900">
+                      Du bist als Akteur unterwegs.
+                    </p>
+                    <p className="mt-1 text-sm">
+                      Daten liegen nur lokal im Browser. Cache leeren, Inkognito
+                      schließen oder Gerätewechsel kann deine Gruppen und
+                      Verfügbarkeiten löschen.
+                    </p>
+                    <ul className="mt-2 list-disc space-y-1 pl-4">
+                      <li>Starte sofort ohne Registrierung.</li>
+                      <li>Login sichert alles geräteübergreifend.</li>
+                      <li>Empfohlen, wenn du auf mehreren Geräten planst.</li>
+                    </ul>
+                    <div className="mt-3">
+                      <button
+                        type="button"
+                        className={buttonPrimary}
+                        onClick={onLogin}
+                        disabled={!supabaseEnabled}
+                      >
+                        Jetzt einloggen
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
             )}
           </div>
         </div>
