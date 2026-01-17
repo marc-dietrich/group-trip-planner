@@ -93,13 +93,15 @@ describe("GroupDetailPage availability summary", () => {
   };
 
   beforeEach(() => {
-    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation((...args) => {
-      const [first] = args;
-      if (typeof first === "string" && first.includes("not wrapped in act")) {
-        return;
-      }
-      return originalError(...args);
-    });
+    consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation((...args) => {
+        const [first] = args;
+        if (typeof first === "string" && first.includes("not wrapped in act")) {
+          return;
+        }
+        return originalError(...args);
+      });
 
     fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
       if (init?.method === "DELETE" && url.includes("/api/availabilities/")) {

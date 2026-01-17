@@ -29,15 +29,13 @@ export function GroupDetailPage({
   const [groupName, setGroupName] = useState<string>("Gruppe");
   const [summaryExpanded, setSummaryExpanded] = useState(false);
 
-  const {
-    data: summary,
-    refetch: refetchSummary,
-  } = useGroupAvailability(groupId ?? null, identity);
+  const { data: summary, refetch: refetchSummary } = useGroupAvailability(
+    groupId ?? null,
+    identity
+  );
 
-  const {
-    data: memberAvailabilities,
-    refetch: refetchMembers,
-  } = useGroupMemberAvailabilities(groupId ?? null, identity);
+  const { data: memberAvailabilities, refetch: refetchMembers } =
+    useGroupMemberAvailabilities(groupId ?? null, identity);
 
   useEffect(() => {
     const fallback = groups.find((g) => g.groupId === groupId);
