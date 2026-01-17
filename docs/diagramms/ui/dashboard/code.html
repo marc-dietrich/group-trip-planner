@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="de"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#6B8E6D",
+                        "sage-light": "#E9EDEA",
+                        "sage-soft": "#F2F5F3",
+                        "warm-cream": "#FDFCF8",
+                        "background": "#ffffff",
+                        "border": "#e4e4e7",
+                        "muted": "#71717a"
+                    },
+                    fontFamily: {
+                        "sans": ["Inter", "sans-serif"]
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            body {
+                @apply bg-warm-cream text-zinc-900 antialiased;
+                font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+            }
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 200, 'GRAD' 0, 'opsz' 24;
+            font-size: 24px;
+        }
+        .organic-shape {
+            border-radius: 2.5rem 2.5rem 2.5rem 2.5rem;
+        }
+        .ios-shadow {
+            box-shadow: 0 4px 12px -2px rgba(107, 142, 109, 0.08);
+        }
+    </style>
+<style>
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="min-h-screen">
+<div class="relative flex min-h-screen w-full flex-col overflow-x-hidden max-w-md mx-auto bg-white">
+<header class="sticky top-0 z-30 bg-white/80 backdrop-blur-md px-6 py-5 flex items-center justify-between border-b border-zinc-50">
+<div class="flex items-center w-12">
+<button aria-label="Menu" class="flex items-center justify-center p-1 -ml-1 text-zinc-900 hover:text-primary transition-colors focus:outline-none">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</div>
+<button class="text-primary hover:text-primary/80 transition-colors font-medium text-sm tracking-tight">
+                + Gruppe erstellen
+            </button>
+<div class="flex items-center justify-end w-12">
+<button class="text-zinc-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined !text-[20px]">tune</span>
+</button>
+</div>
+</header>
+<main class="flex-1 px-6 pt-10 pb-32">
+<section class="mb-12">
+<h1 class="text-[32px] font-semibold tracking-tight text-zinc-900 leading-[1.2]">
+                    Deine nächste Reise findet am <span class="text-primary decoration-sage-light underline underline-offset-4">10. Okt.</span> statt
+                </h1>
+</section>
+<section class="mb-12">
+<div class="bg-sage-soft/50 border border-sage-light rounded-[32px] p-5">
+<div class="flex items-center justify-between mb-4">
+<div class="flex items-center gap-3">
+<div class="bg-white p-2.5 rounded-2xl shadow-sm text-primary">
+<span class="material-symbols-outlined !text-[20px]">calendar_today</span>
+</div>
+<div>
+<span class="block text-[10px] font-bold text-zinc-400 uppercase tracking-[0.1em]">Aktuellster Slot</span>
+<span class="text-sm font-semibold text-zinc-800">12. Aug — 19. Aug</span>
+</div>
+</div>
+<span class="text-[10px] font-bold text-primary bg-white px-2.5 py-1 rounded-full border border-sage-light uppercase">In Kürze</span>
+</div>
+<div class="space-y-3 pt-3 border-t border-sage-light/60">
+<div class="flex items-center justify-between text-xs px-1">
+<span class="text-zinc-500 font-medium">24. Sep — 30. Sep</span>
+<span class="text-primary/70 font-semibold uppercase tracking-tighter">Bestätigt</span>
+</div>
+<div class="flex items-center justify-between text-xs px-1">
+<span class="text-zinc-500 font-medium">05. Nov — 10. Nov</span>
+<span class="text-zinc-400 font-medium italic">Ausstehend</span>
+</div>
+</div>
+</div>
+</section>
+<div class="space-y-10">
+<div class="flex items-center justify-between">
+<h3 class="text-[11px] font-bold text-zinc-400 uppercase tracking-[0.2em]">Aktive Gruppen</h3>
+<div class="h-px flex-1 ml-4 bg-zinc-100"></div>
+</div>
+<div class="flex gap-5 group cursor-pointer">
+<div class="relative flex-shrink-0">
+<div class="size-20 rounded-[28px] overflow-hidden border-2 border-white ios-shadow">
+<img alt="Paris" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuA0WLJ-ohPsV1HZBi0hwQj3NaFDlfppm3lhFQ6XMofVH-52QBfRo2pDKozFyMYLvVpP8xfhkNcXwxSnvE9hSXtgWnGCSTJU2iPLMjAItxzvwsyNrW53qoRAyQi5xW9_i2LrpnOpp3yGdabdiTncukOEuj1Fc0SC3HiHMMt-s3g_E7raVQ1tMBHw0Ex8WCYCb-OQfvw-al3vZR0iL2gX2wRs0zMAQuLGlzsiZLMlNleDHhaZMpIqHf-g8AfVCF1PvQwSEaB49vgXG7M"/>
+</div>
+<div class="absolute -top-1 -right-1 bg-primary text-white size-6 rounded-full flex items-center justify-center ring-4 ring-white">
+<span class="material-symbols-outlined !text-[14px]">check</span>
+</div>
+</div>
+<div class="flex-1 min-w-0 pt-1">
+<div class="flex justify-between items-start mb-0.5">
+<h4 class="font-semibold text-lg text-zinc-900 tracking-tight">Städte-Trip Paris</h4>
+</div>
+<p class="text-sm text-zinc-500 mb-4 font-medium">Nächste Reise: Paris</p>
+<div class="flex items-center gap-6">
+<div class="flex-1">
+<div class="flex justify-between text-[10px] font-bold text-zinc-400 mb-1.5 uppercase tracking-wide">
+<span>Besetzt</span>
+<span>10/13</span>
+</div>
+<div class="h-1.5 w-full bg-sage-light rounded-full overflow-hidden">
+<div class="h-full bg-primary rounded-full" style="width: 77%"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="flex gap-5 group cursor-pointer">
+<div class="flex-shrink-0">
+<div class="size-20 rounded-[28px] overflow-hidden border-2 border-white ios-shadow bg-zinc-50">
+<img alt="Summer" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAXpU5TtPqijFW4TWB5u6Pyk-v_-ReKBKk3q0Mbi9mhWdEr4XGkueeaLcD7u0rgAqdYLzoySGSce1mbOWD86b1Pa-qwv_6SAcfuQW793slCXu79Exngij3zE8rryIolHPUSwyvWkkAXVlDMxYbxoDMF132cGSqn569txGSdHWJGm7kTtIXolg7-1yXERyaC1n2cqVBbba-ObZsrzq7FIMhfAD2B2UvWNd45lGf80c-CFj309a1KymFY0Q1Ffn8ti_OdXPjiszN3LYA"/>
+</div>
+</div>
+<div class="flex-1 min-w-0 pt-1">
+<div class="flex justify-between items-start mb-0.5">
+<h4 class="font-semibold text-lg text-zinc-900 tracking-tight">Sommer 2025</h4>
+</div>
+<p class="text-sm text-zinc-500 mb-4 font-medium">Ziel noch offen</p>
+<div class="flex items-center gap-6">
+<div class="flex-1">
+<div class="flex justify-between text-[10px] font-bold text-zinc-400 mb-1.5 uppercase tracking-wide">
+<span>Besetzt</span>
+<span>4/13</span>
+</div>
+<div class="h-1.5 w-full bg-zinc-100 rounded-full overflow-hidden">
+<div class="h-full bg-zinc-300 rounded-full" style="width: 30%"></div>
+</div>
+</div>
+<div class="flex flex-col items-end">
+<span class="text-[10px] font-bold text-zinc-400 uppercase tracking-tighter mb-1">Status</span>
+<span class="text-[11px] font-bold text-zinc-800 bg-zinc-100 px-2 py-0.5 rounded-full">Fehlt</span>
+</div>
+</div>
+</div>
+</div>
+<button class="w-full py-6 text-zinc-400 text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-3 hover:text-primary transition-colors">
+                    Historie anzeigen
+                    <span class="material-symbols-outlined !text-[18px]">history</span>
+</button>
+</div>
+</main>
+<div class="fixed bottom-10 left-1/2 -translate-x-1/2 w-full max-w-md px-6 z-40 pointer-events-none">
+<div class="flex justify-end pointer-events-auto">
+<button class="bg-zinc-900 text-white flex items-center gap-3 px-7 py-4 rounded-full shadow-xl hover:bg-zinc-800 transition-all active:scale-95 group">
+<span class="material-symbols-outlined !text-primary !text-[20px]">auto_awesome</span>
+<span class="text-sm font-semibold tracking-tight">Neue Verfügbarkeit</span>
+</button>
+</div>
+</div>
+</div>
+
+</body></html>

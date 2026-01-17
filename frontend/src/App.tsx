@@ -35,8 +35,7 @@ import { AuthModal } from "./components/AuthModal";
 import { ActorNameModal } from "./components/ActorNameModal";
 import { GroupCreateModal } from "./components/GroupCreateModal";
 import { InviteModal } from "./components/InviteModal";
-import { Topbar } from "./components/Topbar";
-import { BottomNav } from "./components/BottomNav";
+import { SideMenu } from "./components/SideMenu";
 import { GroupsPage } from "./pages/GroupsPage";
 import { GroupDetailPage } from "./pages/GroupDetailPage";
 import { ProfilePage } from "./pages/ProfilePage";
@@ -47,14 +46,6 @@ import { useGroups } from "./hooks/useGroups";
 import { useGroupStore } from "./state/groupStore";
 
 const basename = import.meta.env.BASE_URL || "/";
-const buildCommit =
-  (import.meta.env.VITE_BUILD_COMMIT as string | undefined) || "";
-const rawBuildLabel =
-  (import.meta.env.VITE_BUILD_LABEL as string | undefined) ||
-  (import.meta.env.VITE_COMMIT as string | undefined) ||
-  buildCommit ||
-  "";
-const buildLabel = rawBuildLabel ? rawBuildLabel.slice(0, 7) : "dev";
 
 const stripBasename = (path: string) => {
   if (!basename || basename === "/") return path;
@@ -167,6 +158,7 @@ function AppShell() {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [joining, setJoining] = useState(false);
   const [alreadyMember, setAlreadyMember] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const identity = useMemo<Identity>(() => {
     if (session?.user) {
@@ -507,12 +499,11 @@ function AppShell() {
         }}
       />
 
-      <Topbar
-        title="Gemeinsam Termine finden"
-        subtitle="Gruppen-Urlaubsplaner"
-        health={health}
-        buildLabel={buildLabel}
-        buildTitle={buildCommit || undefined}
+      <SideMenu
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        identity={identity}
+        onLogout={handleLogout}
       />
 
       <Routes>
@@ -529,12 +520,19 @@ function AppShell() {
               onCreate={() => setCreateOpen(true)}
               onDelete={handleDeleteGroup}
               onCopyInvite={handleCopyInvite}
+              onOpenMenu={() => setMenuOpen(true)}
             />
           }
         />
         <Route
           path="/groups/:groupId"
-          element={<GroupDetailPage identity={identity} groups={groups} />}
+          element={
+            <GroupDetailPage
+              identity={identity}
+              groups={groups}
+              onOpenMenu={() => setMenuOpen(true)}
+            />
+          }
         />
         <Route
           path="/profile"
@@ -599,8 +597,6 @@ function AppShell() {
         }}
         onClose={() => setAuthPanelOpen(false)}
       />
-
-      <BottomNav />
     </div>
   );
 }

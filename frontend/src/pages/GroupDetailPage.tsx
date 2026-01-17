@@ -1,24 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { toast } from "sonner";
 import { useNavigate, useParams } from "react-router-dom";
 import { GroupMembership, Identity } from "../types";
 import { buildIdentityHeaders } from "../lib/identity";
 import { apiPath } from "../lib/api";
 import { AvailabilityFlow } from "../components/AvailabilityFlow";
-import {
-  buttonGhost,
-  buttonGhostDanger,
-  buttonPrimary,
-  cardMinimal,
-  eyebrow,
-  modalCard,
-  modalOverlay,
-  muted,
-  pill,
-  pillDanger,
-  pillNeutral,
-  stack,
-} from "../ui";
+import { muted } from "../ui";
 import { useGroupAvailability } from "../hooks/useGroupAvailability";
 import { useGroupMemberAvailabilities } from "../hooks/useGroupMemberAvailabilities";
 
@@ -28,46 +14,28 @@ const dateFormatter = new Intl.DateTimeFormat("de-DE", {
   year: "numeric",
 });
 
-const fullFormatter = new Intl.DateTimeFormat("de-DE", {
-  weekday: "short",
-  day: "2-digit",
-  month: "short",
-  year: "numeric",
-});
-
 type GroupDetailPageProps = {
   identity: Identity;
   groups: GroupMembership[];
+  onOpenMenu?: () => void;
 };
-export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
+export function GroupDetailPage({
+  identity,
+  groups,
+  onOpenMenu,
+}: GroupDetailPageProps) {
   const { groupId } = useParams();
   const navigate = useNavigate();
   const [groupName, setGroupName] = useState<string>("Gruppe");
-  const [groupError, setGroupError] = useState<string | null>(null);
   const [summaryExpanded, setSummaryExpanded] = useState(false);
-  const [expandedMembers, setExpandedMembers] = useState<
-    Record<string, boolean>
-  >({});
-  const [memberDeleteError, setMemberDeleteError] = useState<string | null>(
-    null
-  );
-  const [activeEntry, setActiveEntry] = useState<{
-    entry: { id: string; startDate: string; endDate: string };
-    memberName: string;
-    isSelf: boolean;
-  } | null>(null);
 
   const {
     data: summary,
-    loading: summaryLoading,
-    error: summaryError,
     refetch: refetchSummary,
   } = useGroupAvailability(groupId ?? null, identity);
 
   const {
     data: memberAvailabilities,
-    loading: membersLoading,
-    error: membersError,
     refetch: refetchMembers,
   } = useGroupMemberAvailabilities(groupId ?? null, identity);
 
@@ -75,7 +43,6 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
     const fallback = groups.find((g) => g.groupId === groupId);
     if (fallback?.name) {
       setGroupName(fallback.name);
-      setGroupError(null);
     }
 
     if (!groupId) return;
@@ -90,15 +57,9 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
         const data = await res.json();
         if (!cancelled) {
           setGroupName(data.name || fallback?.name || "Gruppe");
-          setGroupError(null);
         }
       } catch (err) {
         if (cancelled) return;
-        setGroupError(
-          err instanceof Error
-            ? err.message
-            : "Gruppe konnte nicht geladen werden"
-        );
       }
     };
 
@@ -147,6 +108,37 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
     [bestSummaryIndex, summary]
   );
 
+  const heroImage =
+    "https://lh3.googleusercontent.com/aida-public/AB6AXuD3i28Elw_Feunq2K3GfAGi-SNBmuJFRw46SjkuVJxn1SV_e3ecsDrL6YnmIyQSWf2cfzld5CMTox5AfIpWuR8hGDT9qQrICDXbRE1Ir2yWi66Armm-FolWtypSAiZOj5wyfOjUxf3IEeraftLM3paFFSFyTTPRcVORQJQa4zK_LKbLbwhLhqRAPW3PYy9Hgr1gTXdlAmR7j-9ulu_PlKypxJshdKhhDyplp6ZEJIwty-RC_AqZNlufncHY5p_uBrpdL9xaDhBivH4";
+
+  const memberCount = memberAvailabilities.length || 1;
+  const compactMembers = memberAvailabilities.slice(0, 4);
+  const remainingMembers = Math.max(0, memberCount - compactMembers.length);
+
+  const selfEntries = useMemo(
+    () =>
+      memberAvailabilities.find((member) => member.actorId === identity.actorId)
+        ?.availabilities ?? [],
+    [identity.actorId, memberAvailabilities]
+  );
+
+  const sortedSelfEntries = useMemo(
+    () =>
+      [...selfEntries].sort((a, b) => a.startDate.localeCompare(b.startDate)),
+    [selfEntries]
+  );
+
+  const selfHighlight = sortedSelfEntries[0];
+
+  const highlightInterval = bestInterval || summary[0] || null;
+  const highlightFill = highlightInterval
+    ? Math.round(
+        (highlightInterval.availableCount /
+          Math.max(1, highlightInterval.totalMembers)) *
+          100
+      )
+    : 0;
+
   const formatMemberName = (value: string) => {
     const trimmed = (value || "").trim();
     if (!trimmed) return "Unbekanntes Mitglied";
@@ -157,332 +149,318 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
     }
     return trimmed;
   };
-
-  const toggleMember = (memberId: string) => {
-    setExpandedMembers((prev) => ({ ...prev, [memberId]: !prev[memberId] }));
-  };
-
-  const openEntry = (
-    entry: { id: string; startDate: string; endDate: string },
-    memberName: string,
-    isSelf: boolean
-  ) => {
-    setActiveEntry({ entry, memberName, isSelf });
-  };
-
-  const closeEntry = () => setActiveEntry(null);
-
-  const dayDiffInclusive = (startIso: string, endIso: string): number => {
-    const start = new Date(startIso);
-    const end = new Date(endIso);
-    const diff = end.getTime() - start.getTime();
-    return Math.floor(diff / (1000 * 60 * 60 * 24)) + 1;
-  };
-
-  const handleDeleteAvailability = async (availabilityId: string) => {
-    setMemberDeleteError(null);
-    try {
-      const res = await fetch(
-        apiPath(`/api/availabilities/${availabilityId}`),
-        {
-          method: "DELETE",
-          headers: buildIdentityHeaders(identity),
-        }
-      );
-      if (!res.ok) throw new Error(`Fehler: ${res.status}`);
-      await refetchSummary();
-      await refetchMembers();
-      setActiveEntry(null);
-      toast.success("Verfügbarkeit gelöscht");
-    } catch (err) {
-      setMemberDeleteError(
-        err instanceof Error ? err.message : "Löschen fehlgeschlagen"
-      );
-    }
-  };
-
   return (
-    <div className={stack}>
-      <section className={cardMinimal}>
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div className="space-y-1">
-            <p className={eyebrow}>Gruppe</p>
-            <h2 className="text-xl font-semibold text-slate-900">
+    <div className="relative pb-28 space-y-6">
+      <div className="relative h-[32vh] w-full overflow-hidden rounded-3xl shadow-soft">
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{
+            backgroundImage: `linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.5)), url(${heroImage})`,
+          }}
+        ></div>
+        <div className="absolute top-6 left-6 right-4 flex justify-between items-start">
+          <div className="flex items-center gap-3 text-white drop-shadow-md">
+            <button
+              type="button"
+              aria-label="Zurück"
+              onClick={() => navigate(-1)}
+              className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 hover:bg-white/30 transition"
+            >
+              <span className="material-symbols-outlined">arrow_back</span>
+            </button>
+            <h1 className="text-2xl font-bold tracking-tight max-w-[60%] leading-tight">
               {groupName}
-            </h2>
-            {groupError && <div className={pillDanger}>{groupError}</div>}
+            </h1>
           </div>
-          <button
-            type="button"
-            className={buttonGhost}
-            onClick={() => navigate(-1)}
-          >
-            Zurück
-          </button>
-        </div>
-      </section>
-
-      <section className={cardMinimal}>
-        <div className="flex items-center justify-between gap-3">
-          <div>
-            <p className={eyebrow}>Gruppen-Übersicht</p>
-            <h3 className="text-lg font-semibold text-slate-900">
-              Wann die Gruppe kann
-            </h3>
-          </div>
-        </div>
-        <p className={`${muted} mt-2`}>
-          Zeigt überlappende Zeiträume und wie viele Mitglieder verfügbar sind.
-          Nicht markierte Tage gelten als nicht verfügbar.
-        </p>
-
-        <div className="mt-3 flex flex-col gap-2">
-          {summaryLoading && <p className={muted}>Lade Übersicht...</p>}
-          {summaryError && <div className={pillDanger}>{summaryError}</div>}
-          {!summaryLoading && !summaryError && summary.length === 0 && (
-            <p className={muted}>Keine Überschneidungen vorhanden.</p>
-          )}
-
-          {bestInterval && (
-            <div className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm shadow-sm">
-              <div className="flex flex-wrap items-center gap-2">
-                <span className="font-semibold text-slate-900">
-                  {dateFormatter.format(new Date(bestInterval.from))} –{" "}
-                  {dateFormatter.format(new Date(bestInterval.to))}
-                </span>
-                <span className={pillNeutral}>Meiste Zusagen</span>
-                <span className={pillNeutral}>
-                  {bestInterval.availableCount} von {bestInterval.totalMembers}{" "}
-                  Mitgliedern verfügbar
-                </span>
-              </div>
-            </div>
-          )}
-
-          {otherIntervals.length > 0 && (
-            <div className="rounded-md border border-slate-200 bg-slate-50 px-3 py-2 text-sm">
+          <div className="flex items-center gap-2">
+            {onOpenMenu ? (
               <button
                 type="button"
-                className="flex w-full items-center justify-between gap-2 text-left"
-                onClick={() => setSummaryExpanded((open) => !open)}
+                aria-label="Menü"
+                onClick={onOpenMenu}
+                className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 text-white hover:bg-white/30 transition"
               >
-                <div className="flex flex-wrap items-center gap-2">
-                  <span className="font-semibold text-slate-900">
-                    Weitere Zeiträume
-                  </span>
-                  <span className={pillNeutral}>
-                    {otherIntervals.length} Einträge
-                  </span>
-                </div>
-                <span className="text-xs font-semibold text-slate-600">
-                  {summaryExpanded ? "Schließen" : "Anzeigen"}
-                </span>
+                <span className="material-symbols-outlined">menu</span>
               </button>
-
-              {summaryExpanded && (
-                <ul className="mt-2 flex flex-col gap-2">
-                  {otherIntervals.map((item, idx) => (
-                    <li
-                      key={`${item.from}-${item.to}-${idx}`}
-                      className="rounded-md border border-slate-200 bg-white px-3 py-2"
-                    >
-                      <div className="flex flex-wrap items-center gap-2">
-                        <span className="font-semibold text-slate-900">
-                          {dateFormatter.format(new Date(item.from))} –{" "}
-                          {dateFormatter.format(new Date(item.to))}
-                        </span>
-                        <span className={pillNeutral}>
-                          {item.availableCount} von {item.totalMembers}{" "}
-                          Mitgliedern verfügbar
-                        </span>
-                      </div>
-                    </li>
-                  ))}
-                </ul>
-              )}
-            </div>
-          )}
-        </div>
-      </section>
-
-      <section className={cardMinimal}>
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
-          <div>
-            <p className={eyebrow}>Mitglieder</p>
-            <h3 className="text-lg font-semibold text-slate-900">
-              Verfügbarkeiten
-            </h3>
-          </div>
-          <div className="flex flex-wrap items-center gap-2">
-            <AvailabilityFlow
-              groups={singleGroupList}
-              identity={identity}
-              fixedGroupId={groupId ?? null}
-              hideSavedList
-              embedded
-              renderTrigger={({ open, disabled }) => (
-                <button
-                  type="button"
-                  className={buttonPrimary}
-                  onClick={open}
-                  disabled={disabled}
-                >
-                  + Verfügbarkeit
-                </button>
-              )}
-              onChange={() => {
-                void refetchSummary();
-                void refetchMembers();
-              }}
-            />
+            ) : null}
+            <button
+              type="button"
+              className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 text-white hover:bg-white/30 transition"
+            >
+              <span className="material-symbols-outlined text-[24px]">
+                settings
+              </span>
+            </button>
           </div>
         </div>
-        <div className="mt-3 flex flex-col gap-3">
-          {membersLoading && <p className={muted}>Lade Mitglieder...</p>}
-          {membersError && <div className={pillDanger}>{membersError}</div>}
-          {memberDeleteError && (
-            <div className={pillDanger}>{memberDeleteError}</div>
-          )}
-          {!membersLoading &&
-            !membersError &&
-            memberAvailabilities.length === 0 && (
-              <p className={muted}>Noch keine Mitglieder gefunden.</p>
-            )}
+        <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between">
+          <div className="bg-white/95 dark:bg-slate-900/90 backdrop-blur-md px-4 py-2 rounded-xl border border-white/40 shadow-sm flex items-center gap-2">
+            <span className="material-symbols-outlined text-brand-primary text-[18px]">
+              group
+            </span>
+            <span className="text-xs font-bold text-slate-800">
+              {memberCount} Personen
+            </span>
+          </div>
+          <button
+            className="bg-white/95 dark:bg-slate-900/90 backdrop-blur-md px-4 py-2 rounded-xl border border-white/40 shadow-sm flex items-center gap-2 hover:bg-white transition-colors"
+            type="button"
+          >
+            <span className="material-symbols-outlined text-brand-primary text-[18px]">
+              event_busy
+            </span>
+            <span className="text-xs font-bold text-slate-800">
+              Deadline setzen
+            </span>
+          </button>
+        </div>
+      </div>
 
-          {Array.isArray(memberAvailabilities) &&
-            memberAvailabilities.map((member) => (
+      <div className="px-1 space-y-6">
+        <div>
+          <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 mb-4 px-1">
+            Mitglieder
+          </h3>
+          <div className="flex overflow-x-auto no-scrollbar gap-5 items-start px-1">
+            {compactMembers.map((member) => (
               <div
                 key={member.memberId}
-                className="rounded-lg border border-slate-200 bg-slate-50 p-3"
+                className="flex flex-col items-center gap-2 min-w-[64px]"
               >
-                <button
-                  type="button"
-                  className="flex w-full flex-col gap-2 text-left sm:flex-row sm:items-center sm:justify-between"
-                  onClick={() => toggleMember(member.memberId)}
-                >
-                  <div className="flex flex-wrap items-center gap-2">
-                    <span className={pillNeutral}>
-                      {formatMemberName(member.displayName)}
-                    </span>
-                    <span className={pill}>{member.role}</span>
-                    <span className={pillNeutral}>
-                      {member.availabilities.length} Zeitraum
-                      {member.availabilities.length === 1 ? "" : "e"}
-                    </span>
-                    {identity.actorId === member.actorId ? (
-                      <span className={pillNeutral}>Du</span>
-                    ) : null}
+                <div className="w-14 h-14 rounded-full border-[2px] border-brand-primary p-0.5 shadow-sm bg-white">
+                  <div className="w-full h-full rounded-full bg-sage-100 grid place-items-center text-xs font-bold text-sage-700">
+                    {formatMemberName(member.displayName).slice(0, 2)}
                   </div>
-                  <span className="text-xs font-semibold text-slate-600">
-                    {expandedMembers[member.memberId]
-                      ? "Schließen"
-                      : "Anzeigen"}
+                </div>
+                <p className="text-[11px] font-bold text-slate-900">
+                  {formatMemberName(member.displayName)}
+                </p>
+              </div>
+            ))}
+            {remainingMembers > 0 && (
+              <div className="flex flex-col items-center gap-2 min-w-[64px]">
+                <div className="w-14 h-14 rounded-full bg-slate-100 flex items-center justify-center border border-slate-200">
+                  <span className="text-xs font-bold text-slate-500">
+                    +{remainingMembers}
                   </span>
-                </button>
+                </div>
+                <p className="text-[11px] font-medium text-slate-500">Andere</p>
+              </div>
+            )}
+          </div>
+        </div>
 
-                {expandedMembers[member.memberId] && (
-                  <div className="mt-3 flex flex-col gap-2">
-                    {member.availabilities.length === 0 && (
-                      <p className={muted}>Keine Zeiträume hinterlegt.</p>
-                    )}
-                    {member.availabilities.length > 0 && (
-                      <ul className="flex flex-col gap-2">
-                        {member.availabilities.map((entry) => (
-                          <li
-                            key={entry.id}
-                            className="rounded-md border border-slate-200 bg-white px-3 py-2 text-sm hover:border-slate-300 hover:shadow-sm transition"
-                            role="button"
-                            tabIndex={0}
-                            onClick={() =>
-                              openEntry(
-                                entry,
-                                formatMemberName(member.displayName),
-                                identity.actorId === member.actorId
-                              )
-                            }
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter" || e.key === " ") {
-                                e.preventDefault();
-                                openEntry(
-                                  entry,
-                                  formatMemberName(member.displayName),
-                                  identity.actorId === member.actorId
-                                );
-                              }
-                            }}
-                          >
-                            <div className="flex w-full flex-wrap items-center gap-2 sm:flex-nowrap">
-                              <span className={pillNeutral}>Verfügbar</span>
-                              <span className="font-semibold text-slate-900">
-                                {dateFormatter.format(
-                                  new Date(entry.startDate)
-                                )}{" "}
-                                –{" "}
-                                {dateFormatter.format(new Date(entry.endDate))}
-                              </span>
-                            </div>
-                          </li>
-                        ))}
-                      </ul>
-                    )}
+        <div className="space-y-4">
+          <div className="bg-white border border-slate-100 rounded-3xl p-6 shadow-soft">
+            <div className="flex items-center gap-5 mb-6">
+              <div className="w-16 h-16 rounded-2xl bg-sage-50 flex items-center justify-center flex-shrink-0">
+                <span className="material-symbols-outlined text-brand-primary text-[32px]">
+                  landscape
+                </span>
+              </div>
+              <div className="flex-1">
+                <h2 className="text-xl font-bold text-slate-900 leading-tight">
+                  Nächste Reise
+                </h2>
+                <p className="text-slate-500 text-sm font-medium mt-0.5">
+                  {highlightInterval
+                    ? `${dateFormatter.format(
+                        new Date(highlightInterval.from)
+                      )} – ${dateFormatter.format(
+                        new Date(highlightInterval.to)
+                      )}`
+                    : "Noch kein Zeitraum"}
+                </p>
+              </div>
+            </div>
+            <div className="space-y-4">
+              <div className="flex justify-between items-end">
+                <div className="space-y-1">
+                  <span className="text-[10px] uppercase tracking-widest font-bold text-slate-400 block">
+                    Status
+                  </span>
+                  <span className="text-sm font-semibold text-slate-700">
+                    {highlightInterval
+                      ? "Fast bereit zur Buchung"
+                      : "Wartet auf Verfügbarkeiten"}
+                  </span>
+                </div>
+                {highlightInterval && (
+                  <div className="text-right">
+                    <span className="text-brand-primary font-bold text-sm">
+                      {highlightInterval.availableCount}/
+                      {highlightInterval.totalMembers} Personen
+                    </span>
                   </div>
                 )}
               </div>
-            ))}
-        </div>
-      </section>
-
-      {activeEntry && (
-        <div
-          className={modalOverlay}
-          role="dialog"
-          aria-modal="true"
-          aria-label="Verfügbarkeit"
-        >
-          <div className={`${modalCard} max-w-md`}>
-            <div className="flex items-start justify-between gap-3">
-              <div className="space-y-1">
-                <p className={eyebrow}>Verfügbarkeit</p>
-                <h4 className="text-lg font-semibold text-slate-900">
-                  {fullFormatter.format(new Date(activeEntry.entry.startDate))}{" "}
-                  – {fullFormatter.format(new Date(activeEntry.entry.endDate))}
-                </h4>
-                <p className={muted}>
-                  {dayDiffInclusive(
-                    activeEntry.entry.startDate,
-                    activeEntry.entry.endDate
-                  )}{" "}
-                  Tage eingeplant
-                </p>
-                <div className="inline-flex items-center gap-2 rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-sm font-semibold text-slate-700">
-                  {activeEntry.memberName}
-                </div>
+              <div className="w-full bg-slate-100 h-2.5 rounded-full overflow-hidden">
+                <div
+                  className="bg-brand-primary h-full rounded-full transition-all duration-500"
+                  style={{ width: `${highlightFill}%` }}
+                ></div>
               </div>
             </div>
+            <button
+              className="w-full mt-6 py-4 text-[12px] font-bold bg-slate-50 text-brand-primary rounded-2xl hover:bg-brand-primary hover:text-white transition-all duration-200 uppercase tracking-widest border border-slate-100"
+              type="button"
+            >
+              Planung öffnen
+            </button>
+          </div>
 
-            <hr className="my-3 border-slate-200" />
+          <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-soft">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-sage-50 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-brand-primary text-[22px]">
+                    person
+                  </span>
+                </div>
+                <h2 className="text-base font-bold text-slate-900">
+                  Meine Verfügbarkeit
+                </h2>
+              </div>
+              <span className="material-symbols-outlined text-slate-300">
+                expand_more
+              </span>
+            </div>
+            <div className="bg-brand-primary text-white rounded-xl p-4 shadow-sm border border-white/10">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] uppercase font-bold text-white/80 mb-1 tracking-widest">
+                    Bester Zeitraum
+                  </p>
+                  <p className="text-sm font-semibold">
+                    {selfHighlight
+                      ? `${dateFormatter.format(
+                          new Date(selfHighlight.startDate)
+                        )} — ${dateFormatter.format(
+                          new Date(selfHighlight.endDate)
+                        )}`
+                      : "Noch nichts hinterlegt"}
+                  </p>
+                </div>
+                <span className="material-symbols-outlined text-white fill-1">
+                  check_circle
+                </span>
+              </div>
+            </div>
+          </div>
 
-            <div className="flex justify-end gap-2">
-              {activeEntry.isSelf && (
+          <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-soft">
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="w-9 h-9 rounded-full bg-sage-50 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-brand-primary text-[22px]">
+                    groups
+                  </span>
+                </div>
+                <h2 className="text-base font-bold text-slate-900">
+                  Beste Gruppen-Zeiträume
+                </h2>
+              </div>
+              <span className="material-symbols-outlined text-slate-300">
+                expand_more
+              </span>
+            </div>
+            <div className="space-y-3">
+              {highlightInterval ? (
+                <div className="flex items-center gap-4">
+                  <div className="flex-1 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                    <div className="flex justify-between items-center mb-1">
+                      <p className="text-sm font-bold text-slate-900">
+                        {dateFormatter.format(new Date(highlightInterval.from))}{" "}
+                        - {dateFormatter.format(new Date(highlightInterval.to))}
+                      </p>
+                      <span className="bg-brand-primary/10 text-brand-primary text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">
+                        TOP MATCH
+                      </span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 font-medium">
+                      {highlightInterval.availableCount} von{" "}
+                      {highlightInterval.totalMembers} Personen verfügbar
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className={muted}>Noch keine Überschneidungen vorhanden.</p>
+              )}
+
+              {otherIntervals
+                .slice(0, summaryExpanded ? otherIntervals.length : 2)
+                .map((item, idx) => (
+                  <div
+                    key={`${item.from}-${item.to}-${idx}`}
+                    className="flex items-center gap-4"
+                  >
+                    <div className="flex-1 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                      <div className="flex justify-between items-center mb-1">
+                        <p className="text-sm font-bold text-slate-900">
+                          {dateFormatter.format(new Date(item.from))} -{" "}
+                          {dateFormatter.format(new Date(item.to))}
+                        </p>
+                      </div>
+                      <p className="text-[11px] text-slate-500 font-medium">
+                        {item.availableCount} von {item.totalMembers} Personen
+                        verfügbar
+                      </p>
+                    </div>
+                  </div>
+                ))}
+              {otherIntervals.length > 2 && (
                 <button
                   type="button"
-                  className={buttonGhostDanger}
-                  onClick={() => handleDeleteAvailability(activeEntry.entry.id)}
+                  className="w-full text-left text-[12px] font-semibold text-brand-primary underline underline-offset-4"
+                  onClick={() => setSummaryExpanded((prev) => !prev)}
                 >
-                  Löschen
+                  {summaryExpanded
+                    ? "Weniger anzeigen"
+                    : `Mehr anzeigen (+${otherIntervals.length - 2})`}
                 </button>
               )}
-              <button
-                type="button"
-                className={buttonPrimary}
-                onClick={closeEntry}
-              >
-                Okay
-              </button>
             </div>
           </div>
         </div>
-      )}
+      </div>
+
+      <div className="fixed bottom-6 left-0 right-0 max-w-[520px] mx-auto p-4 flex items-center justify-end gap-3 pointer-events-none">
+        <button
+          type="button"
+          className="pointer-events-auto w-14 h-14 bg-white rounded-full shadow-2xl border border-slate-100 flex items-center justify-center hover:scale-95 transition-transform active:scale-90"
+          onClick={() => setSummaryExpanded(true)}
+          aria-label="Zeitfenster anzeigen"
+        >
+          <span className="material-symbols-outlined text-brand-primary text-2xl">
+            calendar_add_on
+          </span>
+        </button>
+        <AvailabilityFlow
+          groups={singleGroupList}
+          identity={identity}
+          fixedGroupId={groupId ?? null}
+          hideSavedList
+          embedded
+          renderTrigger={({ open }) => (
+            <button
+              type="button"
+              className="pointer-events-auto h-14 px-6 bg-brand-primary text-white rounded-full shadow-2xl flex items-center gap-2 hover:scale-95 transition-transform active:scale-90 border border-white/10"
+              onClick={open}
+            >
+              <span className="material-symbols-outlined font-bold text-xl">
+                add
+              </span>
+              <span className="text-[13px] font-bold tracking-tight">
+                Neue Verfügbarkeit
+              </span>
+            </button>
+          )}
+          onChange={() => {
+            void refetchSummary();
+            void refetchMembers();
+          }}
+        />
+      </div>
     </div>
   );
 }
