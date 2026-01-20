@@ -13,8 +13,6 @@ const heroImages = [
 
 const pendingSurface = "bg-rose-50 border border-rose-100";
 const pendingText = "text-rose-700";
-const pendingBadge =
-  "inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-rose-700 border border-rose-200";
 
 type GroupCardProps = {
   group: GroupMembership;
