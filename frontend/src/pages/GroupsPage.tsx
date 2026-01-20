@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { GroupMembership, Identity } from "../types";
 import { AvailabilityFlow } from "../components/AvailabilityFlow";
 import { muted, pillDanger } from "../ui";
+import { useGroupStats } from "../hooks/useGroupStats";
 
 const heroImages = [
   "https://lh3.googleusercontent.com/aida-public/AB6AXuA0WLJ-ohPsV1HZBi0hwQj3NaFDlfppm3lhFQ6XMofVH-52QBfRo2pDKozFyMYLvVpP8xfhkNcXwxSnvE9hSXtgWnGCSTJU2iPLMjAItxzvwsyNrW53qoRAyQi5xW9_i2LrpnOpp3yGdabdiTncukOEuj1Fc0SC3HiHMMt-s3g_E7raVQ1tMBHw0Ex8WCYCb-OQfvw-al3vZR0iL2gX2wRs0zMAQuLGlzsiZLMlNleDHhaZMpIqHf-g8AfVCF1PvQwSEaB49vgXG7M",
@@ -15,7 +16,71 @@ const pendingText = "text-rose-700";
 const pendingBadge =
   "inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-rose-700 border border-rose-200";
 
-const fallBackMemberCount = 13;
+type GroupCardProps = {
+  group: GroupMembership;
+  identity: Identity;
+  image: string;
+};
+
+function GroupCard({ group, identity, image }: GroupCardProps) {
+  const navigate = useNavigate();
+  const { data: stats, loading } = useGroupStats(group.groupId, identity);
+
+  const submitted = stats.usersWithAvailability ?? 0;
+  const total = stats.totalUsers ?? 0;
+  const progressRatio = Number.isFinite(stats.progress) ? stats.progress : 0;
+  const progressPercent = Math.min(
+    100,
+    Math.max(0, Math.round(progressRatio * 100)),
+  );
+  const progressWidth = `${progressPercent}%`;
+  const label = loading ? "Lädt…" : `${submitted} von ${total}`;
+
+  return (
+    <li
+      key={group.groupId}
+      className="flex gap-4 group cursor-pointer"
+      onClick={() => navigate(`/groups/${group.groupId}`)}
+    >
+      <div className="relative flex-shrink-0 mt-0.5">
+        <div className="size-20 rounded-[24px] overflow-hidden border-2 border-white shadow-soft">
+          <img
+            src={image}
+            alt={group.name}
+            className="w-full h-full object-cover"
+          />
+        </div>
+        <div className="absolute -top-1 -right-1 bg-brand-primary text-white size-6 rounded-full flex items-center justify-center ring-4 ring-white">
+          <span className="material-symbols-outlined text-[14px]">check</span>
+        </div>
+      </div>
+      <div className="flex-1 min-w-0 pt-1">
+        <div className="flex justify-between items-start mb-1">
+          <h4 className="font-semibold text-lg text-sage-900 tracking-tight">
+            {group.name}
+          </h4>
+        </div>
+        <div className="flex items-center gap-3">
+          <div className="flex-1">
+            <div className="flex flex-col gap-1">
+              <div className="flex justify-end">
+                <span className="text-[11px] font-semibold whitespace-nowrap text-sage-700">
+                  {label}
+                </span>
+              </div>
+              <div className="h-2 w-full bg-sage-100 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-sage-500 rounded-full transition-all"
+                  style={{ width: progressWidth }}
+                />
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </li>
+  );
+}
 
 type GroupsPageProps = {
   groups: GroupMembership[];
@@ -40,71 +105,6 @@ export function GroupsPage({
   onCopyInvite: _onCopyInvite,
   onOpenMenu,
 }: GroupsPageProps) {
-  const navigate = useNavigate();
-
-  const renderGroupCard = (group: GroupMembership, idx: number) => {
-    const ratioBase = 0.35 + ((idx * 2) % 5) * 0.08;
-    const filled = Math.max(
-      3,
-      Math.min(
-        fallBackMemberCount,
-        Math.round(fallBackMemberCount * ratioBase),
-      ),
-    );
-    const progressWidth = `${Math.min(
-      100,
-      Math.round((filled / fallBackMemberCount) * 100),
-    )}%`;
-    const image = heroImages[idx % heroImages.length];
-
-    return (
-      <li
-        key={group.groupId}
-        className="flex gap-4 group cursor-pointer"
-        onClick={() => navigate(`/groups/${group.groupId}`)}
-      >
-        <div className="relative flex-shrink-0 mt-0.5">
-          <div className="size-20 rounded-[24px] overflow-hidden border-2 border-white shadow-soft">
-            <img
-              src={image}
-              alt={group.name}
-              className="w-full h-full object-cover"
-            />
-          </div>
-          <div className="absolute -top-1 -right-1 bg-brand-primary text-white size-6 rounded-full flex items-center justify-center ring-4 ring-white">
-            <span className="material-symbols-outlined text-[14px]">check</span>
-          </div>
-        </div>
-        <div className="flex-1 min-w-0 pt-1">
-          <div className="flex justify-between items-start mb-1">
-            <h4 className="font-semibold text-lg text-sage-900 tracking-tight">
-              {group.name}
-            </h4>
-          </div>
-          <div className="flex items-center gap-3">
-            <div className="flex-1">
-              <div className="flex flex-col gap-1">
-                <div className="flex justify-end">
-                  <span
-                    className={`text-[11px] font-semibold whitespace-nowrap ${pendingText}`}
-                  >
-                    {filled} von {fallBackMemberCount}
-                  </span>
-                </div>
-                <div className="h-2 w-full bg-rose-100 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-rose-400 rounded-full transition-all"
-                    style={{ width: progressWidth }}
-                  />
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </li>
-    );
-  };
-
   const listBody = useMemo(() => {
     if (groupsLoading) return <p className={muted}>Gruppen werden geladen…</p>;
     if (groupsError) return <div className={pillDanger}>{groupsError}</div>;
@@ -116,9 +116,18 @@ export function GroupsPage({
       );
 
     return (
-      <ul className="flex flex-col gap-6">{groups.map(renderGroupCard)}</ul>
+      <ul className="flex flex-col gap-6">
+        {groups.map((group, idx) => (
+          <GroupCard
+            key={group.groupId}
+            group={group}
+            identity={identity}
+            image={heroImages[idx % heroImages.length]}
+          />
+        ))}
+      </ul>
     );
-  }, [groups, groupsError, groupsLoading, navigate]);
+  }, [groups, groupsError, groupsLoading, identity]);
 
   return (
     <div className="relative min-h-[80vh] pb-24">

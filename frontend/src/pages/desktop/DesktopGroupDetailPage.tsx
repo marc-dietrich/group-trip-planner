@@ -6,6 +6,7 @@ import { buildIdentityHeaders } from "../../lib/identity";
 import { apiPath } from "../../lib/api";
 import { useGroupAvailability } from "../../hooks/useGroupAvailability";
 import { useGroupMemberAvailabilities } from "../../hooks/useGroupMemberAvailabilities";
+import { useGroupStats } from "../../hooks/useGroupStats";
 import { GroupMembership, HealthCheck, Identity } from "../../types";
 import { muted } from "../../ui";
 
@@ -30,10 +31,14 @@ export function DesktopGroupDetailPage({
   const [groupName, setGroupName] = useState<string>("Gruppe");
   const { data: summary, refetch: refetchSummary } = useGroupAvailability(
     groupId ?? null,
-    identity
+    identity,
   );
   const { data: memberAvailabilities, refetch: refetchMembers } =
     useGroupMemberAvailabilities(groupId ?? null, identity);
+  const { data: stats, refetch: refetchStats } = useGroupStats(
+    groupId ?? null,
+    identity,
+  );
 
   useEffect(() => {
     const fallback = groups.find((g) => g.groupId === groupId);
@@ -89,10 +94,15 @@ export function DesktopGroupDetailPage({
       bestSummaryIndex >= 0
         ? summary.filter((_, idx) => idx !== bestSummaryIndex)
         : [],
-    [bestSummaryIndex, summary]
+    [bestSummaryIndex, summary],
   );
 
-  const memberCount = memberAvailabilities.length || 1;
+  const memberCount = stats.totalUsers || memberAvailabilities.length || 0;
+  const submittedCount = stats.usersWithAvailability || 0;
+  const progressPercent = Math.min(
+    100,
+    Math.max(0, Math.round((stats.progress || 0) * 100)),
+  );
   const compactMembers = memberAvailabilities.slice(0, 6);
   const remainingMembers = Math.max(0, memberCount - compactMembers.length);
   const highlightInterval = bestInterval || summary[0] || null;
@@ -100,7 +110,7 @@ export function DesktopGroupDetailPage({
     ? Math.round(
         (highlightInterval.availableCount /
           Math.max(1, highlightInterval.totalMembers)) *
-          100
+          100,
       )
     : 0;
 
@@ -135,9 +145,9 @@ export function DesktopGroupDetailPage({
               <h2 className="text-xl font-semibold text-sage-900">
                 {highlightInterval
                   ? `${dateFormatter.format(
-                      new Date(highlightInterval.from)
+                      new Date(highlightInterval.from),
                     )} – ${dateFormatter.format(
-                      new Date(highlightInterval.to)
+                      new Date(highlightInterval.to),
                     )}`
                   : "Noch kein Zeitraum"}
               </h2>
@@ -200,6 +210,28 @@ export function DesktopGroupDetailPage({
         </section>
 
         <aside className="space-y-4 rounded-3xl border border-sage-100 bg-white/95 p-5 shadow-soft">
+          <div className="rounded-2xl border border-sage-100 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-sage-600">
+                  Verfügbarkeits-Fortschritt
+                </p>
+                <p className="text-sm font-semibold text-sage-700">
+                  {progressPercent}% ausgefüllt
+                </p>
+              </div>
+              <span className="text-sm font-bold text-sage-800">
+                {submittedCount} von {memberCount}
+              </span>
+            </div>
+            <div className="h-3 w-full overflow-hidden rounded-full bg-sage-100">
+              <div
+                className="h-full rounded-full bg-sage-600"
+                style={{ width: `${progressPercent}%` }}
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
             <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-sage-500">
               Mitglieder
@@ -251,6 +283,7 @@ export function DesktopGroupDetailPage({
               onChange={() => {
                 void refetchSummary();
                 void refetchMembers();
+                void refetchStats();
               }}
             />
           </div>

@@ -75,6 +75,12 @@ class MemberAvailabilities(BaseModel):
     availabilities: list[AvailabilityResponse]
 
 
+class GroupAvailabilityStats(BaseModel):
+    totalUsers: int
+    usersWithAvailability: int
+    progress: float
+
+
 @router.post("/groups/{group_id}/availabilities", response_model=AvailabilityResponse)
 async def add_availability(
     group_id: UUID,
@@ -141,6 +147,26 @@ async def get_group_availability_summary(
         for item in items
     ]
     return parsed
+
+
+@router.get("/groups/{group_id}/availability-stats", response_model=GroupAvailabilityStats)
+async def get_group_availability_stats(
+    group_id: UUID,
+    actor_id: str | None = Header(default=None, alias="X-Actor-Id"),
+    identity: Identity = Depends(get_identity),
+    service: AvailabilityService = Depends(get_availability_service),
+):
+    resolved_actor = (actor_id or identity.user_id or "").strip() or None
+    if not resolved_actor:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="actorId header required")
+
+    user_uuid = _parse_uuid(identity.user_id)
+    stats = await service.get_group_availability_stats(
+        group_id=group_id,
+        actor_id=resolved_actor,
+        user_id=user_uuid,
+    )
+    return GroupAvailabilityStats(**stats)
 
 
 @router.get("/groups/{group_id}/member-availabilities", response_model=list[MemberAvailabilities])

@@ -7,6 +7,7 @@ import { AvailabilityFlow } from "../components/AvailabilityFlow";
 import { muted } from "../ui";
 import { useGroupAvailability } from "../hooks/useGroupAvailability";
 import { useGroupMemberAvailabilities } from "../hooks/useGroupMemberAvailabilities";
+import { useGroupStats } from "../hooks/useGroupStats";
 
 const dateFormatter = new Intl.DateTimeFormat("de-DE", {
   day: "2-digit",
@@ -41,6 +42,11 @@ export function GroupDetailPage({
 
   const { data: memberAvailabilities, refetch: refetchMembers } =
     useGroupMemberAvailabilities(groupId ?? null, identity);
+
+  const { data: stats, refetch: refetchStats } = useGroupStats(
+    groupId ?? null,
+    identity,
+  );
 
   useEffect(() => {
     const fallback = groups.find((g) => g.groupId === groupId);
@@ -114,7 +120,12 @@ export function GroupDetailPage({
   const heroImage =
     "https://lh3.googleusercontent.com/aida-public/AB6AXuD3i28Elw_Feunq2K3GfAGi-SNBmuJFRw46SjkuVJxn1SV_e3ecsDrL6YnmIyQSWf2cfzld5CMTox5AfIpWuR8hGDT9qQrICDXbRE1Ir2yWi66Armm-FolWtypSAiZOj5wyfOjUxf3IEeraftLM3paFFSFyTTPRcVORQJQa4zK_LKbLbwhLhqRAPW3PYy9Hgr1gTXdlAmR7j-9ulu_PlKypxJshdKhhDyplp6ZEJIwty-RC_AqZNlufncHY5p_uBrpdL9xaDhBivH4";
 
-  const memberCount = memberAvailabilities.length || 1;
+  const memberCount = stats.totalUsers || memberAvailabilities.length || 0;
+  const submittedCount = stats.usersWithAvailability || 0;
+  const progressPercent = Math.min(
+    100,
+    Math.max(0, Math.round((stats.progress || 0) * 100)),
+  );
   const compactMembers = memberAvailabilities.slice(0, 4);
   const remainingMembers = Math.max(0, memberCount - compactMembers.length);
 
@@ -220,6 +231,31 @@ export function GroupDetailPage({
       </div>
 
       <div className="px-1 space-y-6">
+        <div className="bg-white border border-sage-100 rounded-3xl p-4 shadow-soft">
+          <div className="flex items-center justify-between mb-3">
+            <div>
+              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-sage-600">
+                Verfügbarkeits-Fortschritt
+              </p>
+              <p className="text-sm text-sage-700 font-semibold">
+                Wer hat schon eingetragen?
+              </p>
+            </div>
+            <span className="text-sm font-bold text-sage-800">
+              {submittedCount} von {memberCount}
+            </span>
+          </div>
+          <div className="h-3 w-full bg-sage-100 rounded-full overflow-hidden">
+            <div
+              className="h-full bg-sage-600 rounded-full transition-all duration-500"
+              style={{ width: `${progressPercent}%` }}
+            ></div>
+          </div>
+          <p className="mt-2 text-[11px] font-semibold text-sage-700">
+            {progressPercent}% ausgefüllt
+          </p>
+        </div>
+
         <div>
           <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 mb-4 px-1">
             Mitglieder
@@ -464,6 +500,7 @@ export function GroupDetailPage({
           onChange={() => {
             void refetchSummary();
             void refetchMembers();
+            void refetchStats();
           }}
         />
       </div>

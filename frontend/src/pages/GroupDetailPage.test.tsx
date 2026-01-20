@@ -83,7 +83,7 @@ describe("GroupDetailPage availability summary", () => {
               }
             />
           </Routes>
-        </MemoryRouter>
+        </MemoryRouter>,
       );
     });
 
@@ -111,6 +111,12 @@ describe("GroupDetailPage availability summary", () => {
         return mockResponse(summaryResponse);
       if (url.includes("member-availabilities"))
         return mockResponse(memberAvailabilityResponse);
+      if (url.includes("availability-stats"))
+        return mockResponse({
+          totalUsers: 5,
+          usersWithAvailability: 1,
+          progress: 0.2,
+        });
       if (url.endsWith("/availabilities")) return mockResponse([]);
       if (/\/api\/groups\/.+/.test(url))
         return mockResponse({ name: "Sommertrip" });
@@ -130,7 +136,7 @@ describe("GroupDetailPage availability summary", () => {
 
     await waitFor(() => {
       expect(
-        screen.getByText(/3 von 5 Personen verfügbar/i)
+        screen.getByText(/3 von 5 Personen verfügbar/i),
       ).toBeInTheDocument();
     });
 
@@ -145,7 +151,7 @@ describe("GroupDetailPage availability summary", () => {
     expect(screen.getByText(/Alex/)).toBeInTheDocument();
 
     expect(
-      screen.getByRole("button", { name: /Neue Verfügbarkeit/i })
+      screen.getByRole("button", { name: /Neue Verfügbarkeit/i }),
     ).toBeInTheDocument();
   });
 });

@@ -1,13 +1,14 @@
 """Availability repository abstractions."""
 
 from datetime import date
-from typing import List, Protocol
+from typing import List, Protocol, Sequence
 from uuid import UUID, uuid4
 
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import text
 from sqlmodel import select
 
-from app.user_core.models import Availability
+from app.user_core.models import Availability, GroupMember
 
 
 class AvailabilityRepository(Protocol):
@@ -31,6 +32,11 @@ class AvailabilityRepository(Protocol):
         ...
 
     async def get_by_id(self, availability_id: UUID) -> Availability | None:
+        ...
+
+    async def get_group_submission_stats(
+        self, *, group_id: UUID, members: Sequence[GroupMember]
+    ) -> tuple[int, int]:
         ...
 
     async def delete_for_actor(self, *, availability_id: UUID, actor_id: str) -> bool:
@@ -93,6 +99,30 @@ class SQLModelAvailabilityRepository(AvailabilityRepository):
         await self.session.flush()
         return True
 
+    async def get_group_submission_stats(
+        self, *, group_id: UUID, members: Sequence[GroupMember]
+    ) -> tuple[int, int]:
+        del members  # unused in SQL path; required for Protocol compatibility
+
+        stmt = text(
+            """
+            SELECT
+                COUNT(DISTINCT gm.id) AS total_users,
+                COUNT(DISTINCT CASE WHEN a.id IS NOT NULL THEN gm.id END) AS users_with_availability
+            FROM group_members gm
+            LEFT JOIN availabilities a
+              ON a.group_id = gm.group_id
+             AND a.actor_id = gm.actor_id
+            WHERE gm.group_id = :group_id
+            """
+        )
+
+        result = await self.session.execute(stmt, {"group_id": group_id})
+        row = result.mappings().first() or {}
+        total = int(row.get("total_users") or 0)
+        submitted = int(row.get("users_with_availability") or 0)
+        return total, submitted
+
     async def commit(self) -> None:
         await self.session.commit()
 
@@ -137,6 +167,16 @@ class InMemoryAvailabilityRepository(AvailabilityRepository):
         before = len(self._rows)
         self._rows = [r for r in self._rows if not (r.id == availability_id and r.actor_id == actor_id)]
         return len(self._rows) != before
+
+    async def get_group_submission_stats(
+        self, *, group_id: UUID, members: Sequence[GroupMember]
+    ) -> tuple[int, int]:
+        member_actor_ids = {m.actor_id for m in members if m.group_id == group_id}
+        total_users = len(member_actor_ids)
+        submitted_actor_ids = {
+            a.actor_id for a in self._rows if a.group_id == group_id and a.actor_id in member_actor_ids
+        }
+        return total_users, len(submitted_actor_ids)
 
     async def commit(self) -> None:  # pragma: no cover - nothing to do
         return None
