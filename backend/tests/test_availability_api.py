@@ -130,3 +130,48 @@ async def test_availability_summary_endpoint(fake_group_repo, fake_availability_
             {"from": "2025-01-02", "to": "2025-01-03", "availableCount": 2, "totalMembers": 2},
             {"from": "2025-01-04", "to": "2025-01-04", "availableCount": 1, "totalMembers": 2},
         ]
+
+
+@pytest.mark.asyncio
+async def test_availability_stats_endpoint_counts_distinct_users(fake_group_repo, fake_availability_repo):
+    group_service = GroupService(fake_group_repo)
+    group, _ = await group_service.create_group(
+        group_name="Stats Trip",
+        actor_id=None,
+        display_name="Owner",
+        user_id=UUID(USER_ID),
+    )
+
+    other_user = UUID("99999999-aaaa-bbbb-cccc-dddddddddddd")
+    await fake_group_repo.add_member_to_group(
+        group.id,
+        actor_id=str(other_user),
+        user_id=other_user,
+        display_name="Member",
+    )
+
+    # Two ranges for the owner should count only once.
+    await fake_availability_repo.create_availability(
+        group_id=group.id,
+        actor_id=str(USER_ID),
+        user_id=UUID(USER_ID),
+        start_date=date(2025, 2, 1),
+        end_date=date(2025, 2, 2),
+    )
+    await fake_availability_repo.create_availability(
+        group_id=group.id,
+        actor_id=str(USER_ID),
+        user_id=UUID(USER_ID),
+        start_date=date(2025, 2, 5),
+        end_date=date(2025, 2, 6),
+    )
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        res = await client.get(f"/api/groups/{group.id}/availability-stats")
+        assert res.status_code == 200
+        body = res.json()
+
+        assert body["totalUsers"] == 2
+        assert body["usersWithAvailability"] == 1
+        assert body["progress"] == 0.5
