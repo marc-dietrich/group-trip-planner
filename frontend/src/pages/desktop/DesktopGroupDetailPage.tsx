@@ -151,7 +151,9 @@ export function DesktopGroupDetailPage({
               <p className="text-xs font-semibold uppercase tracking-[0.1em] text-sage-500">
                 Abdeckung
               </p>
-              <p className="text-2xl font-bold text-sage-900">{highlightFill}%</p>
+              <p className="text-2xl font-bold text-sage-900">
+                {highlightFill}%
+              </p>
             </div>
           </div>
 
@@ -160,7 +162,7 @@ export function DesktopGroupDetailPage({
               <div className="rounded-2xl border border-sage-100 bg-sage-50 p-4">
                 <div className="flex items-center justify-between">
                   <p className="text-base font-semibold text-sage-900">
-                    {dateFormatter.format(new Date(highlightInterval.from))} – {" "}
+                    {dateFormatter.format(new Date(highlightInterval.from))} –{" "}
                     {dateFormatter.format(new Date(highlightInterval.to))}
                   </p>
                   <span className="rounded-full bg-emerald-100 px-3 py-1 text-xs font-semibold text-emerald-700">
@@ -185,7 +187,7 @@ export function DesktopGroupDetailPage({
               >
                 <div className="flex items-center justify-between">
                   <p className="font-semibold text-sage-900">
-                    {dateFormatter.format(new Date(item.from))} – {" "}
+                    {dateFormatter.format(new Date(item.from))} –{" "}
                     {dateFormatter.format(new Date(item.to))}
                   </p>
                   <span className="text-xs font-semibold text-sage-500">

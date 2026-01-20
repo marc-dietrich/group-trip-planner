@@ -1,4 +1,10 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useState,
+} from "react";
 
 export type LayoutMode = "desktop" | "mobile";
 
@@ -24,7 +30,9 @@ export function LayoutProvider({ children }: { children: React.ReactNode }) {
 
   const value = useMemo(() => mode, [mode]);
 
-  return <LayoutContext.Provider value={value}>{children}</LayoutContext.Provider>;
+  return (
+    <LayoutContext.Provider value={value}>{children}</LayoutContext.Provider>
+  );
 }
 
 export function useLayoutMode() {

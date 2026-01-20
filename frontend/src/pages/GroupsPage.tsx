@@ -10,6 +10,11 @@ const heroImages = [
   "https://lh3.googleusercontent.com/aida-public/AB6AXuD3i28Elw_Feunq2K3GfAGi-SNBmuJFRw46SjkuVJxn1SV_e3ecsDrL6YnmIyQSWf2cfzld5CMTox5AfIpWuR8hGDT9qQrICDXbRE1Ir2yWi66Armm-FolWtypSAiZOj5wyfOjUxf3IEeraftLM3paFFSFyTTPRcVORQJQa4zK_LKbLbwhLhqRAPW3PYy9Hgr1gTXdlAmR7j-9ulu_PlKypxJshdKhhDyplp6ZEJIwty-RC_AqZNlufncHY5p_uBrpdL9xaDhBivH4",
 ];
 
+const pendingSurface = "bg-rose-50 border border-rose-100";
+const pendingText = "text-rose-700";
+const pendingBadge =
+  "inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-1 text-[10px] font-semibold uppercase tracking-[0.08em] text-rose-700 border border-rose-200";
+
 const fallBackMemberCount = 13;
 
 type GroupsPageProps = {
@@ -41,11 +46,14 @@ export function GroupsPage({
     const ratioBase = 0.35 + ((idx * 2) % 5) * 0.08;
     const filled = Math.max(
       3,
-      Math.min(fallBackMemberCount, Math.round(fallBackMemberCount * ratioBase))
+      Math.min(
+        fallBackMemberCount,
+        Math.round(fallBackMemberCount * ratioBase),
+      ),
     );
     const progressWidth = `${Math.min(
       100,
-      Math.round((filled / fallBackMemberCount) * 100)
+      Math.round((filled / fallBackMemberCount) * 100),
     )}%`;
     const image = heroImages[idx % heroImages.length];
 
@@ -73,20 +81,19 @@ export function GroupsPage({
               {group.name}
             </h4>
           </div>
-          <p className="text-sm text-sage-500 mb-2 font-medium leading-snug">
-            Nächste Reise: Ziel offen
-          </p>
           <div className="flex items-center gap-3">
             <div className="flex-1">
               <div className="flex flex-col gap-1">
                 <div className="flex justify-end">
-                  <span className="text-[11px] font-semibold text-sage-700 whitespace-nowrap">
+                  <span
+                    className={`text-[11px] font-semibold whitespace-nowrap ${pendingText}`}
+                  >
                     {filled} von {fallBackMemberCount}
                   </span>
                 </div>
-                <div className="h-2 w-full bg-sage-100 rounded-full overflow-hidden">
+                <div className="h-2 w-full bg-rose-100 rounded-full overflow-hidden">
                   <div
-                    className="h-full bg-brand-primary rounded-full transition-all"
+                    className="h-full bg-rose-400 rounded-full transition-all"
                     style={{ width: progressWidth }}
                   />
                 </div>
@@ -135,8 +142,9 @@ export function GroupsPage({
         </button>
         <div className="flex items-center justify-end w-12">
           <button
-            className="text-sage-400 hover:text-brand-primary transition-colors"
+            className={`${pendingSurface} ${pendingText} rounded-full p-2 shadow-soft transition-colors`}
             type="button"
+            aria-label="Filter (noch nicht aktiv)"
           >
             <span className="material-symbols-outlined !text-[20px]">tune</span>
           </button>
@@ -146,9 +154,11 @@ export function GroupsPage({
       <main className="px-1 sm:px-0 pt-8 space-y-8">
         <section className="px-1">
           <h1 className="text-[22px] font-semibold tracking-tight text-sage-900 leading-tight">
-            Nächste Reise:{" "}
-            <span className="text-brand-primary underline underline-offset-4">
-              10. Okt.
+            Nächste Reise:
+            <span
+              className={`${pendingSurface} ${pendingText} ml-2 inline-flex items-center gap-2 rounded-full px-3 py-1 text-xs font-bold`}
+            >
+              10. Okt. · Platzhalter
             </span>
           </h1>
         </section>
@@ -205,11 +215,12 @@ export function GroupsPage({
           </div>
           {listBody}
           <button
-            className="w-full py-6 text-sage-400 text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-3 hover:text-brand-primary transition-colors"
+            className={`w-full py-6 text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-3 transition-colors ${pendingText} ${pendingSurface}`}
             type="button"
+            aria-label="Historie Platzhalter"
           >
-            Historie anzeigen
-            <span className="material-symbols-outlined !text-[18px]">
+            Historie (noch nicht aktiv)
+            <span className="material-symbols-outlined !text-[18px] text-rose-600">
               history
             </span>
           </button>

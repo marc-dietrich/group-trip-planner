@@ -165,7 +165,9 @@ export function DesktopShell({
             onClick={onLogout}
             title="Logout"
           >
-            <span className="material-symbols-outlined text-[18px]">logout</span>
+            <span className="material-symbols-outlined text-[18px]">
+              logout
+            </span>
           </button>
         </div>
       </aside>

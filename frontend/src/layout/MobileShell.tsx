@@ -1,5 +1,4 @@
 import React from "react";
-import { BottomNav } from "../components/BottomNav";
 import { pageShell } from "../ui";
 
 type MobileShellProps = {
@@ -7,10 +6,5 @@ type MobileShellProps = {
 };
 
 export function MobileShell({ children }: MobileShellProps) {
-  return (
-    <div className={pageShell}>
-      {children}
-      <BottomNav />
-    </div>
-  );
+  return <div className={pageShell}>{children}</div>;
 }

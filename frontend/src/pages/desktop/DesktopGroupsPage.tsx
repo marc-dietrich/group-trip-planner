@@ -34,7 +34,9 @@ export function DesktopGroupsPage({
   const groupRows = useMemo(() => {
     if (groupsLoading) return <p className={muted}>Gruppen werden geladen…</p>;
     if (groupsError)
-      return <p className="text-sm font-semibold text-rose-600">{groupsError}</p>;
+      return (
+        <p className="text-sm font-semibold text-rose-600">{groupsError}</p>
+      );
     if (!groups.length)
       return (
         <div className="rounded-2xl border border-dashed border-sage-200 bg-sage-50 p-6 text-sm text-sage-700">
@@ -86,7 +88,9 @@ export function DesktopGroupsPage({
                     Öffnen
                   </button>
                 </div>
-                <p className="text-sm text-sage-600">Nächste Reise: Ziel offen</p>
+                <p className="text-sm text-sage-600">
+                  Nächste Reise: Ziel offen
+                </p>
                 <div className="flex items-center gap-3">
                   <div className="h-2 w-full rounded-full bg-sage-100">
                     <div

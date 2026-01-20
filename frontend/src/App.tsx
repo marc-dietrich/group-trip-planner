@@ -152,7 +152,7 @@ function AppShell() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<GroupCreateResult | null>(null);
   const [groupsActionError, setGroupsActionError] = useState<string | null>(
-    null
+    null,
   );
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [authPanelOpen, setAuthPanelOpen] = useState(false);
@@ -160,7 +160,7 @@ function AppShell() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteGroupId, setInviteGroupId] = useState<string | null>(null);
   const [invitePreview, setInvitePreview] = useState<GroupInvitePreview | null>(
-    null
+    null,
   );
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteLoading, setInviteLoading] = useState(false);
@@ -252,7 +252,7 @@ function AppShell() {
       .then((res) => res.json())
       .then((data: HealthCheck) => setHealth(data))
       .catch(() =>
-        setHealth({ status: "error", message: "Backend nicht erreichbar" })
+        setHealth({ status: "error", message: "Backend nicht erreichbar" }),
       );
   }, []);
 
@@ -284,7 +284,7 @@ function AppShell() {
       })
       .catch((err) => {
         setInviteError(
-          err instanceof Error ? err.message : "Einladung ungültig"
+          err instanceof Error ? err.message : "Einladung ungültig",
         );
       })
       .finally(() => setInviteLoading(false));
@@ -344,7 +344,7 @@ function AppShell() {
       void refetchGroups();
     } catch (err) {
       setGroupsActionError(
-        err instanceof Error ? err.message : "Unbekannter Fehler"
+        err instanceof Error ? err.message : "Unbekannter Fehler",
       );
     } finally {
       setDeletingId(null);
@@ -400,12 +400,14 @@ function AppShell() {
       upsertGroup(membership);
       void refetchGroups();
       toast.success(
-        data.alreadyMember ? "Du bist bereits Mitglied." : "Gruppe beigetreten."
+        data.alreadyMember
+          ? "Du bist bereits Mitglied."
+          : "Gruppe beigetreten.",
       );
       handleCloseInvite();
     } catch (err) {
       setInviteError(
-        err instanceof Error ? err.message : "Beitritt fehlgeschlagen"
+        err instanceof Error ? err.message : "Beitritt fehlgeschlagen",
       );
     } finally {
       setJoining(false);
@@ -424,11 +426,11 @@ function AppShell() {
           data.availability
             ?.map((a: any) => `${a.start}→${a.end}`)
             .join(", ") || "–"
-        }`
+        }`,
       );
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Mock-Transcribe fehlgeschlagen"
+        err instanceof Error ? err.message : "Mock-Transcribe fehlgeschlagen",
       );
     }
   };
@@ -454,7 +456,7 @@ function AppShell() {
         if (error) throw error;
         if (!data.session) {
           const { error: signinError } = await supabase.auth.signInWithPassword(
-            { email, password }
+            { email, password },
           );
           if (signinError)
             throw new Error("Login nach Registrierung fehlgeschlagen");
@@ -483,7 +485,8 @@ function AppShell() {
   };
 
   const layoutMode = useLayoutMode();
-  const isDesktop = layoutMode === "desktop";
+  // Temporarily force mobile UI everywhere while desktop is disabled
+  const isDesktop = false && layoutMode === "desktop";
 
   useEffect(() => {
     if (isDesktop && menuOpen) {
@@ -579,7 +582,10 @@ function AppShell() {
           />
         }
       />
-      <Route path="/more" element={<MorePage onTestVoice={handleMockVoice} />} />
+      <Route
+        path="/more"
+        element={<MorePage onTestVoice={handleMockVoice} />}
+      />
       <Route
         path="/invite/:inviteId"
         element={
