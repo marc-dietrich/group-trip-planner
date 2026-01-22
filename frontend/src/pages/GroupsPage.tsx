@@ -106,35 +106,34 @@ export function GroupsPage({
   onOpenMenu,
 }: GroupsPageProps) {
   const [showHistory, setShowHistory] = useState(false);
-  const { activeGroups, historyGroups, historyLabel } =
-    useMemo(() => {
-      const now = Date.now();
-      const hasCreatedAt = groups.some((g) => Boolean(g.createdAt));
-      const thresholdMs = hasCreatedAt
-        ? HISTORY_DAYS * 24 * 60 * 60 * 1000
-        : FALLBACK_TEST_HOURS * 60 * 60 * 1000;
-      const label = hasCreatedAt
-        ? "Älter als 1 Woche"
-        : "Älter als 1 Stunde (Test)";
+  const { activeGroups, historyGroups, historyLabel } = useMemo(() => {
+    const now = Date.now();
+    const hasCreatedAt = groups.some((g) => Boolean(g.createdAt));
+    const thresholdMs = hasCreatedAt
+      ? HISTORY_DAYS * 24 * 60 * 60 * 1000
+      : FALLBACK_TEST_HOURS * 60 * 60 * 1000;
+    const label = hasCreatedAt
+      ? "Älter als 1 Woche"
+      : "Älter als 1 Stunde (Test)";
 
-      const active: GroupMembership[] = [];
-      const history: GroupMembership[] = [];
+    const active: GroupMembership[] = [];
+    const history: GroupMembership[] = [];
 
-      groups.forEach((group) => {
-        const createdMs = group.createdAt ? Date.parse(group.createdAt) : NaN;
-        if (Number.isFinite(createdMs) && now - createdMs > thresholdMs) {
-          history.push(group);
-        } else {
-          active.push(group);
-        }
-      });
+    groups.forEach((group) => {
+      const createdMs = group.createdAt ? Date.parse(group.createdAt) : NaN;
+      if (Number.isFinite(createdMs) && now - createdMs > thresholdMs) {
+        history.push(group);
+      } else {
+        active.push(group);
+      }
+    });
 
-      return {
-        activeGroups: active,
-        historyGroups: history,
-        historyLabel: label,
-      };
-    }, [groups]);
+    return {
+      activeGroups: active,
+      historyGroups: history,
+      historyLabel: label,
+    };
+  }, [groups]);
 
   const listBody = useMemo(() => {
     if (groupsLoading) return <p className={muted}>Gruppen werden geladen…</p>;
@@ -296,7 +295,11 @@ export function GroupsPage({
                     key={group.groupId}
                     group={group}
                     identity={identity}
-                    image={heroImages[(idx + activeGroups.length) % heroImages.length]}
+                    image={
+                      heroImages[
+                        (idx + activeGroups.length) % heroImages.length
+                      ]
+                    }
                   />
                 ))}
               </ul>
