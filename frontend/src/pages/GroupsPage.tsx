@@ -1,4 +1,4 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { GroupMembership, Identity } from "../types";
 import { AvailabilityFlow } from "../components/AvailabilityFlow";
@@ -13,6 +13,8 @@ const heroImages = [
 
 const pendingSurface = "bg-rose-50 border border-rose-100";
 const pendingText = "text-rose-700";
+const HISTORY_DAYS = 7;
+const FALLBACK_TEST_HOURS = 1;
 
 type GroupCardProps = {
   group: GroupMembership;
@@ -103,10 +105,40 @@ export function GroupsPage({
   onCopyInvite: _onCopyInvite,
   onOpenMenu,
 }: GroupsPageProps) {
+  const [showHistory, setShowHistory] = useState(false);
+  const { activeGroups, historyGroups, historyLabel } = useMemo(() => {
+    const now = Date.now();
+    const hasCreatedAt = groups.some((g) => Boolean(g.createdAt));
+    const thresholdMs = hasCreatedAt
+      ? HISTORY_DAYS * 24 * 60 * 60 * 1000
+      : FALLBACK_TEST_HOURS * 60 * 60 * 1000;
+    const label = hasCreatedAt
+      ? "Älter als 1 Woche"
+      : "Älter als 1 Stunde (Test)";
+
+    const active: GroupMembership[] = [];
+    const history: GroupMembership[] = [];
+
+    groups.forEach((group) => {
+      const createdMs = group.createdAt ? Date.parse(group.createdAt) : NaN;
+      if (Number.isFinite(createdMs) && now - createdMs > thresholdMs) {
+        history.push(group);
+      } else {
+        active.push(group);
+      }
+    });
+
+    return {
+      activeGroups: active,
+      historyGroups: history,
+      historyLabel: label,
+    };
+  }, [groups]);
+
   const listBody = useMemo(() => {
     if (groupsLoading) return <p className={muted}>Gruppen werden geladen…</p>;
     if (groupsError) return <div className={pillDanger}>{groupsError}</div>;
-    if (!groups.length)
+    if (!activeGroups.length)
       return (
         <div className="rounded-2xl border border-dashed border-sage-200 bg-sage-50 p-5 text-sm text-sage-700">
           Noch keine Gruppen. Lege die erste an, um Verfügbarkeiten zu teilen.
@@ -115,7 +147,7 @@ export function GroupsPage({
 
     return (
       <ul className="flex flex-col gap-6">
-        {groups.map((group, idx) => (
+        {activeGroups.map((group, idx) => (
           <GroupCard
             key={group.groupId}
             group={group}
@@ -125,7 +157,7 @@ export function GroupsPage({
         ))}
       </ul>
     );
-  }, [groups, groupsError, groupsLoading, identity]);
+  }, [activeGroups, groupsError, groupsLoading, identity]);
 
   return (
     <div className="relative min-h-[80vh] pb-24">
@@ -221,17 +253,63 @@ export function GroupsPage({
             <div className="h-px flex-1 ml-4 bg-sage-100"></div>
           </div>
           {listBody}
-          <button
-            className={`w-full py-6 text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-3 transition-colors ${pendingText} ${pendingSurface}`}
-            type="button"
-            aria-label="Historie Platzhalter"
-          >
-            Historie (noch nicht aktiv)
-            <span className="material-symbols-outlined !text-[18px] text-rose-600">
-              history
-            </span>
-          </button>
+          {!showHistory && (
+            <div className="mt-4">
+              <button
+                className="w-full py-6 text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-3 transition-colors rounded-2xl border bg-sage-100 text-sage-900 border-sage-200 hover:bg-sage-200 hover:border-sage-300 active:scale-[0.99] shadow-soft"
+                type="button"
+                aria-label="Historie anzeigen"
+                onClick={() => setShowHistory(true)}
+              >
+                Historie anzeigen · {historyLabel}
+                <span className="material-symbols-outlined !text-[18px] text-sage-700">
+                  history
+                </span>
+              </button>
+            </div>
+          )}
         </section>
+
+        {showHistory && (
+          <section className="space-y-6 px-1 pb-2">
+            <div
+              className="flex items-center gap-3 cursor-pointer select-none"
+              role="button"
+              tabIndex={0}
+              aria-label="Historien-Filter deaktivieren"
+              onClick={() => setShowHistory(false)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter" || e.key === " ") setShowHistory(false);
+              }}
+            >
+              <div className="h-px flex-1 bg-sage-100"></div>
+              <div className="px-3 py-1 rounded-full bg-sage-900 text-white text-[11px] font-bold uppercase tracking-[0.16em] border border-sage-800">
+                Ältere Gruppen · {historyLabel}
+              </div>
+              <div className="h-px flex-1 bg-sage-100"></div>
+            </div>
+            {historyGroups.length ? (
+              <ul className="flex flex-col gap-6">
+                {historyGroups.map((group, idx) => (
+                  <GroupCard
+                    key={group.groupId}
+                    group={group}
+                    identity={identity}
+                    image={
+                      heroImages[
+                        (idx + activeGroups.length) % heroImages.length
+                      ]
+                    }
+                  />
+                ))}
+              </ul>
+            ) : (
+              <div className="rounded-2xl border border-dashed border-amber-100 bg-amber-50/70 p-4 text-sm text-amber-900">
+                Keine Gruppen im gewählten Zeitraum.
+              </div>
+            )}
+          </section>
+        )}
       </main>
 
       <div className="fixed bottom-10 left-0 right-0 w-full max-w-[520px] mx-auto px-4 z-20 pointer-events-none">

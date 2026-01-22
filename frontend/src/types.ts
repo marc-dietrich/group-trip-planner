@@ -29,6 +29,8 @@ export type GroupMembership = {
   name: string;
   role: string;
   inviteLink: string;
+  inviteExpiresAt?: string;
+  createdAt?: string;
 };
 
 export type GroupInvitePreview = {
