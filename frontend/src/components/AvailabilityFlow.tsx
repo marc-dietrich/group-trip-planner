@@ -1,24 +1,21 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { toast } from "sonner";
+import { useSelfAvailabilities } from "../hooks/useSelfAvailabilities";
+import { useGroupStore } from "../state/groupStore";
 import { GroupMembership, Identity } from "../types";
 import {
   buttonGhostDanger,
-  buttonGhostSmall,
   buttonGhostTiny,
   buttonPrimary,
   buttonRow,
   card,
   cardHeaderSubtle,
   eyebrow,
-  modalCard,
-  modalOverlay,
   muted,
   pillDanger,
   pillWarning,
   smallMuted,
 } from "../ui";
-import { useSelfAvailabilities } from "../hooks/useSelfAvailabilities";
-import { useGroupStore } from "../state/groupStore";
 
 type Step = "start" | "end" | "review";
 
@@ -51,6 +48,8 @@ type MonthCalendarProps = {
   todayIso: string;
   atStart: boolean;
   atEnd: boolean;
+  rangeStart?: string | null;
+  rangeEnd?: string | null;
   onPrev: () => void;
   onNext: () => void;
   onSelect: (iso: string) => void;
@@ -64,6 +63,7 @@ type AvailabilityFlowProps = {
   embedded?: boolean;
   renderTrigger?: (args: { open: () => void; disabled: boolean }) => ReactNode;
   onChange?: () => void;
+  showGroupPickerOnOpen?: boolean;
 };
 
 const AVAILABLE_TAG = "Verfügbar";
@@ -164,6 +164,8 @@ function MonthCalendar({
   todayIso,
   atStart,
   atEnd,
+  rangeStart,
+  rangeEnd,
   onPrev,
   onNext,
   onSelect,
@@ -186,7 +188,7 @@ function MonthCalendar({
   );
 
   return (
-    <div className="flex flex-col gap-2 rounded-xl border border-slate-200 bg-white p-3">
+    <div className="flex flex-col gap-3 rounded-2xl border border-sage-100 bg-white/90 p-4 shadow-soft">
       <div className="flex items-center justify-between gap-2">
         <button
           type="button"
@@ -194,9 +196,11 @@ function MonthCalendar({
           onClick={onPrev}
           disabled={atStart}
         >
-          ←
+          <span className="material-symbols-outlined text-[18px]">
+            chevron_left
+          </span>
         </button>
-        <div className="text-sm font-semibold text-slate-900">
+        <div className="text-sm font-semibold text-sage-900">
           {month.monthLabel}
         </div>
         <button
@@ -205,13 +209,15 @@ function MonthCalendar({
           onClick={onNext}
           disabled={atEnd}
         >
-          →
+          <span className="material-symbols-outlined text-[18px]">
+            chevron_right
+          </span>
         </button>
       </div>
 
-      <div className="grid grid-cols-7 gap-1 text-center text-xs font-medium text-slate-600">
+      <div className="grid grid-cols-7 gap-1 text-center text-[10px] font-semibold text-slate-400 uppercase tracking-wide">
         {"Mo Di Mi Do Fr Sa So".split(" ").map((day) => (
-          <div key={day} className="rounded-md bg-slate-50 py-1">
+          <div key={day} className="py-1">
             {day}
           </div>
         ))}
@@ -227,25 +233,37 @@ function MonthCalendar({
           );
           const isSelected = selected === cell.iso;
           const isToday = todayIso === cell.iso;
+          const inRange =
+            rangeStart &&
+            rangeEnd &&
+            cell.iso >= rangeStart &&
+            cell.iso <= rangeEnd;
 
           const base =
-            "flex aspect-square w-full items-center justify-center rounded-lg border text-sm font-semibold transition";
+            "relative flex aspect-square w-full items-center justify-center rounded-xl border text-sm font-semibold transition";
           const state = isSelected
-            ? "border-sky-500 bg-sky-500 text-white shadow"
-            : "border-slate-200 bg-slate-50 text-slate-900 hover:border-slate-400";
-          const today = isToday && !isSelected ? "border-sky-300" : "";
+            ? "border-brand-primary bg-brand-primary text-white shadow"
+            : "border-sage-100 bg-sage-50 text-sage-900 hover:border-brand-primary/40";
+          const today = isToday && !isSelected ? "border-brand-primary/40" : "";
           const disabled = isDisabled ? "cursor-not-allowed opacity-40" : "";
+          const range = inRange && !isSelected ? "bg-brand-primary/10" : "";
 
           return (
             <button
               key={cell.iso}
               type="button"
-              className={`${base} ${state} ${today} ${disabled}`}
+              className={`${base} ${state} ${today} ${disabled} ${range}`}
               disabled={isDisabled}
               onClick={() => onSelect(cell.iso)}
               aria-pressed={isSelected}
             >
               <span className="text-base">{cell.day}</span>
+              {inRange && !isSelected ? (
+                <span
+                  className="absolute inset-y-1 left-1 right-1 rounded-lg border border-brand-primary/10"
+                  aria-hidden="true"
+                ></span>
+              ) : null}
             </button>
           );
         })}
@@ -262,11 +280,13 @@ export function AvailabilityFlow({
   embedded = false,
   renderTrigger,
   onChange,
+  showGroupPickerOnOpen = false,
 }: AvailabilityFlowProps) {
   const [draft, setDraft] = useState<DraftRange>(initialDraft);
   const [step, setStep] = useState<Step>("start");
   const [listOpen, setListOpen] = useState(false);
   const [open, setOpen] = useState(false);
+  const [prefaceOpen, setPrefaceOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
@@ -280,11 +300,19 @@ export function AvailabilityFlow({
   );
 
   const {
-    data: ranges,
+    data: ranges = [],
     loading: rangesLoading,
     error: rangesError,
     refetch: refetchSelf,
   } = useSelfAvailabilities(selectedGroupId, identity);
+
+  const monthGroups = useMemo(() => buildMonthGroups(730), []);
+  const todayIso = useMemo(() => toLocalISO(new Date()), []);
+  const maxIso = useMemo(() => {
+    const lastMonth = monthGroups[monthGroups.length - 1];
+    const lastDay = lastMonth?.days[lastMonth.days.length - 1];
+    return lastDay?.iso ?? todayIso;
+  }, [monthGroups, todayIso]);
 
   useEffect(() => {
     if (fixedGroupId) {
@@ -292,6 +320,7 @@ export function AvailabilityFlow({
       setDraft((prev) => ({ ...prev, groupId: fixedGroupId }));
       return;
     }
+
     if (!groups.length) {
       setSelectedGroupId(null);
       setDraft((prev) => ({ ...prev, groupId: null }));
@@ -313,20 +342,13 @@ export function AvailabilityFlow({
   }, [groups, fixedGroupId]);
 
   useEffect(() => {
-    setListOpen(false);
-  }, [ranges]);
-
-  const monthGroups = useMemo(() => buildMonthGroups(730), []);
-
-  const todayIso = useMemo(() => toLocalISO(new Date()), []);
-  const maxIso = useMemo(() => {
-    const lastMonth = monthGroups[monthGroups.length - 1];
-    const lastDay = lastMonth?.days[lastMonth.days.length - 1];
-    return lastDay?.iso ?? todayIso;
-  }, [monthGroups, todayIso]);
+    if (!draft.start) return;
+    const key = monthKeyFromIso(draft.start);
+    const idx = monthGroups.findIndex((m) => m.monthKey === key);
+    if (idx >= 0) setMonthIndex(idx);
+  }, [draft.start, monthGroups]);
 
   const showGroupName = !fixedGroupId && groups.length > 1;
-
   const hasMonths = monthGroups.length > 0;
   const atStart = monthIndex === 0;
   const atEnd = hasMonths ? monthIndex === monthGroups.length - 1 : true;
@@ -340,7 +362,27 @@ export function AvailabilityFlow({
       Math.min(monthGroups.length - 1, Math.max(0, idx + 1))
     );
 
-  const stepNumber = step === "start" ? 1 : step === "end" ? 2 : 3;
+  const stepMeta =
+    step === "start"
+      ? {
+          badge: "1/3 Startdatum",
+          title: "Startdatum auswählen",
+          subtitle: "Tippe auf ein Startdatum im Kalender",
+          cta: "Weiter",
+        }
+      : step === "end"
+      ? {
+          badge: "2/3 Enddatum",
+          title: "Enddatum wählen",
+          subtitle: "Wähle nun ein Enddatum",
+          cta: "Weiter",
+        }
+      : {
+          badge: "3/3 Prüfen & Bestätigen",
+          title: "Zusammenfassung",
+          subtitle: "Alles korrekt?",
+          cta: saving ? "Speichere..." : "Bestätigen & Speichern",
+        };
 
   const canSave = Boolean(draft.start && draft.end && draft.groupId && !saving);
 
@@ -354,16 +396,6 @@ export function AvailabilityFlow({
     return groups.find((g) => g.groupId === selectedGroupId)?.name ?? "";
   }, [groups, selectedGroupId]);
 
-  const handleStartSelect = (iso: string) => {
-    setDraft((prev) => ({ ...prev, start: iso, end: iso }));
-    setStep("end");
-  };
-
-  const handleEndSelect = (iso: string) => {
-    setDraft((prev) => ({ ...prev, end: iso }));
-    setStep("review");
-  };
-
   const resetFlow = () => {
     const fallbackGroupId = fixedGroupId
       ? fixedGroupId
@@ -376,7 +408,35 @@ export function AvailabilityFlow({
   };
 
   const openDialog = () => {
+    if (showGroupPickerOnOpen && !fixedGroupId && groups.length > 1) {
+      setPrefaceOpen(true);
+      return;
+    }
     setOpen(true);
+  };
+
+  const closeDialog = () => {
+    resetFlow();
+    setOpen(false);
+    setPrefaceOpen(false);
+  };
+
+  const handlePrefaceSelect = (groupId: string) => {
+    const target = groupId || groups[0]?.groupId || null;
+    setSelectedGroupId(target);
+    setDraft((prev) => ({ ...prev, groupId: target }));
+    setPrefaceOpen(false);
+    setOpen(true);
+  };
+
+  const handleStartSelect = (iso: string) => {
+    setDraft((prev) => ({ ...prev, start: iso, end: iso }));
+    setStep("end");
+  };
+
+  const handleEndSelect = (iso: string) => {
+    setDraft((prev) => ({ ...prev, end: iso }));
+    setStep("review");
   };
 
   const handleSave = async () => {
@@ -386,22 +446,12 @@ export function AvailabilityFlow({
       return;
     }
 
-    const group =
-      groups.find((g) => g.groupId === draft.groupId) ??
-      (draft.groupId
-        ? { groupId: draft.groupId, name: "Ausgewählte Gruppe" }
-        : null);
-
-    if (!group) {
-      toast.error("Ausgewählte Gruppe nicht mehr vorhanden");
-      return;
-    }
-
-    setMutationError(null);
     setSaving(true);
+    setMutationError(null);
+
     try {
       await optimisticAdd({
-        groupId: group.groupId,
+        groupId: draft.groupId,
         startDate: draft.start,
         endDate: draft.end,
         identity,
@@ -444,20 +494,6 @@ export function AvailabilityFlow({
       }
     })();
   };
-
-  const closeDialog = () => {
-    resetFlow();
-    setOpen(false);
-  };
-
-  useEffect(() => {
-    if (!draft.start) return;
-    const key = monthKeyFromIso(draft.start);
-    const idx = monthGroups.findIndex((m) => m.monthKey === key);
-    if (idx >= 0) {
-      setMonthIndex(idx);
-    }
-  }, [draft.start, monthGroups]);
 
   const triggerNode = renderTrigger ? (
     renderTrigger({ open: openDialog, disabled: false })
@@ -509,120 +545,177 @@ export function AvailabilityFlow({
         </div>
       )}
 
-      {open && (
-        <div className={modalOverlay} role="dialog" aria-modal="true">
-          <div className={modalCard}>
-            <div className="flex items-center justify-between gap-3">
-              <span className="inline-flex items-center gap-2 rounded-lg border border-sky-200 bg-sky-50 px-3 py-1 text-sm font-semibold text-sky-800">
-                {stepNumber}/3{" "}
-                {step === "start"
-                  ? "Startdatum"
-                  : step === "end"
-                  ? "Enddatum"
-                  : "Prüfen"}
-              </span>
-              <button
-                type="button"
-                className={buttonGhostSmall}
-                onClick={closeDialog}
-              >
-                Schließen
-              </button>
-            </div>
-
-            <hr className="my-3 border-slate-200" />
-
-            <div className="flex-1 overflow-hidden pt-1">
-              {step === "start" && currentMonth && (
-                <div className="flex h-full flex-col gap-3">
-                  <MonthCalendar
-                    month={currentMonth}
-                    selected={draft.start}
-                    minDate={todayIso}
-                    maxDate={maxIso}
-                    todayIso={todayIso}
-                    atStart={atStart}
-                    atEnd={atEnd}
-                    onPrev={goPrevMonth}
-                    onNext={goNextMonth}
-                    onSelect={handleStartSelect}
-                  />
-                  <div className="min-h-[44px]" aria-hidden="true" />
+      {(open || prefaceOpen) && (
+        <div
+          className="fixed inset-0 z-30 flex items-center justify-center bg-black/35 backdrop-blur-sm px-4 py-8"
+          role="dialog"
+          aria-modal="true"
+        >
+          {prefaceOpen ? (
+            <div className="relative w-full max-w-[360px]">
+              <div className="relative w-full bg-white rounded-[24px] shadow-2xl border border-white/30 overflow-hidden flex flex-col">
+                <div className="px-5 pt-5 pb-3 flex items-center justify-between">
+                  <h2 className="text-[17px] font-semibold text-slate-900">
+                    Gruppe wählen
+                  </h2>
+                  <button
+                    type="button"
+                    className="w-8 h-8 flex items-center justify-center text-slate-400 hover:text-slate-600 transition-colors bg-slate-50 rounded-full"
+                    onClick={closeDialog}
+                  >
+                    <span className="material-symbols-outlined text-[20px]">
+                      close
+                    </span>
+                  </button>
                 </div>
-              )}
-
-              {step === "end" && currentMonth && (
-                <div className="flex flex-col gap-3">
-                  <MonthCalendar
-                    month={currentMonth}
-                    selected={draft.end}
-                    minDate={draft.start ?? todayIso}
-                    maxDate={maxIso}
-                    todayIso={todayIso}
-                    atStart={atStart}
-                    atEnd={atEnd}
-                    onPrev={goPrevMonth}
-                    onNext={goNextMonth}
-                    onSelect={handleEndSelect}
-                  />
-                  <div className="min-h-[44px]" aria-hidden="true" />
-                </div>
-              )}
-
-              {step === "review" && draft.start && draft.end && (
-                <div className="flex flex-col gap-3">
-                  <div className="rounded-xl border border-slate-200 bg-gradient-to-br from-slate-50 to-slate-100 p-3 shadow-inner">
-                    <div className="flex items-start gap-3">
-                      <div className="mt-0.5 h-8 w-8 shrink-0 rounded-full bg-slate-900 text-white grid place-items-center text-sm font-bold">
-                        ✓
-                      </div>
-                      <div className="space-y-1">
-                        <div className="text-sm font-semibold text-slate-900">
-                          Zusammenfassung
+                <div className="px-3 pb-4 space-y-1">
+                  {groups.map((group) => {
+                    const isSelected = selectedGroupId === group.groupId;
+                    const initials = group.name.slice(0, 2).toUpperCase();
+                    return (
+                      <button
+                        key={group.groupId}
+                        type="button"
+                        onClick={() => handlePrefaceSelect(group.groupId)}
+                        className={`flex w-full items-center justify-between rounded-2xl p-3 transition-colors border ${
+                          isSelected
+                            ? "bg-sage-50 border-brand-primary/30 shadow-sm"
+                            : "hover:bg-slate-50 border-transparent"
+                        }`}
+                      >
+                        <div className="flex items-center gap-3 text-left">
+                          <div className="w-10 h-10 rounded-full bg-sage-100 flex items-center justify-center text-sage-800 font-semibold border border-white shadow-sm">
+                            {initials}
+                          </div>
+                          <span className="text-[15px] font-semibold text-slate-900">
+                            {group.name}
+                          </span>
                         </div>
-                        <div className="flex flex-col gap-2 text-left">
-                          <hr className="border-slate-200" />
-                          <div className="flex flex-wrap items-baseline gap-2">
-                            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                        {isSelected ? (
+                          <span className="material-symbols-outlined text-brand-primary text-[20px] font-bold">
+                            check
+                          </span>
+                        ) : null}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="relative w-full max-w-[420px]">
+              <div className="relative w-full bg-white rounded-[24px] shadow-2xl border border-white/30 overflow-hidden flex flex-col">
+                <div className="px-5 pt-5 pb-3 flex items-center justify-between">
+                  <div className="bg-sage-50 text-brand-primary px-3 py-1 rounded-full border border-sage-100">
+                    <span className="text-[12px] font-bold tracking-tight">
+                      {stepMeta.badge}
+                    </span>
+                  </div>
+                  <button
+                    type="button"
+                    className="text-slate-400 font-medium text-sm px-2 py-1 hover:text-slate-600 transition-colors"
+                    onClick={closeDialog}
+                  >
+                    Schließen
+                  </button>
+                </div>
+
+                <div className="px-6 pb-6 pt-1 flex-1 flex flex-col gap-3">
+                  <div className="space-y-1">
+                    <h3 className="text-slate-900 text-xl font-bold leading-tight">
+                      {stepMeta.title}
+                    </h3>
+                    <p className="text-slate-500 text-sm">
+                      {stepMeta.subtitle}
+                    </p>
+                  </div>
+
+                  {step === "start" && currentMonth && (
+                    <MonthCalendar
+                      month={currentMonth}
+                      selected={draft.start}
+                      minDate={todayIso}
+                      maxDate={maxIso}
+                      todayIso={todayIso}
+                      atStart={atStart}
+                      atEnd={atEnd}
+                      rangeStart={draft.start}
+                      rangeEnd={draft.start}
+                      onPrev={goPrevMonth}
+                      onNext={goNextMonth}
+                      onSelect={handleStartSelect}
+                    />
+                  )}
+
+                  {step === "end" && currentMonth && (
+                    <MonthCalendar
+                      month={currentMonth}
+                      selected={draft.end}
+                      minDate={draft.start ?? todayIso}
+                      maxDate={maxIso}
+                      todayIso={todayIso}
+                      atStart={atStart}
+                      atEnd={atEnd}
+                      rangeStart={draft.start}
+                      rangeEnd={draft.end}
+                      onPrev={goPrevMonth}
+                      onNext={goNextMonth}
+                      onSelect={handleEndSelect}
+                    />
+                  )}
+
+                  {step === "review" && draft.start && draft.end && (
+                    <div className="flex flex-col gap-3">
+                      <div className="bg-sage-50 border border-sage-100 rounded-[20px] p-5 space-y-4">
+                        <div className="space-y-3 pl-1">
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">
                               Von
                             </span>
-                            <span className="text-base font-bold text-slate-900 leading-tight">
+                            <span className="text-slate-900 font-semibold text-xl">
                               {fullFormatter.format(new Date(draft.start))}
                             </span>
                           </div>
-                          <div className="flex flex-wrap items-baseline gap-2">
-                            <span className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500">
+                          <div className="flex flex-col gap-1">
+                            <span className="text-[10px] font-bold text-slate-400 tracking-widest uppercase">
                               Bis
                             </span>
-                            <span className="text-base font-bold text-slate-900 leading-tight">
+                            <span className="text-slate-900 font-semibold text-xl">
                               {fullFormatter.format(new Date(draft.end))}
                             </span>
                           </div>
-                          <hr className="border-slate-200" />
                         </div>
-                        <div className="text-xs font-medium uppercase tracking-[0.12em] text-slate-500">
-                          {dayDiffInclusive(draft.start, draft.end)} Tage
-                          eingeplant
+                        <div className="pt-3">
+                          <div className="inline-flex px-3 py-1 bg-sage-200 rounded-full">
+                            <span className="text-[10px] font-bold text-slate-700 tracking-wider uppercase">
+                              {dayDiffInclusive(draft.start, draft.end)} Tage
+                              eingeplant
+                            </span>
+                          </div>
                         </div>
                       </div>
                     </div>
-                  </div>
-                  <div
-                    className={`${buttonRow} shrink-0 justify-end min-h-[44px]`}
-                  >
-                    <button
-                      type="button"
-                      className={buttonPrimary}
-                      disabled={!canSave}
-                      onClick={handleSave}
-                    >
-                      {saving ? "Speichere..." : "Bestätigen"}
-                    </button>
-                  </div>
+                  )}
                 </div>
-              )}
+
+                <div className="px-6 py-5 bg-white flex flex-col gap-3">
+                  {step === "review" ? (
+                    <button
+                      className="w-full bg-brand-primary py-4 px-6 rounded-2xl text-white font-bold text-lg flex items-center justify-center gap-2 shadow-lg shadow-brand-primary/20 transition-all active:scale-[0.98]"
+                      type="button"
+                      onClick={handleSave}
+                      disabled={!canSave}
+                    >
+                      <span>{stepMeta.cta}</span>
+                      <span className="material-symbols-outlined">
+                        arrow_forward
+                      </span>
+                    </button>
+                  ) : null}
+                </div>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
@@ -703,7 +796,7 @@ export function AvailabilityFlow({
             <button
               type="button"
               className="flex w-full items-center justify-between rounded-xl border border-slate-200 bg-white px-3 py-2 text-left text-sm font-semibold text-slate-900 hover:bg-slate-50 sm:text-base"
-              onClick={() => setListOpen((open) => !open)}
+              onClick={() => setListOpen((openState) => !openState)}
               aria-expanded={listOpen}
             >
               <span className={muted}>

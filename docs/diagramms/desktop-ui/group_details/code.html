@@ -1,0 +1,349 @@
+<!DOCTYPE html>
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Travel Dashboard - Alps, Austria</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#6f8961", // Primary Sage Green
+                        "primary-light": "#859f79",
+                        "primary-dark": "#566b4b",
+                        "charcoal": "#2c332a",
+                        "off-white": "#f8f9f7",
+                        "sage": {
+                            "50": "#f4f6f3",
+                            "100": "#e9ece6",
+                            "200": "#d2d9ce",
+                            "300": "#b8c3b1",
+                            "400": "#8da082",
+                            "500": "#6f8961",
+                            "600": "#566b4b",
+                            "700": "#45563d",
+                            "800": "#374431",
+                            "900": "#2c332a",
+                        }
+                    },
+                    fontFamily: {
+                        "display": ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    borderRadius: {"DEFAULT": "0.375rem", "lg": "0.625rem", "xl": "1rem", "full": "9999px"},
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        body {
+            font-family: "Plus Jakarta Sans", sans-serif;
+            @apply text-charcoal bg-off-white;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .custom-scrollbar::-webkit-scrollbar {
+            width: 6px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+            @apply bg-transparent;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+            @apply bg-sage-200 rounded-full;
+        }
+    </style>
+</head>
+<body class="dark:bg-sage-900 dark:text-off-white transition-colors duration-200">
+<div class="flex h-screen overflow-hidden">
+<aside class="w-72 flex-shrink-0 border-r border-sage-200 dark:border-white/10 bg-white dark:bg-sage-900 flex flex-col justify-between p-8">
+<div class="flex flex-col gap-10">
+<div class="flex items-center gap-3">
+<div class="bg-primary size-10 rounded-xl flex items-center justify-center text-white shadow-sm">
+<span class="material-symbols-outlined font-bold">flight_takeoff</span>
+</div>
+<div class="flex flex-col">
+<h1 class="text-lg font-bold leading-tight tracking-tight">Travel Planner</h1>
+<p class="text-sage-500 text-[11px] font-bold uppercase tracking-wider">Group Coordination</p>
+</div>
+</div>
+<nav class="flex flex-col gap-1.5">
+<a class="flex items-center gap-3 px-4 py-2.5 rounded-lg bg-sage-100 dark:bg-white/10 text-primary-dark dark:text-white group" href="#">
+<span class="material-symbols-outlined text-primary">home</span>
+<span class="text-sm font-semibold">Home</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-sage-50 dark:hover:bg-white/5 transition-colors text-sage-600 dark:text-sage-300" href="#">
+<span class="material-symbols-outlined text-sage-400">map</span>
+<span class="text-sm font-medium">Trips</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-sage-50 dark:hover:bg-white/5 transition-colors text-sage-600 dark:text-sage-300" href="#">
+<span class="material-symbols-outlined text-sage-400">calendar_month</span>
+<span class="text-sm font-medium">Calendar</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-sage-50 dark:hover:bg-white/5 transition-colors text-sage-600 dark:text-sage-300" href="#">
+<span class="material-symbols-outlined text-sage-400">payments</span>
+<span class="text-sm font-medium">Expenses</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-2.5 rounded-lg hover:bg-sage-50 dark:hover:bg-white/5 transition-colors text-sage-600 dark:text-sage-300" href="#">
+<span class="material-symbols-outlined text-sage-400">settings</span>
+<span class="text-sm font-medium">Settings</span>
+</a>
+</nav>
+</div>
+<button class="w-full bg-primary hover:bg-primary-dark text-white font-bold py-3.5 rounded-xl flex items-center justify-center gap-2 shadow-md shadow-primary/20 transition-all active:scale-[0.98]">
+<span class="material-symbols-outlined text-[20px]">add</span>
+<span>New Trip</span>
+</button>
+</aside>
+<main class="flex-1 flex flex-col overflow-y-auto custom-scrollbar">
+<header class="sticky top-0 z-10 flex items-center justify-between border-b border-sage-100 dark:border-white/10 bg-white/80 dark:bg-sage-900/80 backdrop-blur-md px-10 py-5">
+<div class="flex items-center gap-4">
+<h2 class="text-xl font-bold text-charcoal dark:text-white">Dashboard</h2>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative flex items-center">
+<span class="material-symbols-outlined absolute left-3.5 text-sage-400">search</span>
+<input class="pl-11 pr-4 py-2 bg-sage-50 dark:bg-white/5 border border-sage-100 dark:border-white/10 rounded-xl focus:ring-2 focus:ring-primary/30 focus:border-primary w-72 text-sm outline-none transition-all" placeholder="Search trips, people..." type="text"/>
+</div>
+<div class="flex gap-3">
+<button class="p-2.5 bg-sage-50 dark:bg-white/5 rounded-xl hover:bg-sage-100 dark:hover:bg-white/10 relative transition-colors">
+<span class="material-symbols-outlined text-sage-600 dark:text-sage-200">notifications</span>
+<span class="absolute top-2.5 right-2.5 size-2 bg-primary border-2 border-white dark:border-sage-900 rounded-full"></span>
+</button>
+<button class="p-2.5 bg-sage-50 dark:bg-white/5 rounded-xl hover:bg-sage-100 dark:hover:bg-white/10 transition-colors">
+<span class="material-symbols-outlined text-sage-600 dark:text-sage-200">account_circle</span>
+</button>
+</div>
+</div>
+</header>
+<div class="p-10 max-w-[1200px] mx-auto w-full flex flex-col gap-8">
+<section class="flex flex-col gap-6">
+<div class="relative overflow-hidden rounded-2xl h-96 group shadow-lg shadow-sage-200/50 dark:shadow-none">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-700 group-hover:scale-105" style='background-image: linear-gradient(180deg, rgba(0, 0, 0, 0) 40%, rgba(44, 51, 42, 0.9) 100%), url("https://lh3.googleusercontent.com/aida-public/AB6AXuD498K1ZXpYjuIh2MbFAWVupr5HA1qeN8lCkF1A4Q1GPw4P-XqcCWEIwSyEmh6SNN5MH9t3yX9c5Pn3HpUMFG7osd3VnEfp8ia7EHeqeDudkWsp4PiNVGUQkyA-wg9sorcL1EV4DiLVGMmnWddKy3DXu4gxr24H7z-7kwPTSbeJpPQavlM8n3mQBCYr61RG9rINoU4Pc-jhQINOHPqtzqHo4nDYPsuKE8tyH0OnQ6H1dlWoXYl-fBBZ4LhcGAh8zMNDjVGZcaCMOPE7");'>
+</div>
+<div class="absolute bottom-0 left-0 p-10 w-full flex justify-between items-end">
+<div class="max-w-xl">
+<span class="bg-primary/90 text-white px-3.5 py-1 rounded-full text-[10px] font-black uppercase tracking-[0.2em] mb-4 inline-block">Upcoming Adventure</span>
+<h3 class="text-5xl font-bold text-white mb-3">Alps, Austria</h3>
+<div class="flex items-center gap-4 text-white/90">
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-base">calendar_today</span>
+<span class="text-sm font-semibold">Oct 10 - Oct 17, 2024</span>
+</div>
+<div class="flex items-center gap-1.5">
+<span class="material-symbols-outlined text-base">location_on</span>
+<span class="text-sm font-semibold">Tyrol Region</span>
+</div>
+</div>
+</div>
+<button class="bg-white/15 hover:bg-white/25 backdrop-blur-md text-white px-8 py-3 rounded-xl font-bold border border-white/30 transition-all hover:translate-y-[-2px]">
+                            Trip Details
+                        </button>
+</div>
+</div>
+<div class="bg-white dark:bg-white/5 p-8 rounded-2xl border border-sage-100 dark:border-white/10 shadow-sm">
+<div class="flex justify-between items-start mb-5">
+<div>
+<h4 class="text-lg font-bold text-charcoal dark:text-white">Booking Status</h4>
+<p class="text-sage-500 text-sm mt-0.5">8 of 12 members are ready to finalize bookings</p>
+</div>
+<div class="text-right">
+<span class="text-3xl font-bold text-primary">66%</span>
+<p class="text-[10px] text-sage-400 uppercase font-black tracking-widest mt-1">Ready to book</p>
+</div>
+</div>
+<div class="w-full bg-sage-50 dark:bg-white/5 h-4 rounded-full overflow-hidden border border-sage-100 dark:border-white/5">
+<div class="bg-primary h-full transition-all duration-1000 relative" style="width: 66%">
+<div class="absolute inset-0 bg-gradient-to-r from-transparent to-white/20"></div>
+</div>
+</div>
+<div class="mt-5 flex justify-between items-center text-xs font-bold text-sage-400">
+<div class="flex items-center gap-1">
+<span class="material-symbols-outlined text-sm">schedule</span>
+<span>Phase: Availability Check</span>
+</div>
+<span class="flex items-center gap-1.5 text-primary">
+<span class="material-symbols-outlined text-sm">event_repeat</span>
+                            Target Date: Sept 30, 2024
+                        </span>
+</div>
+</div>
+</section>
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+<div class="lg:col-span-2 flex flex-col gap-8">
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8">
+<div class="bg-white dark:bg-white/5 p-8 rounded-2xl border border-sage-100 dark:border-white/10 shadow-sm flex flex-col">
+<div class="flex justify-between items-center mb-6">
+<h5 class="font-bold flex items-center gap-2.5 text-charcoal dark:text-white">
+<span class="material-symbols-outlined text-primary">event_available</span>
+                                    My Availability
+                                </h5>
+<button class="text-primary hover:text-primary-dark text-xs font-black uppercase tracking-wider transition-colors">Edit</button>
+</div>
+<div class="space-y-4 flex-1">
+<div class="flex items-center justify-between p-4 rounded-xl bg-sage-50 dark:bg-white/5 border border-primary/20">
+<div class="flex flex-col">
+<span class="text-[10px] text-primary font-black uppercase tracking-wider">Oct 10 - 17</span>
+<span class="text-sm font-bold text-charcoal dark:text-white">Confirmed Available</span>
+</div>
+<div class="bg-primary text-white size-6 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined text-sm font-bold">check</span>
+</div>
+</div>
+<div class="flex items-center justify-between p-4 rounded-xl border-2 border-dashed border-sage-200 dark:border-white/10 hover:bg-sage-50/50 transition-colors cursor-pointer group">
+<div class="flex flex-col">
+<span class="text-[10px] text-sage-400 font-black uppercase tracking-wider">Alternative Dates</span>
+<span class="text-sm font-medium italic text-sage-400">Add options</span>
+</div>
+<span class="material-symbols-outlined text-sage-300 group-hover:text-primary transition-colors">add_circle</span>
+</div>
+</div>
+</div>
+<div class="bg-white dark:bg-white/5 p-8 rounded-2xl border border-sage-100 dark:border-white/10 shadow-sm">
+<div class="flex justify-between items-center mb-6">
+<h5 class="font-bold flex items-center gap-2.5 text-charcoal dark:text-white">
+<span class="material-symbols-outlined text-primary">groups</span>
+                                    Top Timeframes
+                                </h5>
+</div>
+<div class="space-y-5">
+<div class="flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="text-[10px] font-black text-white bg-primary size-5 rounded-md flex items-center justify-center">1</span>
+<p class="text-sm font-bold">Oct 10-17</p>
+</div>
+<span class="text-xs font-bold text-primary">10/12 votes</span>
+</div>
+<div class="w-full bg-sage-50 dark:bg-white/5 h-2 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 83%"></div>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-3">
+<span class="text-[10px] font-black text-sage-400 bg-sage-100 dark:bg-white/10 size-5 rounded-md flex items-center justify-center">2</span>
+<p class="text-sm font-bold">Oct 17-24</p>
+</div>
+<span class="text-xs font-bold text-sage-400">6/12 votes</span>
+</div>
+<div class="w-full bg-sage-50 dark:bg-white/5 h-2 rounded-full overflow-hidden">
+<div class="bg-sage-200 dark:bg-white/20 h-full rounded-full" style="width: 50%"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<div class="bg-white dark:bg-white/5 rounded-2xl border border-sage-100 dark:border-white/10 overflow-hidden shadow-sm">
+<div class="p-8 border-b border-sage-50 dark:border-white/10 flex justify-between items-center">
+<h5 class="font-bold text-charcoal dark:text-white">Trip Highlights Gallery</h5>
+<button class="text-sage-400 hover:text-primary transition-colors">
+<span class="material-symbols-outlined">collections</span>
+</button>
+</div>
+<div class="p-8 grid grid-cols-3 gap-6">
+<div class="flex flex-col gap-3 group">
+<div class="aspect-video rounded-xl bg-cover bg-center ring-1 ring-black/5 transition-transform group-hover:scale-[1.02]" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuCVwQpnAWPvk_yxEkxpR1ZilwrSPI_KVl7bNeabF-G9HqvqpH763Bargc7ECP6fLXJruZfJAnI2OZpgwN3GrSiTweqzPS2ro9fFob61umhs_cM5M1tSusIMT-XyPjmp60m5PU-YaGg0DpNpkTcRaSX9vAAbTeRZSRuDdPwDTeWbu4WwuNxYU1sffvxQOvmmgUOR4eEOVkktkTdELNVJNFKTHJwgUdeYrFEL0y4_QsiRA-jkqe0HSig4hgts9SeczQZb-HldOuMFAfBy");'></div>
+<p class="text-xs font-bold text-sage-600 dark:text-sage-300">Traditional Lodge</p>
+</div>
+<div class="flex flex-col gap-3 group">
+<div class="aspect-video rounded-xl bg-cover bg-center ring-1 ring-black/5 transition-transform group-hover:scale-[1.02]" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDw9316Pqi5DPUWejq4BBlT_KR2lAIY1YgZVHrtTXAS7Y88msS7DqyjV1vShc2dm8uF7WpDoZWnCww1496shNCPsePU3lfcW2zvYO_2pl_dcYqhxn6oGCYmyqCbYErkQsKazFSovf8xa6qQOk00mHTX_21uF3LEOm4bysIgxLpjiYmYmN4nniPsf-OXJuhn31EUaYRmx0ExsA7pDReTq7eS8pm6uX1T2Z40owL9dpshF3rLd5EKi7g1XtY-xFGg5a5dW36P1a1DrrRV");'></div>
+<p class="text-xs font-bold text-sage-600 dark:text-sage-300">Alpine Hiking</p>
+</div>
+<div class="flex flex-col gap-3 group">
+<div class="aspect-video rounded-xl bg-cover bg-center ring-1 ring-black/5 transition-transform group-hover:scale-[1.02]" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDPLE2Q_I_WDKZ0d9fTZelYDGa3LWZZLKaQMvFgGPu6x8EtUBPDkcwVDYfPqqIn3M6OUe8Pb44HwTd7_BuJFlAyA-FYAHd3kvS_nor7XDONAtaALtqiwqnmik0tZwWZu_6pFJoRhc-KTu1HYYAQxy0PxdRxWQf6zvD7iGbuWYgWsg0NpXDXve9keU0sGSUAh-zScGdN2ztMomwzBpI8M9yz3mR6PrlSxvMUSdobMm3GMQ0KEfbP2hgL1pNkH5HoW5XmHoIaQ6w6ok2f");'></div>
+<p class="text-xs font-bold text-sage-600 dark:text-sage-300">Regional Gastronomy</p>
+</div>
+</div>
+</div>
+</div>
+<div class="flex flex-col gap-6">
+<div class="bg-white dark:bg-white/5 p-8 rounded-2xl border border-sage-100 dark:border-white/10 shadow-sm flex flex-col h-full">
+<div class="flex justify-between items-center mb-8">
+<h5 class="font-bold flex items-center gap-2.5 text-charcoal dark:text-white">
+<span class="material-symbols-outlined text-primary">person</span>
+                                Group (12)
+                            </h5>
+<button class="bg-sage-50 dark:bg-white/10 p-1.5 rounded-lg text-primary hover:bg-primary hover:text-white transition-all">
+<span class="material-symbols-outlined text-sm">person_add</span>
+</button>
+</div>
+<div class="flex flex-col gap-6 flex-1">
+<div class="flex items-center gap-4">
+<div class="relative">
+<div class="size-12 rounded-full border-2 border-primary overflow-hidden p-0.5">
+<img alt="Member" class="w-full h-full object-cover rounded-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAX6p3USph9JPyDzFS4IFcMUGt34PY3H-evumvirBdd-5qSzLYyFH5ysHwHa5043tPoVgslqkNA_r_QzyElMgLjfKtrK2gvR2QMAcRTfLosSOer067xK0Kj9Wdy6YZyZue7-ieoz8kdcyXIShSo6jrVxtdoMZBXsfyqqWeubIVFyVuDv9QW6OSOlsrDrpAfa83MOjKOYzbbqtz0tN1v7OJtiobBvwocAC_JevSNT1DXefIwFSGBLBM7U6HgiMYYxIKtty6b418Zx19G"/>
+</div>
+<div class="absolute -bottom-1 -right-1 bg-primary text-white rounded-full size-5 flex items-center justify-center border-2 border-white dark:border-sage-900">
+<span class="material-symbols-outlined text-[10px] font-black">check</span>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-bold text-charcoal dark:text-white truncate">Alex Johnson</p>
+<p class="text-[10px] text-primary font-black uppercase tracking-tight">Ready</p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative">
+<div class="size-12 rounded-full border-2 border-primary overflow-hidden p-0.5">
+<img alt="Member" class="w-full h-full object-cover rounded-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuD-jzmTwy3nXm-JClsmYqVKCjftpYId2NyhYx982pm7Xl0SmaJX-wrD98RweFbsWAJpKfn-2-xqJ9FKyVUzIsPg1cacLQeEAxxD20-Uj0wjFmzzv0--LcqEli13fwhrea5gHIhj7ctcJQ6eQlOY3RcKdlXY2CiUb-jfubMEtXYMAPbubjMai2fl3g08o5SApi-KrGhaw4b6jdtoqs4BBraL5qdfaWs4BzmbxP0o7p7IsYp36ibjDhavpzlzqtjOeXtiscENARDzbK_b"/>
+</div>
+<div class="absolute -bottom-1 -right-1 bg-primary text-white rounded-full size-5 flex items-center justify-center border-2 border-white dark:border-sage-900">
+<span class="material-symbols-outlined text-[10px] font-black">check</span>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-bold text-charcoal dark:text-white truncate">Sarah Miller</p>
+<p class="text-[10px] text-primary font-black uppercase tracking-tight">Ready</p>
+</div>
+</div>
+<div class="flex items-center gap-4 opacity-75 grayscale-[0.3]">
+<div class="relative">
+<div class="size-12 rounded-full border-2 border-sage-100 dark:border-white/10 overflow-hidden p-0.5">
+<img alt="Member" class="w-full h-full object-cover rounded-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB7IYJDeuhsrj44Cpgwo_YgYbUjMeKQES7MOuxmnG2aMt-sFVtL1gry1ARowVgXycrd1PH4WpmnKO09al3y6zkgqivM7ypIp3JXXQY8z9DNUc23bVOfMYsWC0iAlTcdam3PIlltivqqnA9L-GGVp8UdyiKYrYfq_bHteQbxXZfvKnrTDteZCy9NKKTTgwJY692B7p8lF6MvqznH45HP7v7BoHGVA9RZdmbn2njsu_-OzfGmDWHUGUTxQx71lxAAJ59CVJF_boKiLNaM"/>
+</div>
+<div class="absolute -bottom-1 -right-1 bg-sage-200 text-sage-600 rounded-full size-5 flex items-center justify-center border-2 border-white dark:border-sage-900">
+<span class="material-symbols-outlined text-[10px] font-black">pending</span>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-bold text-charcoal dark:text-white truncate">David Chen</p>
+<p class="text-[10px] text-sage-400 font-black uppercase tracking-tight">Deciding</p>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<div class="relative">
+<div class="size-12 rounded-full border-2 border-primary overflow-hidden p-0.5">
+<img alt="Member" class="w-full h-full object-cover rounded-full" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDzj_-vBiJzh1r4D-5cnY1mcyA5A26lI6kQ0vtLkJY42PKUCzGlO2W1bolUAY3LvSK2bOkDA_xf6LtXivMBR6huLWJ8uiNdRMTI8QqEy69drywx4LEQ4K8sO4Yu7T2iEHKcqMwWvwclpsFqtIUzbhsF8yWfExkRrwvj57jjXTwKHOadzdQUpqb8wCkA-Ip1Y5PCeUKpSPMJdpK0WaHTaVf46CiEayMWoJTlNPYb_yNC7qTt5L6A6mcsd9g3tVJB9T8XCuS9GFrhGg3K"/>
+</div>
+<div class="absolute -bottom-1 -right-1 bg-primary text-white rounded-full size-5 flex items-center justify-center border-2 border-white dark:border-sage-900">
+<span class="material-symbols-outlined text-[10px] font-black">check</span>
+</div>
+</div>
+<div class="flex-1 min-w-0">
+<p class="text-sm font-bold text-charcoal dark:text-white truncate">Emma Wilson</p>
+<p class="text-[10px] text-primary font-black uppercase tracking-tight">Ready</p>
+</div>
+</div>
+<div class="pt-6 mt-auto">
+<button class="w-full py-3 border border-sage-200 dark:border-white/10 rounded-xl text-xs font-black uppercase tracking-widest text-sage-500 hover:bg-sage-50 dark:hover:bg-white/5 hover:border-primary/30 hover:text-primary transition-all">
+                                    Manage Group
+                                </button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+<div class="fixed bottom-10 right-10 lg:hidden">
+<button class="bg-primary size-16 rounded-2xl shadow-xl shadow-primary/30 flex items-center justify-center text-white transition-transform active:scale-90">
+<span class="material-symbols-outlined text-3xl font-bold">add</span>
+</button>
+</div>
+
+</body></html>

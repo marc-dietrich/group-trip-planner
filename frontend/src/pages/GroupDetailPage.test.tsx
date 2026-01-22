@@ -3,7 +3,6 @@ import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
 import type { Mock, SpyInstance } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { act } from "react";
-import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
 import { GroupDetailPage } from "./GroupDetailPage";
@@ -84,7 +83,7 @@ describe("GroupDetailPage availability summary", () => {
               }
             />
           </Routes>
-        </MemoryRouter>
+        </MemoryRouter>,
       );
     });
 
@@ -93,13 +92,15 @@ describe("GroupDetailPage availability summary", () => {
   };
 
   beforeEach(() => {
-    consoleErrorSpy = vi.spyOn(console, "error").mockImplementation((...args) => {
-      const [first] = args;
-      if (typeof first === "string" && first.includes("not wrapped in act")) {
-        return;
-      }
-      return originalError(...args);
-    });
+    consoleErrorSpy = vi
+      .spyOn(console, "error")
+      .mockImplementation((...args) => {
+        const [first] = args;
+        if (typeof first === "string" && first.includes("not wrapped in act")) {
+          return;
+        }
+        return originalError(...args);
+      });
 
     fetchMock = vi.fn(async (url: string, init?: RequestInit) => {
       if (init?.method === "DELETE" && url.includes("/api/availabilities/")) {
@@ -110,6 +111,12 @@ describe("GroupDetailPage availability summary", () => {
         return mockResponse(summaryResponse);
       if (url.includes("member-availabilities"))
         return mockResponse(memberAvailabilityResponse);
+      if (url.includes("availability-stats"))
+        return mockResponse({
+          totalUsers: 5,
+          usersWithAvailability: 1,
+          progress: 0.2,
+        });
       if (url.endsWith("/availabilities")) return mockResponse([]);
       if (/\/api\/groups\/.+/.test(url))
         return mockResponse({ name: "Sommertrip" });
@@ -124,65 +131,27 @@ describe("GroupDetailPage availability summary", () => {
     vi.restoreAllMocks();
   });
 
-  it("renders summary rows with counts", async () => {
-    const user = userEvent.setup();
-
+  it("shows best interval and other intervals", async () => {
     await renderPage();
 
     await waitFor(() => {
       expect(
-        screen.getByText(/3 von 5 Mitgliedern verfügbar/)
+        screen.getByText(/3 von 5 Personen verfügbar/i),
       ).toBeInTheDocument();
     });
 
-    // Expand the collapsed list to reveal additional intervals
-    const expandButton = screen.getByRole("button", {
-      name: /Weitere Zeiträume/i,
-    });
-    await user.click(expandButton);
-
-    expect(
-      screen.getByText(/2 von 5 Mitgliedern verfügbar/)
-    ).toBeInTheDocument();
+    expect(screen.getByText(/TOP MATCH/i)).toBeInTheDocument();
+    expect(screen.getByText(/2 von 5 Personen verfügbar/i)).toBeInTheDocument();
   });
 
-  it("allows deleting own availability from detail modal", async () => {
-    const user = userEvent.setup();
-
+  it("renders member list and new availability action", async () => {
     await renderPage();
 
-    // Expand member card
-    const memberButton = await screen.findByRole("button", { name: /You/i });
-    await user.click(memberButton);
-
-    // Open availability detail modal
-    const availabilityButton = await screen.findByRole("button", {
-      name: /01\. Juli 2025/i,
-    });
-    await user.click(availabilityButton);
+    expect(await screen.findByText(/You/)).toBeInTheDocument();
+    expect(screen.getByText(/Alex/)).toBeInTheDocument();
 
     expect(
-      screen.getByRole("dialog", { name: /Verfügbarkeit/i })
+      screen.getByRole("button", { name: /Neue Verfügbarkeit/i }),
     ).toBeInTheDocument();
-    expect(
-      screen.getByRole("button", { name: /Löschen/i })
-    ).toBeInTheDocument();
-
-    await user.click(screen.getByRole("button", { name: /Löschen/i }));
-
-    await waitFor(() => {
-      expect(
-        screen.queryByRole("dialog", { name: /Verfügbarkeit/i })
-      ).not.toBeInTheDocument();
-    });
-
-    expect(
-      fetchMock.mock.calls.some(
-        ([url, init]) =>
-          typeof url === "string" &&
-          url.includes("/api/availabilities/a1") &&
-          init?.method === "DELETE"
-      )
-    ).toBe(true);
   });
 });

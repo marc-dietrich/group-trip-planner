@@ -131,6 +131,7 @@ async def get_groups(
                 "name": group.name,
                 "role": member.role,
                 "inviteLink": f"{base_url}/invite/{group.id}",
+                "createdAt": group.created_at,
                 "inviteExpiresAt": invite.expires_at,
             }
         )

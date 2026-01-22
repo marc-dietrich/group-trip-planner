@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html class="light" lang="de"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Erweitertes Seitenmenü mit Impressum</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#638d63","sage-light": "#f0f4f0",
+                        "sage-accent": "#e7f3e7",
+                        "gold-icon": "#FFD700",
+                        "background-light": "#fdfdfd"
+                    },
+                    fontFamily: {
+                        "display": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .fill-icon {
+            font-variation-settings: 'FILL' 1;
+        }
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="font-display bg-zinc-100 dark:bg-zinc-950 min-h-screen flex items-center justify-center">
+<div class="relative w-full max-w-[430px] h-[932px] bg-white dark:bg-zinc-950 shadow-2xl overflow-hidden rounded-[3rem] border-[8px] border-zinc-900">
+<div class="absolute inset-0 bg-black/40 z-40"></div>
+<div class="absolute left-0 top-0 z-50 h-full w-[85%] bg-white dark:bg-zinc-950 shadow-xl flex flex-col">
+<div class="flex-1 overflow-y-auto overflow-x-hidden">
+<div class="p-6 pt-14 flex flex-col gap-4">
+<div class="flex items-center gap-4">
+<div class="relative">
+<img alt="User Profile" class="size-14 rounded-full object-cover border border-zinc-100" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCiv00_vQAKjsvd7zvvzu5w7_3DCsZbNfwbAe9Cf0yoRb9Dwma28U-8tmE2NC9iaesSObeS0TdEd7DBYZNqeM3tExiaEzrh2ncHcGOTJ_LFcDN0QQUMqWKlSh0eH5UQfq0X8_pjwtkqw-Quwt06MYjlwur9tfc3OAeVrJPmdV-qbEV_OQ__BIC3Zw16VLyWDd2e9V8r7y9iUzbx2jk0uegEpM1cUnQWgBXXIWtHXbUoyVYYaMF_MvQKtYJTooiBFcrKlY7ygJ2pw98"/>
+<div class="absolute -bottom-1 -right-1 bg-white dark:bg-zinc-800 rounded-full p-1 shadow-sm border border-zinc-100 flex items-center justify-center">
+<span class="material-symbols-outlined text-[14px] text-gold-icon fill-icon">crown</span>
+</div>
+</div>
+<div class="flex flex-col">
+<p class="text-zinc-900 dark:text-zinc-100 text-base font-semibold leading-tight">John Doe</p>
+<p class="text-zinc-500 dark:text-zinc-400 text-xs font-normal">john.doe@example.com</p>
+</div>
+</div>
+</div>
+<div class="h-[1px] bg-zinc-100 dark:bg-zinc-800/50 mx-6"></div>
+<div class="p-6">
+<div class="flex flex-col gap-3 rounded-2xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/30 p-4">
+<div class="flex flex-col gap-1">
+<p class="text-zinc-800 dark:text-zinc-200 text-xs font-bold uppercase tracking-tight">Unterstütze uns</p>
+<p class="text-zinc-500 dark:text-zinc-400 text-[11px] leading-relaxed">Spenden sind willkommen, aber kein Muss. Es gibt keine Vorteile, außer dem Icon.</p>
+</div>
+<button class="flex w-full cursor-pointer items-center justify-center rounded-xl h-9 border border-primary/20 bg-white dark:bg-zinc-900 hover:bg-sage-light transition-colors text-primary text-xs font-semibold">
+                            Jetzt Spenden
+                        </button>
+</div>
+</div>
+<div class="flex flex-col">
+<h3 class="text-zinc-400 dark:text-zinc-500 text-[10px] uppercase tracking-[0.1em] font-bold px-6 pb-2">Einstellungen</h3>
+<div class="flex items-center gap-4 bg-transparent px-6 min-h-[52px] justify-between">
+<div class="flex items-center gap-3">
+<div class="text-zinc-500 dark:text-zinc-400 flex items-center justify-center rounded-xl bg-sage-light dark:bg-primary/10 shrink-0 size-9">
+<span class="material-symbols-outlined text-[20px]">notifications</span>
+</div>
+<p class="text-zinc-800 dark:text-zinc-100 text-[14px] font-medium">Benachrichtigungen</p>
+</div>
+<label class="relative flex h-[26px] w-[46px] cursor-pointer items-center rounded-full border-none bg-zinc-200 dark:bg-zinc-800 p-0.5 has-[:checked]:justify-end has-[:checked]:bg-primary transition-all">
+<div class="h-full aspect-square rounded-full bg-white shadow-sm"></div>
+<input checked="" class="hidden" type="checkbox"/>
+</label>
+</div>
+<div class="flex items-center gap-4 bg-transparent px-6 min-h-[52px] justify-between">
+<div class="flex items-center gap-3">
+<div class="text-zinc-500 dark:text-zinc-400 flex items-center justify-center rounded-xl bg-sage-light dark:bg-primary/10 shrink-0 size-9">
+<span class="material-symbols-outlined text-[20px]">fingerprint</span>
+</div>
+<p class="text-zinc-800 dark:text-zinc-100 text-[14px] font-medium">Sicherheit (FaceID)</p>
+</div>
+<label class="relative flex h-[26px] w-[46px] cursor-pointer items-center rounded-full border-none bg-zinc-200 dark:bg-zinc-800 p-0.5 has-[:checked]:justify-end has-[:checked]:bg-primary transition-all">
+<div class="h-full aspect-square rounded-full bg-white shadow-sm"></div>
+<input class="hidden" type="checkbox"/>
+</label>
+</div>
+</div>
+<div class="flex flex-col gap-3 p-6 mt-2">
+<h3 class="text-zinc-400 dark:text-zinc-500 text-[10px] uppercase tracking-[0.1em] font-bold">Feedback geben</h3>
+<div class="flex gap-1.5">
+<span class="material-symbols-outlined text-primary fill-icon cursor-pointer text-[20px]">star</span>
+<span class="material-symbols-outlined text-primary fill-icon cursor-pointer text-[20px]">star</span>
+<span class="material-symbols-outlined text-primary fill-icon cursor-pointer text-[20px]">star</span>
+<span class="material-symbols-outlined text-primary fill-icon cursor-pointer text-[20px]">star</span>
+<span class="material-symbols-outlined text-zinc-200 dark:text-zinc-700 cursor-pointer text-[20px]">star</span>
+</div>
+<textarea class="w-full rounded-xl border border-zinc-100 dark:border-zinc-800 bg-zinc-50/50 dark:bg-zinc-900/50 p-3 text-xs text-zinc-800 dark:text-zinc-200 placeholder:text-zinc-400 focus:border-primary/50 focus:ring-0 transition-all resize-none" placeholder="Deine Nachricht (optional)..." rows="2"></textarea>
+<button class="flex h-9 w-full items-center justify-center rounded-xl bg-zinc-900 dark:bg-zinc-100 text-white dark:text-zinc-900 text-xs font-semibold">
+                        Senden
+                    </button>
+</div>
+<div class="px-6 py-2 flex flex-col gap-1">
+<a class="flex items-center gap-3 py-3 group" href="#">
+<div class="text-zinc-400 group-hover:text-primary transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">mail</span>
+</div>
+<p class="text-zinc-600 dark:text-zinc-400 text-[14px] font-medium group-hover:text-zinc-900 dark:group-hover:text-zinc-100 transition-colors">Kontakt</p>
+</a>
+<a class="flex items-center gap-3 py-3 group" href="#">
+<div class="text-zinc-400 group-hover:text-red-500 transition-colors flex items-center justify-center">
+<span class="material-symbols-outlined text-[20px]">logout</span>
+</div>
+<p class="text-zinc-600 dark:text-zinc-400 text-[14px] font-medium group-hover:text-red-500 transition-colors">Abmelden</p>
+</a>
+</div>
+</div>
+<div class="mt-auto p-6 bg-zinc-50/50 dark:bg-zinc-900/20 border-t border-zinc-100 dark:border-zinc-900">
+<div class="flex flex-col gap-1.5">
+<div class="flex items-center justify-between">
+<p class="text-zinc-400 dark:text-zinc-500 text-[10px] font-bold uppercase tracking-widest">Impressum</p>
+<span class="text-[10px] text-zinc-300 dark:text-zinc-700 font-mono">v1.2.0</span>
+</div>
+<div class="flex flex-col text-[11px] text-zinc-500 dark:text-zinc-400 space-y-0.5">
+<p class="font-medium text-zinc-700 dark:text-zinc-300">Moritz Müller</p>
+<p>Berlin, Deutschland</p>
+</div>
+<p class="mt-2 text-[10px] leading-relaxed text-zinc-400 italic font-light">
+                        Von Hand programmiert. Mit Liebe zum Detail und zu viel Koffein im Blut. ☕️
+                    </p>
+</div>
+</div>
+</div>
+<div class="p-8 pt-20">
+<div class="flex justify-between items-center mb-8">
+<div class="size-10 rounded-full bg-zinc-100 flex items-center justify-center">
+<span class="material-symbols-outlined">menu</span>
+</div>
+<div class="h-6 w-24 bg-zinc-100 rounded-full"></div>
+</div>
+<div class="space-y-4">
+<div class="h-40 w-full bg-zinc-50 rounded-2xl border border-zinc-100 p-6">
+<div class="h-4 w-3/4 bg-zinc-200 rounded mb-4"></div>
+<div class="h-4 w-1/2 bg-zinc-100 rounded"></div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="h-28 bg-zinc-50 rounded-2xl border border-zinc-100"></div>
+<div class="h-28 bg-zinc-50 rounded-2xl border border-zinc-100"></div>
+</div>
+</div>
+</div>
+<div class="absolute bottom-2 left-1/2 -translate-x-1/2 w-32 h-1 bg-zinc-800/20 dark:bg-white/10 rounded-full z-[60]"></div>
+</div>
+
+</body></html>

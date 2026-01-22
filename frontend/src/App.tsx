@@ -35,26 +35,23 @@ import { AuthModal } from "./components/AuthModal";
 import { ActorNameModal } from "./components/ActorNameModal";
 import { GroupCreateModal } from "./components/GroupCreateModal";
 import { InviteModal } from "./components/InviteModal";
-import { Topbar } from "./components/Topbar";
-import { BottomNav } from "./components/BottomNav";
+import { SideMenu } from "./components/SideMenu";
+import { IdentityCard } from "./components/IdentityCard";
+import { GroupCreateCard } from "./components/GroupCreateCard";
 import { GroupsPage } from "./pages/GroupsPage";
 import { GroupDetailPage } from "./pages/GroupDetailPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { MorePage } from "./pages/MorePage";
 import { DialogSandbox } from "./pages/DialogSandbox";
-import { pageShell } from "./ui";
+import { DesktopGroupsPage } from "./pages/desktop/DesktopGroupsPage";
+import { DesktopGroupDetailPage } from "./pages/desktop/DesktopGroupDetailPage";
+import { LayoutProvider, useLayoutMode } from "./layout/layoutMode";
+import { DesktopShell } from "./layout/DesktopShell";
+import { MobileShell } from "./layout/MobileShell";
 import { useGroups } from "./hooks/useGroups";
 import { useGroupStore } from "./state/groupStore";
 
 const basename = import.meta.env.BASE_URL || "/";
-const buildCommit =
-  (import.meta.env.VITE_BUILD_COMMIT as string | undefined) || "";
-const rawBuildLabel =
-  (import.meta.env.VITE_BUILD_LABEL as string | undefined) ||
-  (import.meta.env.VITE_COMMIT as string | undefined) ||
-  buildCommit ||
-  "";
-const buildLabel = rawBuildLabel ? rawBuildLabel.slice(0, 7) : "dev";
 
 const stripBasename = (path: string) => {
   if (!basename || basename === "/") return path;
@@ -121,9 +118,11 @@ class AppErrorBoundary extends React.Component<
 function App() {
   return (
     <BrowserRouter basename={basename}>
-      <AppErrorBoundary>
-        <AppShell />
-      </AppErrorBoundary>
+      <LayoutProvider>
+        <AppErrorBoundary>
+          <AppShell />
+        </AppErrorBoundary>
+      </LayoutProvider>
     </BrowserRouter>
   );
 }
@@ -153,7 +152,7 @@ function AppShell() {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<GroupCreateResult | null>(null);
   const [groupsActionError, setGroupsActionError] = useState<string | null>(
-    null
+    null,
   );
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [authPanelOpen, setAuthPanelOpen] = useState(false);
@@ -161,12 +160,13 @@ function AppShell() {
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteGroupId, setInviteGroupId] = useState<string | null>(null);
   const [invitePreview, setInvitePreview] = useState<GroupInvitePreview | null>(
-    null
+    null,
   );
   const [inviteError, setInviteError] = useState<string | null>(null);
   const [inviteLoading, setInviteLoading] = useState(false);
   const [joining, setJoining] = useState(false);
   const [alreadyMember, setAlreadyMember] = useState(false);
+  const [menuOpen, setMenuOpen] = useState(false);
 
   const identity = useMemo<Identity>(() => {
     if (session?.user) {
@@ -252,7 +252,7 @@ function AppShell() {
       .then((res) => res.json())
       .then((data: HealthCheck) => setHealth(data))
       .catch(() =>
-        setHealth({ status: "error", message: "Backend nicht erreichbar" })
+        setHealth({ status: "error", message: "Backend nicht erreichbar" }),
       );
   }, []);
 
@@ -284,7 +284,7 @@ function AppShell() {
       })
       .catch((err) => {
         setInviteError(
-          err instanceof Error ? err.message : "Einladung ungültig"
+          err instanceof Error ? err.message : "Einladung ungültig",
         );
       })
       .finally(() => setInviteLoading(false));
@@ -344,7 +344,7 @@ function AppShell() {
       void refetchGroups();
     } catch (err) {
       setGroupsActionError(
-        err instanceof Error ? err.message : "Unbekannter Fehler"
+        err instanceof Error ? err.message : "Unbekannter Fehler",
       );
     } finally {
       setDeletingId(null);
@@ -400,12 +400,14 @@ function AppShell() {
       upsertGroup(membership);
       void refetchGroups();
       toast.success(
-        data.alreadyMember ? "Du bist bereits Mitglied." : "Gruppe beigetreten."
+        data.alreadyMember
+          ? "Du bist bereits Mitglied."
+          : "Gruppe beigetreten.",
       );
       handleCloseInvite();
     } catch (err) {
       setInviteError(
-        err instanceof Error ? err.message : "Beitritt fehlgeschlagen"
+        err instanceof Error ? err.message : "Beitritt fehlgeschlagen",
       );
     } finally {
       setJoining(false);
@@ -424,11 +426,11 @@ function AppShell() {
           data.availability
             ?.map((a: any) => `${a.start}→${a.end}`)
             .join(", ") || "–"
-        }`
+        }`,
       );
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Mock-Transcribe fehlgeschlagen"
+        err instanceof Error ? err.message : "Mock-Transcribe fehlgeschlagen",
       );
     }
   };
@@ -454,7 +456,7 @@ function AppShell() {
         if (error) throw error;
         if (!data.session) {
           const { error: signinError } = await supabase.auth.signInWithPassword(
-            { email, password }
+            { email, password },
           );
           if (signinError)
             throw new Error("Login nach Registrierung fehlgeschlagen");
@@ -482,8 +484,123 @@ function AppShell() {
     setNamePromptOpen(false);
   };
 
+  const layoutMode = useLayoutMode();
+  // Temporarily force mobile UI everywhere while desktop is disabled
+  const isDesktop = false && layoutMode === "desktop";
+
+  useEffect(() => {
+    if (isDesktop && menuOpen) {
+      setMenuOpen(false);
+    }
+  }, [isDesktop, menuOpen]);
+
+  const combinedGroupsError = groupsError || groupsActionError;
+
+  const rightRail = isDesktop ? (
+    <>
+      <IdentityCard
+        identity={identity}
+        localDisplayName={pendingName || actor.displayName}
+        onDisplayNameChange={(value) => {
+          setPendingName(value);
+          setActorDisplayName(value);
+        }}
+        onLogout={handleLogout}
+        onAuthClick={() => setAuthPanelOpen(true)}
+        authLoading={authLoading}
+        supabaseEnabled={supabaseEnabled}
+      />
+      <GroupCreateCard
+        groupName={groupName}
+        creating={creating}
+        error={error}
+        result={result}
+        onGroupNameChange={setGroupName}
+        onSubmit={handleCreateGroup}
+      />
+    </>
+  ) : null;
+
+  const routes = (
+    <Routes>
+      <Route path="/" element={<Navigate to="/groups" replace />} />
+      <Route
+        path="/groups"
+        element={
+          isDesktop ? (
+            <DesktopGroupsPage
+              groups={groups}
+              groupsLoading={groupsLoading}
+              groupsError={combinedGroupsError}
+              identity={identity}
+              health={health}
+              onCreate={() => setCreateOpen(true)}
+            />
+          ) : (
+            <GroupsPage
+              groups={groups}
+              groupsLoading={groupsLoading}
+              groupsError={combinedGroupsError}
+              deletingId={deletingId}
+              identity={identity}
+              onCreate={() => setCreateOpen(true)}
+              onDelete={handleDeleteGroup}
+              onCopyInvite={handleCopyInvite}
+              onOpenMenu={() => setMenuOpen(true)}
+            />
+          )
+        }
+      />
+      <Route
+        path="/groups/:groupId"
+        element={
+          isDesktop ? (
+            <DesktopGroupDetailPage
+              identity={identity}
+              groups={groups}
+              health={health}
+            />
+          ) : (
+            <GroupDetailPage
+              identity={identity}
+              groups={groups}
+              onOpenMenu={() => setMenuOpen(true)}
+            />
+          )
+        }
+      />
+      <Route
+        path="/profile"
+        element={
+          <ProfilePage
+            identity={identity}
+            authLoading={authLoading}
+            supabaseEnabled={supabaseEnabled}
+            health={health}
+            onLogin={() => setAuthPanelOpen(true)}
+            onLogout={handleLogout}
+          />
+        }
+      />
+      <Route
+        path="/more"
+        element={<MorePage onTestVoice={handleMockVoice} />}
+      />
+      <Route
+        path="/invite/:inviteId"
+        element={
+          <InviteRoute
+            onInvite={(id) => setInviteGroupId(id)}
+            onShow={() => setInviteOpen(true)}
+          />
+        }
+      />
+      <Route path="*" element={<Navigate to="/groups" replace />} />
+    </Routes>
+  );
+
   return (
-    <div className={pageShell}>
+    <>
       <ActorNameModal
         open={namePromptOpen}
         value={pendingName}
@@ -507,63 +624,33 @@ function AppShell() {
         }}
       />
 
-      <Topbar
-        title="Gemeinsam Termine finden"
-        subtitle="Gruppen-Urlaubsplaner"
-        health={health}
-        buildLabel={buildLabel}
-        buildTitle={buildCommit || undefined}
-      />
+      {!isDesktop && (
+        <SideMenu
+          open={menuOpen}
+          onClose={() => setMenuOpen(false)}
+          identity={identity}
+          onLogout={handleLogout}
+        />
+      )}
 
-      <Routes>
-        <Route path="/" element={<Navigate to="/groups" replace />} />
-        <Route
-          path="/groups"
-          element={
-            <GroupsPage
-              groups={groups}
-              groupsLoading={groupsLoading}
-              groupsError={groupsError || groupsActionError}
-              deletingId={deletingId}
-              identity={identity}
-              onCreate={() => setCreateOpen(true)}
-              onDelete={handleDeleteGroup}
-              onCopyInvite={handleCopyInvite}
-            />
-          }
-        />
-        <Route
-          path="/groups/:groupId"
-          element={<GroupDetailPage identity={identity} groups={groups} />}
-        />
-        <Route
-          path="/profile"
-          element={
-            <ProfilePage
-              identity={identity}
-              authLoading={authLoading}
-              supabaseEnabled={supabaseEnabled}
-              health={health}
-              onLogin={() => setAuthPanelOpen(true)}
-              onLogout={handleLogout}
-            />
-          }
-        />
-        <Route
-          path="/more"
-          element={<MorePage onTestVoice={handleMockVoice} />}
-        />
-        <Route
-          path="/invite/:inviteId"
-          element={
-            <InviteRoute
-              onInvite={(id) => setInviteGroupId(id)}
-              onShow={() => setInviteOpen(true)}
-            />
-          }
-        />
-        <Route path="*" element={<Navigate to="/groups" replace />} />
-      </Routes>
+      {isDesktop ? (
+        <DesktopShell
+          identity={identity}
+          groups={groups}
+          groupsLoading={groupsLoading}
+          groupsError={combinedGroupsError}
+          deletingId={deletingId}
+          onCopyInvite={handleCopyInvite}
+          onDeleteGroup={handleDeleteGroup}
+          onLogout={handleLogout}
+          onCreateGroup={() => setCreateOpen(true)}
+          rightRail={rightRail}
+        >
+          {routes}
+        </DesktopShell>
+      ) : (
+        <MobileShell>{routes}</MobileShell>
+      )}
 
       <GroupCreateModal
         open={createOpen}
@@ -599,9 +686,7 @@ function AppShell() {
         }}
         onClose={() => setAuthPanelOpen(false)}
       />
-
-      <BottomNav />
-    </div>
+    </>
   );
 }
 

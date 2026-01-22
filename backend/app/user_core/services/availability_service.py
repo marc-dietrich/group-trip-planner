@@ -178,6 +178,33 @@ class AvailabilityService:
 
         return merged
 
+    async def get_group_availability_stats(
+        self, *, group_id: UUID, actor_id: str, user_id: UUID | None = None
+    ) -> dict:
+        group = await self.group_repo.get_group(group_id)
+        if not group:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Group not found")
+
+        members = await self.group_repo.get_group_members(group_id)
+        is_member = any(
+            m.actor_id == actor_id or (user_id and m.user_id and str(m.user_id) == str(user_id))
+            for m in members
+        )
+        if not is_member:
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Not a member of this group")
+
+        total_users, submitted_users = await self.availability_repo.get_group_submission_stats(
+            group_id=group_id,
+            members=members,
+        )
+        progress = float(submitted_users) / total_users if total_users else 0.0
+
+        return {
+            "totalUsers": total_users,
+            "usersWithAvailability": submitted_users,
+            "progress": progress,
+        }
+
     async def delete_availability(self, *, availability_id: UUID, actor_id: str, user_id: UUID | None = None) -> None:
         record = await self.availability_repo.get_by_id(availability_id)
         if not record:

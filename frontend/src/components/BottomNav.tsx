@@ -13,7 +13,7 @@ const inactiveItem = "text-slate-600 hover:text-slate-900";
 
 export function BottomNav() {
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-10 border-t border-slate-200 bg-white/95 backdrop-blur-sm">
+    <nav className="fixed bottom-0 left-0 right-0 z-30 border-t border-slate-200 bg-white/95 backdrop-blur-sm">
       <div className="mx-auto flex max-w-4xl items-center gap-2 px-4 py-1.5">
         {items.map((item) => (
           <NavLink

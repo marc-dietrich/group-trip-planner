@@ -4,21 +4,25 @@ import { ensureActorRemote } from "../lib/actor";
 import {
   AvailabilityEntry,
   GroupAvailabilityInterval,
+  GroupAvailabilityStats,
   Identity,
   MemberAvailability,
 } from "../types";
 
 export async function fetchAvailabilitySummary(
   groupId: string,
-  identity: Identity
+  identity: Identity,
 ): Promise<GroupAvailabilityInterval[]> {
   if (identity.kind === "actor") {
     await ensureActorRemote(identity);
   }
 
-  const res = await fetch(apiPath(`/api/groups/${groupId}/availability-summary`), {
-    headers: buildIdentityHeaders(identity),
-  });
+  const res = await fetch(
+    apiPath(`/api/groups/${groupId}/availability-summary`),
+    {
+      headers: buildIdentityHeaders(identity),
+    },
+  );
 
   if (!res.ok) {
     throw new Error(`Fehler: ${res.status}`);
@@ -28,17 +32,43 @@ export async function fetchAvailabilitySummary(
   return Array.isArray(body) ? body : [];
 }
 
+export async function fetchAvailabilityStats(
+  groupId: string,
+  identity: Identity,
+): Promise<GroupAvailabilityStats> {
+  if (identity.kind === "actor") {
+    await ensureActorRemote(identity);
+  }
+
+  const res = await fetch(
+    apiPath(`/api/groups/${groupId}/availability-stats`),
+    {
+      headers: buildIdentityHeaders(identity),
+    },
+  );
+
+  if (!res.ok) {
+    throw new Error(`Fehler: ${res.status}`);
+  }
+
+  const body = (await res.json()) as GroupAvailabilityStats;
+  return body ?? { totalUsers: 0, usersWithAvailability: 0, progress: 0 };
+}
+
 export async function fetchMemberAvailabilities(
   groupId: string,
-  identity: Identity
+  identity: Identity,
 ): Promise<MemberAvailability[]> {
   if (identity.kind === "actor") {
     await ensureActorRemote(identity);
   }
 
-  const res = await fetch(apiPath(`/api/groups/${groupId}/member-availabilities`), {
-    headers: buildIdentityHeaders(identity),
-  });
+  const res = await fetch(
+    apiPath(`/api/groups/${groupId}/member-availabilities`),
+    {
+      headers: buildIdentityHeaders(identity),
+    },
+  );
 
   if (!res.ok) {
     throw new Error(`Fehler: ${res.status}`);
@@ -50,7 +80,7 @@ export async function fetchMemberAvailabilities(
 
 export async function fetchSelfAvailabilities(
   groupId: string,
-  identity: Identity
+  identity: Identity,
 ): Promise<AvailabilityEntry[]> {
   if (identity.kind === "actor") {
     await ensureActorRemote(identity);
@@ -86,7 +116,7 @@ export async function fetchSelfAvailabilities(
 export async function createAvailability(
   groupId: string,
   payload: { startDate: string; endDate: string },
-  identity: Identity
+  identity: Identity,
 ): Promise<AvailabilityEntry> {
   if (identity.kind === "actor") {
     await ensureActorRemote(identity);
@@ -124,7 +154,7 @@ export async function createAvailability(
 
 export async function deleteAvailability(
   availabilityId: string,
-  identity: Identity
+  identity: Identity,
 ): Promise<void> {
   if (identity.kind === "actor") {
     await ensureActorRemote(identity);

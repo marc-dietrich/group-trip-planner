@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html class="light" lang="de"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Schritt 0: Gruppe wählen (Zentral)</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#849f84",
+                        "sage-soft": "#f1f5f1",
+                        "background-dim": "rgba(15, 23, 42, 0.4)",
+                    },
+                    fontFamily: {
+                        "sans": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "0.75rem",
+                        "xl": "1rem",
+                        "2xl": "1.25rem",
+                        "3xl": "1.5rem",
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            body {
+                font-family: 'Inter', sans-serif;
+                -webkit-font-smoothing: antialiased;
+            }
+        }
+    </style>
+<style>
+        body {
+            min-height: 100dvh;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-[#fcfcfc] flex flex-col overflow-hidden">
+<div class="relative flex-1 overflow-hidden h-screen bg-white">
+<div class="p-6 space-y-8 opacity-20 grayscale pointer-events-none">
+<div class="flex items-center justify-between">
+<div class="h-10 w-10 rounded-full bg-gray-200"></div>
+<div class="h-6 w-24 rounded bg-gray-200"></div>
+<div class="h-10 w-10 rounded-full bg-gray-200"></div>
+</div>
+<div class="h-40 w-full rounded-2xl bg-gray-100"></div>
+<div class="space-y-4">
+<div class="h-4 w-3/4 rounded bg-gray-100"></div>
+<div class="h-4 w-1/2 rounded bg-gray-100"></div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="h-32 rounded-2xl bg-gray-100"></div>
+<div class="h-32 rounded-2xl bg-gray-100"></div>
+</div>
+<div class="h-20 w-full rounded-2xl bg-gray-100"></div>
+</div>
+<div class="absolute inset-0 bg-background-dim backdrop-blur-[2px] flex items-center justify-center p-6">
+<div class="w-full max-w-[340px] bg-white rounded-[24px] shadow-2xl overflow-hidden flex flex-col animate-in fade-in zoom-in duration-300">
+<div class="px-5 pt-5 pb-3 flex items-center justify-between">
+<h2 class="text-[17px] font-semibold text-gray-900">Gruppe wählen</h2>
+<button class="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-600 transition-colors bg-gray-50 rounded-full">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<div class="px-3 pb-2 space-y-1">
+<div class="flex items-center justify-between p-3 bg-sage-soft rounded-2xl transition-colors cursor-pointer border border-primary/10">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-gray-200 flex items-center justify-center overflow-hidden border border-white">
+<img alt="Wanderlust" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDYBJREDE-CsFvAuOHpZmj_eJ4DtvDQnJjWp5-dWNs2JV4-WllcZAltyMsPy20hq2BVw5Kh6adEkZtaB4n6EmoT9NO-6gP5fAx8HYQSiJ86eCUK8FILNdjB5C53m0b7QVHfyD17S-vxYXXy_NOAlPJAx8QmjaNXmicQL8m-Yv1GRbiLo2fWVvUNXxwg6ETVXVGi2Kdf-jvqQOCtJyyhSi9bDsWvEwSk1RoreCSF9MuU-XAJNaQAr320OCZDRuhaLWVytHh2VoyYLUI"/>
+</div>
+<span class="text-[15px] font-semibold text-gray-900">Wanderlust 2024</span>
+</div>
+<span class="material-symbols-outlined text-primary text-[20px] font-bold">check</span>
+</div>
+<div class="flex items-center justify-between p-3 hover:bg-gray-50 rounded-2xl transition-colors cursor-pointer">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+<img alt="Paris" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAySxZ2SvVw5oORBmC02CMDxbBnVIdIFQ3GAM2ahKKzsL8AjachKhdXhWwhINxBBTbPTvn5oyRxP-yx4OCQUyhHmLkBaCsALJIGROpbiCHj9DFgAdqmDByJQl-8xNCPWOc7Uy-tDWt7Jfh9rWiRwFjWA71ue7oTjuT-rAyyg5fWkNY73YFJTuawBas4WchFcrlgPuVfw9MwcT75uDDgVy7qiI4fzEhpMn_i2tOhRjs_8sFE8Te1GrKIiI_b_QiIhxaPjiQQWG9D6Xs"/>
+</div>
+<span class="text-[15px] font-medium text-gray-700">Wochenende Paris</span>
+</div>
+</div>
+<div class="flex items-center justify-between p-3 hover:bg-gray-50 rounded-2xl transition-colors cursor-pointer">
+<div class="flex items-center gap-3">
+<div class="w-10 h-10 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden">
+<img alt="Skiing" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuArFL7kFKad3H65mDaSM5Y6unKKCeUNbmEYpmun0aUVLmr2IZsu1UWeNHww4u-TnUyQzqCm0IOwa3NtccLH5aZWS-y8mp_hCaevDygQcczE_XrOlx3_R7_3ARYH-rBJ_ZVh0PnEXNU1dxaKUA-FWj6g2Zkgxt1nRTg_rbQuE3_aL5H3ez26WC5qrB_aNJvZk-FSSnMbrbup_HGfw9cpQdDJAXzlMpPp5MCrmxKrk_1GQpvXQkigLRmVE8uteyhvp009hHFe5gK1pHY"/>
+</div>
+<span class="text-[15px] font-medium text-gray-700">Skiing Crew</span>
+</div>
+</div>
+</div>
+<div class="px-5 pt-3 pb-5">
+<button class="w-full bg-primary text-white py-3.5 rounded-xl font-semibold text-[16px] shadow-sm hover:brightness-95 active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+<span>Weiter</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+
+</body></html>

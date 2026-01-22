@@ -2,6 +2,7 @@ import { create } from "zustand";
 import {
   AvailabilityEntry,
   GroupAvailabilityInterval,
+  GroupAvailabilityStats,
   GroupMembership,
   Identity,
   MemberAvailability,
@@ -9,6 +10,7 @@ import {
 import {
   createAvailability,
   deleteAvailability,
+  fetchAvailabilityStats,
   fetchAvailabilitySummary,
   fetchMemberAvailabilities,
   fetchSelfAvailabilities,
@@ -46,23 +48,29 @@ type GroupStore = {
   groupsError: string | null;
   lastGroupsFetch: number;
   summaries: Record<string, CacheEntry<GroupAvailabilityInterval[]>>;
+  stats: Record<string, CacheEntry<GroupAvailabilityStats>>;
   memberAvailabilities: Record<string, CacheEntry<MemberAvailability[]>>;
   selfAvailabilities: Record<string, CacheEntry<AvailabilityEntry[]>>;
   fetchGroups: (identity: Identity, opts?: FetchOptions) => Promise<void>;
   fetchGroupSummary: (
     groupId: string,
     identity: Identity,
-    opts?: FetchOptions
+    opts?: FetchOptions,
+  ) => Promise<void>;
+  fetchGroupStats: (
+    groupId: string,
+    identity: Identity,
+    opts?: FetchOptions,
   ) => Promise<void>;
   fetchMemberAvailabilities: (
     groupId: string,
     identity: Identity,
-    opts?: FetchOptions
+    opts?: FetchOptions,
   ) => Promise<void>;
   fetchSelfAvailabilities: (
     groupId: string,
     identity: Identity,
-    opts?: FetchOptions
+    opts?: FetchOptions,
   ) => Promise<void>;
   optimisticAddAvailability: (params: {
     groupId: string;
@@ -90,9 +98,11 @@ function shouldSkipCache<T>(entry: CacheEntry<T> | undefined, force?: boolean) {
 function applyMemberAdd(
   cache: CacheEntry<MemberAvailability[]> | undefined,
   identity: Identity,
-  entry: AvailabilityEntry
+  entry: AvailabilityEntry,
 ): CacheEntry<MemberAvailability[]> {
-  const base = cache ? { ...cache, data: cloneMemberData(cache.data) } : emptyCache<MemberAvailability[]>([]);
+  const base = cache
+    ? { ...cache, data: cloneMemberData(cache.data) }
+    : emptyCache<MemberAvailability[]>([]);
   const actorId = identity.actorId;
   const userId = identity.kind === "user" ? identity.userId : null;
   const displayName = identity.displayName || "Du";
@@ -105,7 +115,7 @@ function applyMemberAdd(
       ...member,
       displayName: member.displayName || displayName,
       availabilities: [...member.availabilities, entry].sort((a, b) =>
-        a.startDate.localeCompare(b.startDate)
+        a.startDate.localeCompare(b.startDate),
       ),
     };
   } else {
@@ -124,30 +134,40 @@ function applyMemberAdd(
 
 function applyMemberDelete(
   cache: CacheEntry<MemberAvailability[]> | undefined,
-  availabilityId: string
+  availabilityId: string,
 ): CacheEntry<MemberAvailability[]> {
-  const base = cache ? { ...cache, data: cloneMemberData(cache.data) } : emptyCache<MemberAvailability[]>([]);
+  const base = cache
+    ? { ...cache, data: cloneMemberData(cache.data) }
+    : emptyCache<MemberAvailability[]>([]);
   base.data = base.data.map((member) => ({
     ...member,
-    availabilities: member.availabilities.filter((a) => a.id !== availabilityId),
+    availabilities: member.availabilities.filter(
+      (a) => a.id !== availabilityId,
+    ),
   }));
   return { ...base, error: null, loading: false };
 }
 
 function applySelfAdd(
   cache: CacheEntry<AvailabilityEntry[]> | undefined,
-  entry: AvailabilityEntry
+  entry: AvailabilityEntry,
 ): CacheEntry<AvailabilityEntry[]> {
-  const base = cache ? { ...cache, data: [...cache.data] } : emptyCache<AvailabilityEntry[]>([]);
-  const next = [...base.data, entry].sort((a, b) => a.startDate.localeCompare(b.startDate));
+  const base = cache
+    ? { ...cache, data: [...cache.data] }
+    : emptyCache<AvailabilityEntry[]>([]);
+  const next = [...base.data, entry].sort((a, b) =>
+    a.startDate.localeCompare(b.startDate),
+  );
   return { ...base, data: next, error: null, loading: false };
 }
 
 function applySelfDelete(
   cache: CacheEntry<AvailabilityEntry[]> | undefined,
-  availabilityId: string
+  availabilityId: string,
 ): CacheEntry<AvailabilityEntry[]> {
-  const base = cache ? { ...cache, data: [...cache.data] } : emptyCache<AvailabilityEntry[]>([]);
+  const base = cache
+    ? { ...cache, data: [...cache.data] }
+    : emptyCache<AvailabilityEntry[]>([]);
   return {
     ...base,
     data: base.data.filter((item) => item.id !== availabilityId),
@@ -162,6 +182,7 @@ export const useGroupStore = create<GroupStore>((set, get) => ({
   groupsError: null,
   lastGroupsFetch: 0,
   summaries: {},
+  stats: {},
   memberAvailabilities: {},
   selfAvailabilities: {},
 
@@ -172,6 +193,7 @@ export const useGroupStore = create<GroupStore>((set, get) => ({
       groupsError: null,
       lastGroupsFetch: 0,
       summaries: {},
+      stats: {},
       memberAvailabilities: {},
       selfAvailabilities: {},
     }),
@@ -180,22 +202,31 @@ export const useGroupStore = create<GroupStore>((set, get) => ({
     set((state) => {
       const exists = state.groups.some((g) => g.groupId === group.groupId);
       const groups = exists
-        ? state.groups.map((g) => (g.groupId === group.groupId ? { ...g, ...group } : g))
+        ? state.groups.map((g) =>
+            g.groupId === group.groupId ? { ...g, ...group } : g,
+          )
         : [...state.groups, group];
       return { groups };
     }),
 
   removeGroup: (groupId) =>
-    set((state) => ({ groups: state.groups.filter((g) => g.groupId !== groupId) })),
+    set((state) => ({
+      groups: state.groups.filter((g) => g.groupId !== groupId),
+    })),
 
   fetchGroups: async (identity, opts = {}) => {
     const { force = false, background = false } = opts;
-    if (shouldSkipCache({
-      data: [],
-      loading: false,
-      error: null,
-      lastFetched: get().lastGroupsFetch,
-    }, force)) {
+    if (
+      shouldSkipCache(
+        {
+          data: [],
+          loading: false,
+          error: null,
+          lastFetched: get().lastGroupsFetch,
+        },
+        force,
+      )
+    ) {
       return;
     }
     const hasData = get().groups.length > 0;
@@ -213,7 +244,8 @@ export const useGroupStore = create<GroupStore>((set, get) => ({
       });
     } catch (err) {
       set({
-        groupsError: err instanceof Error ? err.message : "Laden fehlgeschlagen",
+        groupsError:
+          err instanceof Error ? err.message : "Laden fehlgeschlagen",
       });
     } finally {
       if (showLoading) {
@@ -249,7 +281,7 @@ export const useGroupStore = create<GroupStore>((set, get) => ({
           ...state.summaries,
           [groupId]: {
             data,
-            loading: showLoading ? false : existing?.loading ?? false,
+            loading: showLoading ? false : (existing?.loading ?? false),
             error: null,
             lastFetched: Date.now(),
           },
@@ -261,7 +293,63 @@ export const useGroupStore = create<GroupStore>((set, get) => ({
           ...state.summaries,
           [groupId]: {
             data: existing?.data ?? [],
-              loading: showLoading ? false : existing?.loading ?? false,
+            loading: showLoading ? false : (existing?.loading ?? false),
+            error: err instanceof Error ? err.message : "Laden fehlgeschlagen",
+            lastFetched: existing?.lastFetched ?? 0,
+          },
+        },
+      }));
+    }
+  },
+
+  fetchGroupStats: async (groupId, identity, opts = {}) => {
+    if (!groupId) return;
+    const { force = false, background = false } = opts;
+    const existing = get().stats[groupId];
+    if (shouldSkipCache(existing, force)) return;
+
+    const hasData = Boolean(existing);
+    const showLoading = !background && !hasData;
+
+    if (showLoading) {
+      set((state) => ({
+        stats: {
+          ...state.stats,
+          [groupId]: existing
+            ? { ...existing, loading: true, error: null }
+            : emptyCache<GroupAvailabilityStats>({
+                totalUsers: 0,
+                usersWithAvailability: 0,
+                progress: 0,
+              }),
+        },
+      }));
+    }
+
+    try {
+      const data = await fetchAvailabilityStats(groupId, identity);
+      set((state) => ({
+        stats: {
+          ...state.stats,
+          [groupId]: {
+            data,
+            loading: showLoading ? false : (existing?.loading ?? false),
+            error: null,
+            lastFetched: Date.now(),
+          },
+        },
+      }));
+    } catch (err) {
+      set((state) => ({
+        stats: {
+          ...state.stats,
+          [groupId]: {
+            data: existing?.data ?? {
+              totalUsers: 0,
+              usersWithAvailability: 0,
+              progress: 0,
+            },
+            loading: showLoading ? false : (existing?.loading ?? false),
             error: err instanceof Error ? err.message : "Laden fehlgeschlagen",
             lastFetched: existing?.lastFetched ?? 0,
           },
@@ -297,7 +385,7 @@ export const useGroupStore = create<GroupStore>((set, get) => ({
           ...state.memberAvailabilities,
           [groupId]: {
             data,
-            loading: showLoading ? false : existing?.loading ?? false,
+            loading: showLoading ? false : (existing?.loading ?? false),
             error: null,
             lastFetched: Date.now(),
           },
@@ -309,7 +397,7 @@ export const useGroupStore = create<GroupStore>((set, get) => ({
           ...state.memberAvailabilities,
           [groupId]: {
             data: existing?.data ?? [],
-            loading: showLoading ? false : existing?.loading ?? false,
+            loading: showLoading ? false : (existing?.loading ?? false),
             error: err instanceof Error ? err.message : "Laden fehlgeschlagen",
             lastFetched: existing?.lastFetched ?? 0,
           },
@@ -345,7 +433,7 @@ export const useGroupStore = create<GroupStore>((set, get) => ({
           ...state.selfAvailabilities,
           [groupId]: {
             data,
-            loading: showLoading ? false : existing?.loading ?? false,
+            loading: showLoading ? false : (existing?.loading ?? false),
             error: null,
             lastFetched: Date.now(),
           },
@@ -357,7 +445,7 @@ export const useGroupStore = create<GroupStore>((set, get) => ({
           ...state.selfAvailabilities,
           [groupId]: {
             data: existing?.data ?? [],
-            loading: showLoading ? false : existing?.loading ?? false,
+            loading: showLoading ? false : (existing?.loading ?? false),
             error: err instanceof Error ? err.message : "Laden fehlgeschlagen",
             lastFetched: existing?.lastFetched ?? 0,
           },
@@ -366,7 +454,12 @@ export const useGroupStore = create<GroupStore>((set, get) => ({
     }
   },
 
-  optimisticAddAvailability: async ({ groupId, startDate, endDate, identity }) => {
+  optimisticAddAvailability: async ({
+    groupId,
+    startDate,
+    endDate,
+    identity,
+  }) => {
     const tempId = `temp-${Date.now()}-${Math.random().toString(16).slice(2)}`;
     const optimistic: AvailabilityEntry = {
       id: tempId,
@@ -394,7 +487,11 @@ export const useGroupStore = create<GroupStore>((set, get) => ({
     }));
 
     try {
-      const saved = await createAvailability(groupId, { startDate, endDate }, identity);
+      const saved = await createAvailability(
+        groupId,
+        { startDate, endDate },
+        identity,
+      );
 
       set((state) => {
         const memberCache = state.memberAvailabilities[groupId];
@@ -425,8 +522,18 @@ export const useGroupStore = create<GroupStore>((set, get) => ({
         };
       });
 
-      void get().fetchGroupSummary(groupId, identity, { force: true, background: true });
-      void get().fetchMemberAvailabilities(groupId, identity, { force: true, background: true });
+      void get().fetchGroupSummary(groupId, identity, {
+        force: true,
+        background: true,
+      });
+      void get().fetchMemberAvailabilities(groupId, identity, {
+        force: true,
+        background: true,
+      });
+      void get().fetchGroupStats(groupId, identity, {
+        force: true,
+        background: true,
+      });
 
       return saved;
     } catch (err) {
@@ -445,7 +552,11 @@ export const useGroupStore = create<GroupStore>((set, get) => ({
     }
   },
 
-  optimisticDeleteAvailability: async ({ availabilityId, groupId, identity }) => {
+  optimisticDeleteAvailability: async ({
+    availabilityId,
+    groupId,
+    identity,
+  }) => {
     const prevMembers = get().memberAvailabilities[groupId];
     const prevSelf = get().selfAvailabilities[groupId];
 
@@ -463,8 +574,18 @@ export const useGroupStore = create<GroupStore>((set, get) => ({
 
     try {
       await deleteAvailability(availabilityId, identity);
-      void get().fetchGroupSummary(groupId, identity, { force: true, background: true });
-      void get().fetchMemberAvailabilities(groupId, identity, { force: true, background: true });
+      void get().fetchGroupSummary(groupId, identity, {
+        force: true,
+        background: true,
+      });
+      void get().fetchMemberAvailabilities(groupId, identity, {
+        force: true,
+        background: true,
+      });
+      void get().fetchGroupStats(groupId, identity, {
+        force: true,
+        background: true,
+      });
     } catch (err) {
       set((state) => ({
         memberAvailabilities: {

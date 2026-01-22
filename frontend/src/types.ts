@@ -29,6 +29,8 @@ export type GroupMembership = {
   name: string;
   role: string;
   inviteLink: string;
+  inviteExpiresAt?: string;
+  createdAt?: string;
 };
 
 export type GroupInvitePreview = {
@@ -46,7 +48,13 @@ export type JoinGroupResponse = {
 
 export type Identity =
   | { kind: "actor"; actorId: string; displayName: string }
-  | { kind: "user"; actorId: string; userId: string; displayName: string; accessToken: string };
+  | {
+      kind: "user";
+      actorId: string;
+      userId: string;
+      displayName: string;
+      accessToken: string;
+    };
 
 export type AvailabilityEntry = {
   id: string;
@@ -56,6 +64,12 @@ export type AvailabilityEntry = {
   actorId?: string;
   userId?: string | null;
   displayName?: string;
+};
+
+export type GroupAvailabilityStats = {
+  totalUsers: number;
+  usersWithAvailability: number;
+  progress: number;
 };
 
 export type MemberAvailability = {

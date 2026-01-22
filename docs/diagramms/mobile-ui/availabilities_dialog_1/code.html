@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html class="light" lang="de"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>1/3 Startdatum auswählen</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "primary": "#556b68", // Sage Green - slightly deeper for accessibility
+                        "sage-soft": "#f4f7f6",
+                        "sage-badge": "#eef3f2",
+                        "background-dim": "rgba(15, 23, 42, 0.4)",
+                    },
+                    fontFamily: {
+                        "sans": ["Inter", "sans-serif"]
+                    },
+                    borderRadius: {
+                        "DEFAULT": "0.5rem",
+                        "lg": "0.75rem",
+                        "xl": "1rem",
+                        "2xl": "1.25rem",
+                    },
+                },
+            },
+        }
+    </script>
+<style type="text/tailwindcss">
+        @layer base {
+            body {
+                font-family: 'Inter', sans-serif;
+                -webkit-font-smoothing: antialiased;
+            }
+        }
+        .calendar-grid {
+            display: grid;
+            grid-template-columns: repeat(7, 1fr);
+            gap: 2px;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-[#fcfcfc] min-h-screen flex flex-col overflow-hidden">
+<div class="relative flex-1 overflow-hidden h-screen bg-white">
+<div class="p-6 space-y-8 opacity-20 grayscale">
+<div class="flex items-center justify-between">
+<div class="h-10 w-10 rounded-full bg-gray-200"></div>
+<div class="h-6 w-24 rounded bg-gray-200"></div>
+<div class="h-10 w-10 rounded-full bg-gray-200"></div>
+</div>
+<div class="h-40 w-full rounded-2xl bg-gray-100"></div>
+<div class="space-y-4">
+<div class="h-4 w-3/4 rounded bg-gray-100"></div>
+<div class="h-4 w-1/2 rounded bg-gray-100"></div>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div class="h-32 rounded-2xl bg-gray-100"></div>
+<div class="h-32 rounded-2xl bg-gray-100"></div>
+</div>
+</div>
+<div class="absolute inset-0 bg-background-dim backdrop-blur-[1px] flex items-center justify-center p-5">
+<div class="w-full max-w-[360px] bg-white rounded-[24px] shadow-2xl border border-white/20 overflow-hidden flex flex-col">
+<div class="px-5 py-4 flex items-center justify-between">
+<div class="bg-sage-badge px-3 py-1 rounded-full border border-[#e2e8e7]">
+<span class="text-[12px] font-semibold text-primary tracking-tight">1/3 Startdatum</span>
+</div>
+<button class="text-[13px] font-medium text-gray-400 hover:text-gray-600 transition-colors">
+                    Schließen
+                </button>
+</div>
+<div class="px-6 pb-6 pt-2">
+<div class="flex items-center justify-between mb-6">
+<h3 class="text-[15px] font-semibold text-gray-900">Januar 2026</h3>
+<div class="flex gap-1">
+<button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-50 text-gray-400">
+<span class="material-symbols-outlined text-lg">chevron_left</span>
+</button>
+<button class="w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-50 text-gray-400">
+<span class="material-symbols-outlined text-lg">chevron_right</span>
+</button>
+</div>
+</div>
+<div class="calendar-grid mb-3">
+<div class="text-center text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Mo</div>
+<div class="text-center text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Di</div>
+<div class="text-center text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Mi</div>
+<div class="text-center text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Do</div>
+<div class="text-center text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Fr</div>
+<div class="text-center text-[10px] font-semibold text-gray-400 uppercase tracking-wider">Sa</div>
+<div class="text-center text-[10px] font-semibold text-gray-400 uppercase tracking-wider">So</div>
+</div>
+<div class="calendar-grid">
+<div class="h-10"></div>
+<div class="h-10"></div>
+<div class="h-10"></div>
+<div class="h-10 flex items-center justify-center text-[13px] text-gray-300">1</div>
+<div class="h-10 flex items-center justify-center text-[13px] text-gray-300">2</div>
+<div class="h-10 flex items-center justify-center text-[13px] text-gray-300">3</div>
+<div class="h-10 flex items-center justify-center text-[13px] text-gray-300">4</div>
+<div class="h-10 flex items-center justify-center text-[13px] text-gray-300">5</div>
+<div class="h-10 flex items-center justify-center text-[13px] text-gray-300">6</div>
+<div class="h-10 flex items-center justify-center text-[13px] text-gray-300">7</div>
+<div class="h-10 flex items-center justify-center text-[13px] text-gray-300">8</div>
+<div class="h-10 flex items-center justify-center text-[13px] text-gray-300">9</div>
+<div class="h-10 flex items-center justify-center text-[13px] text-gray-300">10</div>
+<div class="h-10 flex items-center justify-center text-[13px] text-gray-300">11</div>
+<div class="h-10 flex items-center justify-center text-[13px] text-gray-300">12</div>
+<div class="h-10 flex items-center justify-center text-[13px] text-gray-300">13</div>
+<div class="h-10 flex items-center justify-center text-[13px] text-gray-300">14</div>
+<div class="h-10 flex items-center justify-center text-[13px] font-medium text-gray-800 hover:bg-sage-soft rounded-lg cursor-pointer transition-colors">15</div>
+<div class="h-10 flex items-center justify-center text-[13px] font-semibold text-white bg-primary rounded-lg shadow-sm">16</div>
+<div class="h-10 flex items-center justify-center text-[13px] font-medium text-gray-800 hover:bg-sage-soft rounded-lg cursor-pointer transition-colors">17</div>
+<div class="h-10 flex items-center justify-center text-[13px] font-medium text-gray-800 hover:bg-sage-soft rounded-lg cursor-pointer transition-colors">18</div>
+<div class="h-10 flex items-center justify-center text-[13px] font-medium text-gray-800 hover:bg-sage-soft rounded-lg cursor-pointer transition-colors">19</div>
+<div class="h-10 flex items-center justify-center text-[13px] font-medium text-gray-800 hover:bg-sage-soft rounded-lg cursor-pointer transition-colors">20</div>
+<div class="h-10 flex items-center justify-center text-[13px] font-medium text-gray-800 hover:bg-sage-soft rounded-lg cursor-pointer transition-colors">21</div>
+<div class="h-10 flex items-center justify-center text-[13px] font-medium text-gray-800 hover:bg-sage-soft rounded-lg cursor-pointer transition-colors">22</div>
+<div class="h-10 flex items-center justify-center text-[13px] font-medium text-gray-800 hover:bg-sage-soft rounded-lg cursor-pointer transition-colors">23</div>
+<div class="h-10 flex items-center justify-center text-[13px] font-medium text-gray-800 hover:bg-sage-soft rounded-lg cursor-pointer transition-colors">24</div>
+<div class="h-10 flex items-center justify-center text-[13px] font-medium text-gray-800 hover:bg-sage-soft rounded-lg cursor-pointer transition-colors">25</div>
+<div class="h-10 flex items-center justify-center text-[13px] font-medium text-gray-800 hover:bg-sage-soft rounded-lg cursor-pointer transition-colors">26</div>
+<div class="h-10 flex items-center justify-center text-[13px] font-medium text-gray-800 hover:bg-sage-soft rounded-lg cursor-pointer transition-colors">27</div>
+<div class="h-10 flex items-center justify-center text-[13px] font-medium text-gray-800 hover:bg-sage-soft rounded-lg cursor-pointer transition-colors">28</div>
+<div class="h-10 flex items-center justify-center text-[13px] font-medium text-gray-800 hover:bg-sage-soft rounded-lg cursor-pointer transition-colors">29</div>
+<div class="h-10 flex items-center justify-center text-[13px] font-medium text-gray-800 hover:bg-sage-soft rounded-lg cursor-pointer transition-colors">30</div>
+<div class="h-10 flex items-center justify-center text-[13px] font-medium text-gray-800 hover:bg-sage-soft rounded-lg cursor-pointer transition-colors">31</div>
+</div>
+</div>
+<div class="px-6 py-5 bg-white flex flex-col items-center gap-4">
+<p class="text-[13px] text-gray-400 font-normal">Tippe auf ein Startdatum im Kalender</p>
+<button class="w-full bg-primary text-white py-3.5 rounded-2xl font-semibold text-[15px] shadow-sm active:scale-[0.98] transition-all flex items-center justify-center gap-2">
+<span>Weiter</span>
+<span class="material-symbols-outlined text-[18px]">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</div>
+
+</body></html>
