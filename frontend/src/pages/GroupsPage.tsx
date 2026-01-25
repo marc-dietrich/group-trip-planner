@@ -1,8 +1,8 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { GroupMembership, Identity } from "../types";
 import { AvailabilityFlow } from "../components/AvailabilityFlow";
-import { muted, pillDanger } from "../ui";
+import { input, muted, pillDanger } from "../ui";
 import { useGroupStats } from "../hooks/useGroupStats";
 
 const heroImages = [
@@ -105,10 +105,49 @@ export function GroupsPage({
   onCopyInvite: _onCopyInvite,
   onOpenMenu,
 }: GroupsPageProps) {
+  const [filterOpen, setFilterOpen] = useState(false);
+  const [filterQuery, setFilterQuery] = useState("");
   const [showHistory, setShowHistory] = useState(false);
+  const filterWrapperRef = useRef<HTMLDivElement | null>(null);
+  const filterInputRef = useRef<HTMLInputElement | null>(null);
+
+  useEffect(() => {
+    if (!filterOpen) return undefined;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (filterWrapperRef.current?.contains(event.target as Node)) return;
+      setFilterOpen(false);
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setFilterOpen(false);
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("keydown", handleEscape);
+
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [filterOpen]);
+
+  useEffect(() => {
+    if (filterOpen) filterInputRef.current?.focus();
+  }, [filterOpen]);
+
+  const filteredGroups = useMemo(() => {
+    const term = filterQuery.trim().toLowerCase();
+    if (!term) return groups;
+
+    return groups.filter((group) => group.name.toLowerCase().includes(term));
+  }, [filterQuery, groups]);
+
+  const isFiltered = filterQuery.trim().length > 0;
+
   const { activeGroups, historyGroups, historyLabel } = useMemo(() => {
     const now = Date.now();
-    const hasCreatedAt = groups.some((g) => Boolean(g.createdAt));
+    const hasCreatedAt = filteredGroups.some((g) => Boolean(g.createdAt));
     const thresholdMs = hasCreatedAt
       ? HISTORY_DAYS * 24 * 60 * 60 * 1000
       : FALLBACK_TEST_HOURS * 60 * 60 * 1000;
@@ -119,7 +158,7 @@ export function GroupsPage({
     const active: GroupMembership[] = [];
     const history: GroupMembership[] = [];
 
-    groups.forEach((group) => {
+    filteredGroups.forEach((group) => {
       const createdMs = group.createdAt ? Date.parse(group.createdAt) : NaN;
       if (Number.isFinite(createdMs) && now - createdMs > thresholdMs) {
         history.push(group);
@@ -133,7 +172,10 @@ export function GroupsPage({
       historyGroups: history,
       historyLabel: label,
     };
-  }, [groups]);
+  }, [filteredGroups]);
+
+  const totalCount = groups.length;
+  const filteredCount = filteredGroups.length;
 
   const listBody = useMemo(() => {
     if (groupsLoading) return <p className={muted}>Gruppen werden geladen…</p>;
@@ -141,7 +183,28 @@ export function GroupsPage({
     if (!activeGroups.length)
       return (
         <div className="rounded-2xl border border-dashed border-sage-200 bg-sage-50 p-5 text-sm text-sage-700">
-          Noch keine Gruppen. Lege die erste an, um Verfügbarkeiten zu teilen.
+          {isFiltered ? (
+            <div className="space-y-2">
+              <p>
+                Keine aktiven Gruppen für "{filterQuery.trim() || "Filter"}".
+              </p>
+              {historyGroups.length ? (
+                <p className="text-xs text-sage-600">
+                  Treffer in der Historie: {historyGroups.length}. Öffne die
+                  Historie oder setze den Filter zurück.
+                </p>
+              ) : null}
+              <button
+                className="rounded-full border border-sage-200 bg-white px-3 py-1.5 text-xs font-semibold text-brand-primary transition hover:border-brand-primary/60"
+                type="button"
+                onClick={() => setFilterQuery("")}
+              >
+                Filter zurücksetzen
+              </button>
+            </div>
+          ) : (
+            "Noch keine Gruppen. Lege die erste an, um Verfügbarkeiten zu teilen."
+          )}
         </div>
       );
 
@@ -157,7 +220,15 @@ export function GroupsPage({
         ))}
       </ul>
     );
-  }, [activeGroups, groupsError, groupsLoading, identity]);
+  }, [
+    activeGroups,
+    filterQuery,
+    groupsError,
+    groupsLoading,
+    historyGroups.length,
+    identity,
+    isFiltered,
+  ]);
 
   return (
     <div className="relative min-h-[80vh] pb-24">
@@ -179,14 +250,65 @@ export function GroupsPage({
         >
           + Gruppe erstellen
         </button>
-        <div className="flex items-center justify-end w-12">
+        <div
+          className="relative flex items-center justify-end w-12"
+          ref={filterWrapperRef}
+        >
           <button
-            className={`${pendingSurface} ${pendingText} rounded-full p-2 shadow-soft transition-colors`}
+            className={`rounded-full p-2 shadow-soft transition-colors border ${
+              isFiltered
+                ? "border-brand-primary/60 bg-brand-soft text-brand-primary"
+                : "border-sage-100 bg-white text-sage-900 hover:border-brand-primary/60"
+            }`}
             type="button"
-            aria-label="Filter (noch nicht aktiv)"
+            aria-label="Gruppen filtern"
+            aria-pressed={isFiltered}
+            onClick={() => setFilterOpen((prev) => !prev)}
           >
             <span className="material-symbols-outlined !text-[20px]">tune</span>
           </button>
+          {filterOpen ? (
+            <div className="absolute right-0 top-12 z-30 w-72 rounded-2xl border border-sage-200 bg-white p-4 shadow-card">
+              <div className="flex items-center justify-between gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-sage-500">
+                <span>Gruppen filtern</span>
+                <span className="text-sage-400">{filteredCount}/{totalCount}</span>
+              </div>
+              <div className="mt-3 flex items-center gap-2">
+                <input
+                  ref={filterInputRef}
+                  value={filterQuery}
+                  placeholder="Name oder Teilstring"
+                  onChange={(e) => setFilterQuery(e.target.value)}
+                  className={`${input} text-sm`}
+                />
+                {filterQuery ? (
+                  <button
+                    type="button"
+                    className="rounded-xl border border-sage-200 bg-sage-50 px-3 py-2 text-xs font-semibold text-sage-700 transition hover:border-brand-primary/50 hover:text-brand-primary"
+                    onClick={() => setFilterQuery("")}
+                  >
+                    Reset
+                  </button>
+                ) : null}
+              </div>
+              <div className="mt-3 flex items-center justify-between text-xs text-sage-600">
+                <span>
+                  {isFiltered
+                    ? "Filter aktiv"
+                    : "Zeigt alle Gruppen"}
+                </span>
+                {isFiltered ? (
+                  <button
+                    type="button"
+                    className="font-semibold text-brand-primary hover:text-sage-900"
+                    onClick={() => setFilterQuery("")}
+                  >
+                    Filter löschen
+                  </button>
+                ) : null}
+              </div>
+            </div>
+          ) : null}
         </div>
       </header>
 
