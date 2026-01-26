@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 import { useNavigate, useParams } from "react-router-dom";
 import { GroupMembership, Identity } from "../types";
 import { buildIdentityHeaders } from "../lib/identity";
 import { apiPath } from "../lib/api";
 import { AvailabilityFlow } from "../components/AvailabilityFlow";
-import { muted } from "../ui";
+import { modalCard, modalOverlay, muted } from "../ui";
 import { useGroupAvailability } from "../hooks/useGroupAvailability";
 import { useGroupMemberAvailabilities } from "../hooks/useGroupMemberAvailabilities";
 import { useGroupStats } from "../hooks/useGroupStats";
@@ -15,25 +16,19 @@ const dateFormatter = new Intl.DateTimeFormat("de-DE", {
   year: "numeric",
 });
 
-const pendingSurface = "bg-rose-50 border border-rose-100";
-const pendingText = "text-rose-700";
 const pendingBadge =
   "inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-rose-700 border border-rose-200";
 
 type GroupDetailPageProps = {
   identity: Identity;
   groups: GroupMembership[];
-  onOpenMenu?: () => void;
 };
-export function GroupDetailPage({
-  identity,
-  groups,
-  onOpenMenu,
-}: GroupDetailPageProps) {
+export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
   const { groupId } = useParams();
   const navigate = useNavigate();
   const [groupName, setGroupName] = useState<string>("Gruppe");
   const [summaryExpanded, setSummaryExpanded] = useState(false);
+  const [settingsOpen, setSettingsOpen] = useState(false);
 
   const { data: summary, refetch: refetchSummary } = useGroupAvailability(
     groupId ?? null,
@@ -142,6 +137,10 @@ export function GroupDetailPage({
     [selfEntries],
   );
 
+  const showComingSoon = () => {
+    toast("Coming soon");
+  };
+
   const selfHighlight = sortedSelfEntries[0];
 
   const highlightInterval = bestInterval || summary[0] || null;
@@ -187,22 +186,13 @@ export function GroupDetailPage({
             </h1>
           </div>
           <div className="flex items-center gap-2">
-            {onOpenMenu ? (
-              <button
-                type="button"
-                aria-label="Menü"
-                onClick={onOpenMenu}
-                className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 text-white hover:bg-white/30 transition"
-              >
-                <span className="material-symbols-outlined">menu</span>
-              </button>
-            ) : null}
             <button
               type="button"
-              className="w-10 h-10 rounded-full border border-rose-100 bg-rose-200/70 backdrop-blur-md flex items-center justify-center text-rose-800 hover:bg-rose-200 transition"
+              className="w-10 h-10 rounded-full border border-slate-200 bg-white/70 backdrop-blur-md flex items-center justify-center text-slate-500 hover:bg-white hover:text-slate-700 transition"
               aria-label="Gruppen-Einstellungen (Platzhalter)"
+              onClick={() => setSettingsOpen(true)}
             >
-              <span className="material-symbols-outlined text-[24px]">
+              <span className="material-symbols-outlined text-[22px]">
                 settings
               </span>
             </button>
@@ -218,14 +208,20 @@ export function GroupDetailPage({
             </span>
           </div>
           <button
-            className={`backdrop-blur-md px-4 py-2 rounded-xl shadow-sm flex items-center gap-2 ${pendingSurface} ${pendingText} hover:bg-rose-100 transition-colors`}
+            className="pointer-events-auto px-4 py-2 rounded-xl shadow-sm flex items-center gap-2 bg-slate-100/90 border border-slate-200 text-slate-700 hover:bg-slate-100 transition-colors"
             type="button"
             aria-label="Deadline setzen (Platzhalter)"
+            onClick={showComingSoon}
           >
-            <span className="material-symbols-outlined text-rose-700 text-[18px]">
+            <span className="material-symbols-outlined text-slate-500 text-[18px]">
               event_busy
             </span>
-            <span className="text-xs font-bold">Deadline setzen (bald)</span>
+            <span className="flex flex-col items-start leading-tight">
+              <span className="text-xs font-semibold text-slate-800">
+                Deadline setzen
+              </span>
+              <span className="text-[11px] text-slate-500">Coming soon</span>
+            </span>
           </button>
         </div>
       </div>
@@ -469,11 +465,11 @@ export function GroupDetailPage({
       <div className="fixed bottom-6 left-0 right-0 max-w-[520px] mx-auto p-4 flex items-center justify-end gap-3 pointer-events-none">
         <button
           type="button"
-          className="pointer-events-auto w-14 h-14 rounded-full shadow-2xl flex items-center justify-center hover:scale-95 transition-transform active:scale-90 bg-rose-50 border border-rose-200 text-rose-700"
-          onClick={() => setSummaryExpanded(true)}
-          aria-label="Zeitfenster anzeigen (Platzhalter)"
+          className="pointer-events-auto w-14 h-14 rounded-full shadow-2xl flex items-center justify-center hover:scale-95 transition-transform active:scale-90 bg-slate-100 border border-slate-200 text-slate-600"
+          onClick={showComingSoon}
+          aria-label="Kalender Import (Platzhalter)"
         >
-          <span className="material-symbols-outlined text-rose-700 text-2xl">
+          <span className="material-symbols-outlined text-slate-600 text-2xl">
             calendar_add_on
           </span>
         </button>
@@ -504,6 +500,39 @@ export function GroupDetailPage({
           }}
         />
       </div>
+
+      {settingsOpen ? (
+        <div className={modalOverlay} role="dialog" aria-modal="true">
+          <div className={`${modalCard} bg-white`}>
+            <div className="flex items-start justify-between gap-3 mb-4">
+              <div>
+                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
+                  Entwickler-Hinweis
+                </p>
+                <h3 className="text-lg font-semibold text-slate-900">
+                  Gruppen-Einstellungen
+                </h3>
+              </div>
+              <button
+                type="button"
+                className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
+                onClick={() => setSettingsOpen(false)}
+              >
+                Schließen
+              </button>
+            </div>
+            <div className="space-y-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
+              <p className="text-sm font-semibold text-rose-700">
+                This feature is not implemented yet.
+              </p>
+              <p className="text-sm text-rose-600">
+                It is intentionally left as a development placeholder. No
+                functionality is available beyond this notice.
+              </p>
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
