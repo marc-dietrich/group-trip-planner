@@ -561,11 +561,7 @@ function AppShell() {
               health={health}
             />
           ) : (
-            <GroupDetailPage
-              identity={identity}
-              groups={groups}
-              onOpenMenu={() => setMenuOpen(true)}
-            />
+            <GroupDetailPage identity={identity} groups={groups} />
           )
         }
       />
