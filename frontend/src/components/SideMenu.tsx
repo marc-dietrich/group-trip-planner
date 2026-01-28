@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { toast } from "sonner";
 import { Identity } from "../types";
 
 export type SideMenuProps = {
@@ -9,15 +10,21 @@ export type SideMenuProps = {
 };
 
 export function SideMenu({ open, onClose, identity, onLogout }: SideMenuProps) {
-  const [notifications, setNotifications] = useState(true);
+  const [notifications, setNotifications] = useState(false);
   const [faceId, setFaceId] = useState(false);
   const [rating, setRating] = useState(4);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
-  const pendingSurface = "bg-rose-50 border border-rose-100";
-  const pendingText = "text-rose-700";
-  const pendingBadge =
-    "inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-700 border border-rose-200";
+  const pendingSurface = "bg-sage-50 border border-sage-100";
+  const pendingText = "text-sage-800";
+  const infoText = "text-slate-800";
+  const mutedText = "text-zinc-700";
+  const impressumLines = [
+    "Marc Dietrich",
+    "c/o DE Office Solutions",
+    "Erfweiler Straße 12",
+    "66994 Dahn",
+  ];
 
   const displayName = useMemo(
     () => identity.displayName || ("Gast" as string),
@@ -80,92 +87,103 @@ export function SideMenu({ open, onClose, identity, onLogout }: SideMenuProps) {
             <div className="h-px bg-zinc-100 dark:bg-zinc-800/50 mx-6" />
             <div className="p-6">
               <div
-                className={`flex flex-col gap-3 rounded-2xl p-4 ${pendingSurface}`}
-                aria-label="Spendenplatzhalter"
+                className="flex flex-col rounded-2xl p-4 gap-3"
+                aria-label="Spenden Coming Soon"
               >
-                <div className="flex items-center justify-between">
+                <div className="flex flex-col gap-1">
                   <p
-                    className={`text-xs font-bold uppercase tracking-tight ${pendingText}`}
+                    className={`text-xs font-bold uppercase tracking-tight ${mutedText}`}
                   >
                     Unterstütze uns
                   </p>
-                  <span className={pendingBadge}>in Planung</span>
+                  <p className="text-[11px] leading-relaxed text-zinc-600">
+                    Dieses Tool bleibt kostenlos. Spenden sind freiwillig und
+                    ohne Vorteile.
+                  </p>
                 </div>
-                <p className={`${pendingText} text-[11px] leading-relaxed`}>
-                  Spendenfläche ist noch nicht aktiv. Bald gibt es hier Infos
-                  und eine sichere Abwicklung.
-                </p>
                 <button
-                  className={`flex w-full cursor-not-allowed items-center justify-center rounded-xl h-10 border border-rose-200 bg-rose-100 text-xs font-semibold ${pendingText}`}
                   type="button"
+                  className="mt-3 flex h-10 w-full items-center justify-center rounded-xl bg-zinc-200 text-[12px] font-semibold text-zinc-600 cursor-not-allowed border border-zinc-200"
                   aria-disabled="true"
                 >
-                  Kommt bald
+                  Coming soon
                 </button>
               </div>
             </div>
-            <div className="flex flex-col">
-              <h3 className="text-zinc-400 dark:text-zinc-500 text-[10px] uppercase tracking-[0.1em] font-bold px-6 pb-2">
+            <div className="flex flex-col px-6 pb-4 gap-3">
+              <h3 className="text-zinc-500 text-[11px] uppercase tracking-[0.14em] font-bold">
                 Einstellungen
               </h3>
               <div
-                className={`flex items-center gap-4 px-6 min-h-[60px] justify-between rounded-2xl ${pendingSurface}`}
+                className="flex items-center gap-4 min-h-[56px] justify-between"
+                title="Push nur in mobiler App aktivierbar."
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center rounded-xl bg-rose-100 shrink-0 size-9 text-rose-700">
+                  <div className="flex items-center justify-center rounded-xl bg-sage-100 shrink-0 size-9 text-sage-800">
                     <span className="material-symbols-outlined text-[20px]">
                       notifications
                     </span>
                   </div>
                   <div className="flex flex-col">
-                    <p className={`text-[14px] font-semibold ${pendingText}`}>
+                    <p className={`text-[14px] font-semibold ${infoText}`}>
                       Benachrichtigungen
                     </p>
-                    <span className="text-[11px] font-medium text-rose-600">
-                      noch nicht verfügbar
-                    </span>
                   </div>
                 </div>
-                <label className="relative flex h-[26px] w-[46px] cursor-not-allowed items-center rounded-full border border-rose-200 bg-rose-100 p-0.5 transition-all">
+                <label
+                  className="relative flex h-[26px] w-[46px] cursor-pointer items-center rounded-full border border-zinc-200 bg-zinc-100 p-0.5 transition-all"
+                  title="Push nur in mobiler App aktivierbar."
+                >
                   <input
                     type="checkbox"
                     className="peer hidden"
                     checked={notifications}
-                    onChange={(e) => setNotifications(e.target.checked)}
-                    disabled
+                    onChange={() => {
+                      setNotifications(false);
+                      toast.info(
+                        "Download App, um alle Features freizuschalten.",
+                      );
+                    }}
+                    aria-label="Benachrichtigungen nur in mobiler App aktivierbar"
                   />
                   <div className="h-full aspect-square rounded-full bg-white shadow-sm transition-all peer-checked:translate-x-[20px]" />
-                  <div className="absolute inset-0 rounded-full pointer-events-none peer-checked:bg-rose-300/60" />
+                  <div className="absolute inset-0 rounded-full pointer-events-none peer-checked:bg-zinc-300/70" />
                 </label>
               </div>
               <div
-                className={`flex items-center gap-4 px-6 min-h-[60px] justify-between rounded-2xl mt-3 ${pendingSurface}`}
+                className="flex items-center gap-4 min-h-[56px] justify-between"
+                title="Face ID / Fingerprint nur in mobiler App verfügbar."
               >
                 <div className="flex items-center gap-3">
-                  <div className="flex items-center justify-center rounded-xl bg-rose-100 shrink-0 size-9 text-rose-700">
+                  <div className="flex items-center justify-center rounded-xl bg-sage-100 shrink-0 size-9 text-sage-800">
                     <span className="material-symbols-outlined text-[20px]">
                       fingerprint
                     </span>
                   </div>
                   <div className="flex flex-col">
-                    <p className={`text-[14px] font-semibold ${pendingText}`}>
-                      Sicherheit (FaceID)
+                    <p className={`text-[14px] font-semibold ${infoText}`}>
+                      Sicherheit
                     </p>
-                    <span className="text-[11px] font-medium text-rose-600">
-                      noch nicht aktiv
-                    </span>
                   </div>
                 </div>
-                <label className="relative flex h-[26px] w-[46px] cursor-not-allowed items-center rounded-full border border-rose-200 bg-rose-100 p-0.5 transition-all">
+                <label
+                  className="relative flex h-[26px] w-[46px] cursor-pointer items-center rounded-full border border-zinc-200 bg-zinc-100 p-0.5 transition-all"
+                  title="Face ID / Fingerprint nur in mobiler App verfügbar."
+                >
                   <input
                     type="checkbox"
                     className="peer hidden"
                     checked={faceId}
-                    onChange={(e) => setFaceId(e.target.checked)}
-                    disabled
+                    onChange={() => {
+                      setFaceId(false);
+                      toast.info(
+                        "Download App, um alle Features freizuschalten.",
+                      );
+                    }}
+                    aria-label="Biometrische Anmeldung nur in mobiler App verfügbar"
                   />
                   <div className="h-full aspect-square rounded-full bg-white shadow-sm transition-all peer-checked:translate-x-[20px]" />
-                  <div className="absolute inset-0 rounded-full pointer-events-none peer-checked:bg-rose-300/60" />
+                  <div className="absolute inset-0 rounded-full pointer-events-none peer-checked:bg-zinc-300/70" />
                 </label>
               </div>
             </div>
@@ -177,7 +195,7 @@ export function SideMenu({ open, onClose, identity, onLogout }: SideMenuProps) {
                 onClick={() => setFeedbackOpen((open) => !open)}
                 aria-expanded={feedbackOpen}
               >
-                <div className="text-rose-500 group-hover:text-rose-600 transition-colors flex items-center justify-center">
+                <div className="text-sage-600 group-hover:text-sage-700 transition-colors flex items-center justify-center">
                   <span className="material-symbols-outlined text-[20px]">
                     forum
                   </span>
@@ -186,7 +204,7 @@ export function SideMenu({ open, onClose, identity, onLogout }: SideMenuProps) {
                   Feedback (Platzhalter)
                 </p>
                 <span
-                  className={`material-symbols-outlined text-[20px] text-rose-400 transition-transform ${
+                  className={`material-symbols-outlined text-[20px] text-sage-500 transition-transform ${
                     feedbackOpen ? "rotate-180" : ""
                   }`}
                 >
@@ -204,12 +222,12 @@ export function SideMenu({ open, onClose, identity, onLogout }: SideMenuProps) {
                         type="button"
                         aria-label={`Stern ${star}`}
                         onClick={() => setRating(star)}
-                        className="text-rose-500"
+                        className="text-sage-600"
                         disabled
                       >
                         <span
                           className={`material-symbols-outlined text-[20px] ${
-                            star <= rating ? "text-rose-500" : "text-rose-200"
+                            star <= rating ? "text-sage-600" : "text-sage-200"
                           }`}
                         >
                           star
@@ -220,12 +238,12 @@ export function SideMenu({ open, onClose, identity, onLogout }: SideMenuProps) {
                   <textarea
                     rows={2}
                     placeholder="Feedback-Slot folgt"
-                    className="w-full rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800 placeholder:text-rose-400 focus:border-rose-400 focus:ring-0 transition-all resize-none"
+                    className="w-full rounded-xl border border-sage-200 bg-sage-50 p-3 text-xs text-sage-800 placeholder:text-sage-500 focus:border-sage-400 focus:ring-0 transition-all resize-none"
                     disabled
                   />
                   <button
                     type="button"
-                    className="flex h-9 w-full items-center justify-center rounded-xl bg-rose-100 text-rose-700 text-xs font-semibold cursor-not-allowed border border-rose-200"
+                    className="flex h-9 w-full items-center justify-center rounded-xl bg-sage-100 text-sage-700 text-xs font-semibold cursor-not-allowed border border-sage-200"
                     aria-disabled="true"
                   >
                     Kommt bald
@@ -236,7 +254,7 @@ export function SideMenu({ open, onClose, identity, onLogout }: SideMenuProps) {
                 className={`flex items-center gap-3 py-3 group ${pendingText}`}
                 type="button"
               >
-                <div className="text-rose-500 group-hover:text-rose-600 transition-colors flex items-center justify-center">
+                <div className="text-sage-600 group-hover:text-sage-700 transition-colors flex items-center justify-center">
                   <span className="material-symbols-outlined text-[20px]">
                     mail
                   </span>
@@ -251,12 +269,12 @@ export function SideMenu({ open, onClose, identity, onLogout }: SideMenuProps) {
                   onClose();
                 }}
               >
-                <div className="text-zinc-400 group-hover:text-red-500 transition-colors flex items-center justify-center">
+                <div className="text-zinc-400 group-hover:text-sage-300 transition-colors flex items-center justify-center">
                   <span className="material-symbols-outlined text-[20px]">
                     logout
                   </span>
                 </div>
-                <p className="text-zinc-600 dark:text-zinc-400 text-[14px] font-medium group-hover:text-red-500 transition-colors">
+                <p className="text-zinc-600 dark:text-zinc-400 text-[14px] font-medium group-hover:text-sage-700 transition-colors">
                   Abmelden
                 </p>
               </button>
@@ -268,7 +286,7 @@ export function SideMenu({ open, onClose, identity, onLogout }: SideMenuProps) {
                 <p
                   className={`text-[10px] font-bold uppercase tracking-widest ${pendingText}`}
                 >
-                  Impressum (Platzhalter)
+                  Impressum
                 </p>
                 <span className={`text-[10px] font-mono ${pendingText}`}>
                   v1.2.0
@@ -277,13 +295,12 @@ export function SideMenu({ open, onClose, identity, onLogout }: SideMenuProps) {
               <div
                 className={`flex flex-col text-[11px] space-y-0.5 ${pendingText}`}
               >
-                <p className="font-semibold">Daten werden nachgereicht</p>
-                <p>Nicht final</p>
+                {impressumLines.map((line) => (
+                  <p key={line}>{line}</p>
+                ))}
               </div>
-              <p
-                className={`${pendingText} mt-2 text-[10px] leading-relaxed italic font-medium`}
-              >
-                Rechtsangaben folgen noch. Dieser Bereich ist bewusst markiert.
+              <p className={`${pendingText} mt-2 text-[10px] leading-relaxed`}>
+                Rechtliche Angaben bereitgestellt.
               </p>
             </div>
           </div>
