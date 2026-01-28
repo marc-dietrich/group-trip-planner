@@ -17,8 +17,6 @@ export function SideMenu({ open, onClose, identity, onLogout }: SideMenuProps) {
 
   const pendingSurface = "bg-sage-50 border border-sage-100";
   const pendingText = "text-sage-800";
-  const pendingBadge =
-    "inline-flex items-center gap-1 rounded-full bg-sage-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sage-700 border border-sage-200";
   const infoText = "text-slate-800";
   const mutedText = "text-zinc-700";
   const impressumLines = [
