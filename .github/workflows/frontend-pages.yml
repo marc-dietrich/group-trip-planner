@@ -49,9 +49,6 @@ jobs:
       - name: Build
         run: npm run build
 
-      - name: Include CNAME in artifact
-        run: cp CNAME dist/CNAME
-
       - name: Configure Pages
         uses: actions/configure-pages@v4
 
