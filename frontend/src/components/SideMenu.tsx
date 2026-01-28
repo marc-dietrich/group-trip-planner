@@ -15,12 +15,18 @@ export function SideMenu({ open, onClose, identity, onLogout }: SideMenuProps) {
   const [rating, setRating] = useState(4);
   const [feedbackOpen, setFeedbackOpen] = useState(false);
 
-  const pendingSurface = "bg-rose-50 border border-rose-100";
-  const pendingText = "text-rose-700";
+  const pendingSurface = "bg-sage-50 border border-sage-100";
+  const pendingText = "text-sage-800";
   const pendingBadge =
-    "inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-rose-700 border border-rose-200";
+    "inline-flex items-center gap-1 rounded-full bg-sage-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-sage-700 border border-sage-200";
   const infoText = "text-slate-800";
   const mutedText = "text-zinc-700";
+  const impressumLines = [
+    "Marc Dietrich",
+    "c/o DE Office Solutions",
+    "Erfweiler Straße 12",
+    "66994 Dahn",
+  ];
 
   const displayName = useMemo(
     () => identity.displayName || ("Gast" as string),
@@ -191,7 +197,7 @@ export function SideMenu({ open, onClose, identity, onLogout }: SideMenuProps) {
                 onClick={() => setFeedbackOpen((open) => !open)}
                 aria-expanded={feedbackOpen}
               >
-                <div className="text-rose-500 group-hover:text-rose-600 transition-colors flex items-center justify-center">
+                <div className="text-sage-600 group-hover:text-sage-700 transition-colors flex items-center justify-center">
                   <span className="material-symbols-outlined text-[20px]">
                     forum
                   </span>
@@ -200,7 +206,7 @@ export function SideMenu({ open, onClose, identity, onLogout }: SideMenuProps) {
                   Feedback (Platzhalter)
                 </p>
                 <span
-                  className={`material-symbols-outlined text-[20px] text-rose-400 transition-transform ${
+                  className={`material-symbols-outlined text-[20px] text-sage-500 transition-transform ${
                     feedbackOpen ? "rotate-180" : ""
                   }`}
                 >
@@ -218,12 +224,12 @@ export function SideMenu({ open, onClose, identity, onLogout }: SideMenuProps) {
                         type="button"
                         aria-label={`Stern ${star}`}
                         onClick={() => setRating(star)}
-                        className="text-rose-500"
+                        className="text-sage-600"
                         disabled
                       >
                         <span
                           className={`material-symbols-outlined text-[20px] ${
-                            star <= rating ? "text-rose-500" : "text-rose-200"
+                            star <= rating ? "text-sage-600" : "text-sage-200"
                           }`}
                         >
                           star
@@ -234,12 +240,12 @@ export function SideMenu({ open, onClose, identity, onLogout }: SideMenuProps) {
                   <textarea
                     rows={2}
                     placeholder="Feedback-Slot folgt"
-                    className="w-full rounded-xl border border-rose-200 bg-rose-50 p-3 text-xs text-rose-800 placeholder:text-rose-400 focus:border-rose-400 focus:ring-0 transition-all resize-none"
+                    className="w-full rounded-xl border border-sage-200 bg-sage-50 p-3 text-xs text-sage-800 placeholder:text-sage-500 focus:border-sage-400 focus:ring-0 transition-all resize-none"
                     disabled
                   />
                   <button
                     type="button"
-                    className="flex h-9 w-full items-center justify-center rounded-xl bg-rose-100 text-rose-700 text-xs font-semibold cursor-not-allowed border border-rose-200"
+                    className="flex h-9 w-full items-center justify-center rounded-xl bg-sage-100 text-sage-700 text-xs font-semibold cursor-not-allowed border border-sage-200"
                     aria-disabled="true"
                   >
                     Kommt bald
@@ -250,7 +256,7 @@ export function SideMenu({ open, onClose, identity, onLogout }: SideMenuProps) {
                 className={`flex items-center gap-3 py-3 group ${pendingText}`}
                 type="button"
               >
-                <div className="text-rose-500 group-hover:text-rose-600 transition-colors flex items-center justify-center">
+                <div className="text-sage-600 group-hover:text-sage-700 transition-colors flex items-center justify-center">
                   <span className="material-symbols-outlined text-[20px]">
                     mail
                   </span>
@@ -265,12 +271,12 @@ export function SideMenu({ open, onClose, identity, onLogout }: SideMenuProps) {
                   onClose();
                 }}
               >
-                <div className="text-zinc-400 group-hover:text-red-500 transition-colors flex items-center justify-center">
+                <div className="text-zinc-400 group-hover:text-sage-300 transition-colors flex items-center justify-center">
                   <span className="material-symbols-outlined text-[20px]">
                     logout
                   </span>
                 </div>
-                <p className="text-zinc-600 dark:text-zinc-400 text-[14px] font-medium group-hover:text-red-500 transition-colors">
+                <p className="text-zinc-600 dark:text-zinc-400 text-[14px] font-medium group-hover:text-sage-700 transition-colors">
                   Abmelden
                 </p>
               </button>
@@ -282,7 +288,7 @@ export function SideMenu({ open, onClose, identity, onLogout }: SideMenuProps) {
                 <p
                   className={`text-[10px] font-bold uppercase tracking-widest ${pendingText}`}
                 >
-                  Impressum (Platzhalter)
+                  Impressum
                 </p>
                 <span className={`text-[10px] font-mono ${pendingText}`}>
                   v1.2.0
@@ -291,13 +297,12 @@ export function SideMenu({ open, onClose, identity, onLogout }: SideMenuProps) {
               <div
                 className={`flex flex-col text-[11px] space-y-0.5 ${pendingText}`}
               >
-                <p className="font-semibold">Daten werden nachgereicht</p>
-                <p>Nicht final</p>
+                {impressumLines.map((line) => (
+                  <p key={line}>{line}</p>
+                ))}
               </div>
-              <p
-                className={`${pendingText} mt-2 text-[10px] leading-relaxed italic font-medium`}
-              >
-                Rechtsangaben folgen noch. Dieser Bereich ist bewusst markiert.
+              <p className={`${pendingText} mt-2 text-[10px] leading-relaxed`}>
+                Rechtliche Angaben bereitgestellt.
               </p>
             </div>
           </div>
