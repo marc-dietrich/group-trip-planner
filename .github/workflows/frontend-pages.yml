@@ -35,9 +35,6 @@ jobs:
         run: |
           echo "VITE_BUILD_COMMIT=${GITHUB_SHA}" >> $GITHUB_ENV
           echo "VITE_BUILD_LABEL=${GITHUB_SHA::7}" >> $GITHUB_ENV
-      
-      - name: Add CNAME
-          run: echo "planning.made-simple.online" > frontend/dist/CNAME
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
