@@ -10,9 +10,8 @@ const normalizeBase = (prefix: string) => {
   return withLeading.endsWith("/") ? withLeading : `${withLeading}/`;
 };
 
-const base = isGhPages
-  ? normalizeBase(process.env.FRONTEND_PATH_PREFIX || "/group-trip-planner")
-  : "/";
+const base =
+  process.env.CUSTOM_DOMAIN === "true" ? "/" : "/group-trip-planner/";
 
 const resolveCommit = () => {
   if (process.env.VITE_BUILD_COMMIT) return process.env.VITE_BUILD_COMMIT;
