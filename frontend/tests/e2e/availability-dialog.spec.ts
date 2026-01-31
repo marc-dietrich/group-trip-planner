@@ -1,7 +1,12 @@
 import { test, expect } from "@playwright/test";
 
-const BASE_URL =
-  process.env.BASE_URL || "http://localhost:3000/__dialog-sandbox";
+const baseOrigin = process.env.BASE_URL || "http://localhost:3000";
+const basePath =
+  process.env.CUSTOM_DOMAIN === "true" ? "/" : "/group-trip-planner/";
+const dialogSandboxUrl = new URL(
+  "__dialog-sandbox",
+  new URL(basePath, baseOrigin),
+).toString();
 
 const viewports = [
   { name: "mobile-portrait", width: 375, height: 667 },
@@ -13,7 +18,7 @@ for (const viewport of viewports) {
     test.use({ viewport: { width: viewport.width, height: viewport.height } });
 
     test("start/end have same size and no scroll", async ({ page }) => {
-      await page.goto(BASE_URL);
+      await page.goto(dialogSandboxUrl);
       await page.getByRole("button", { name: "+ Hinzufügen" }).click();
 
       const dialog = page.getByRole("dialog");
