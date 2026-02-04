@@ -32,7 +32,7 @@ export function getUserDisplayName(
 }
 
 export async function getExistingSession(): Promise<AuthSession | null> {
-  // OAuth2-Proxy handles session via cookies; frontend does not fetch user info directly.
+  // OAuth2-Proxy handles session via cookies; frontend does not fetch user info directly yet.
   return null;
 }
 

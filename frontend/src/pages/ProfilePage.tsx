@@ -14,7 +14,7 @@ import {
 type ProfilePageProps = {
   identity: Identity;
   authLoading: boolean;
-  supabaseEnabled: boolean;
+  authEnabled: boolean;
   health: HealthCheck | null;
   onLogin: () => void;
   onLogout: () => void;
@@ -23,7 +23,7 @@ type ProfilePageProps = {
 export function ProfilePage({
   identity,
   authLoading,
-  supabaseEnabled,
+  authEnabled,
   health,
   onLogin,
   onLogout,
@@ -32,11 +32,11 @@ export function ProfilePage({
 
   return (
     <div className={stack}>
-      {!supabaseEnabled && (
+      {!authEnabled && (
         <section className={cardMinimal}>
           <p className={eyebrow}>Login</p>
           <p className={muted}>
-            Supabase ist nicht konfiguriert. Stelle die Umgebungsvariablen
+            OAuth Proxy ist nicht konfiguriert. Stelle die Umgebungsvariablen
             bereit, um die Anmeldung zu aktivieren.
           </p>
         </section>
@@ -50,7 +50,7 @@ export function ProfilePage({
           </h2>
           <p className={muted}>
             {identity.kind === "user"
-              ? "Angemeldet über Supabase"
+              ? "Angemeldet via OAuth"
               : "Lokaler Modus ohne Login"}
           </p>
           <div className="flex flex-wrap gap-2">
@@ -68,7 +68,7 @@ export function ProfilePage({
                 type="button"
                 className={buttonPrimary}
                 onClick={onLogin}
-                disabled={!supabaseEnabled}
+                disabled={!authEnabled}
               >
                 Login / Signup
               </button>
@@ -123,7 +123,7 @@ export function ProfilePage({
                         type="button"
                         className={buttonPrimary}
                         onClick={onLogin}
-                        disabled={!supabaseEnabled}
+                        disabled={!authEnabled}
                       >
                         Jetzt einloggen
                       </button>
@@ -152,10 +152,10 @@ export function ProfilePage({
           </div>
         </div>
         <div className={stackSm}>
-          {supabaseEnabled ? (
-            <div className={pillSuccess}>Supabase aktiv</div>
+          {authEnabled ? (
+            <div className={pillSuccess}>OAuth Proxy aktiv</div>
           ) : (
-            <p className={muted}>Supabase nicht konfiguriert</p>
+            <p className={muted}>OAuth Proxy nicht konfiguriert</p>
           )}
         </div>
       </section>

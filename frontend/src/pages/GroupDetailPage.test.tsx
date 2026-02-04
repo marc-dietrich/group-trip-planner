@@ -1,6 +1,5 @@
 import "@testing-library/jest-dom/vitest";
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
-import type { Mock, SpyInstance } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import { act } from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
@@ -48,8 +47,8 @@ function mockResponse(body: unknown, status = 200) {
 }
 
 describe("GroupDetailPage availability summary", () => {
-  let fetchMock: Mock<[string, RequestInit?], Promise<Response>>;
-  let consoleErrorSpy: SpyInstance;
+  let fetchMock: ReturnType<typeof vi.fn>;
+  let consoleErrorSpy: ReturnType<typeof vi.spyOn>;
   const originalError = console.error;
 
   const renderPage = async () => {

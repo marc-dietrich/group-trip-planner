@@ -1,0 +1,23 @@
+{
+  email {$CADDY_EMAIL}
+}
+
+:80 {
+  redir https://{$CADDY_DOMAIN}{uri}
+}
+
+{$CADDY_DOMAIN} {
+  encode zstd gzip
+
+  handle_path /api/* {
+    reverse_proxy backend:8000
+  }
+
+  handle_path /oauth2/* {
+    reverse_proxy oauth-proxy:4180
+  }
+
+  handle {
+    reverse_proxy frontend:80
+  }
+}

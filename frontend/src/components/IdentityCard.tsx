@@ -16,7 +16,7 @@ type IdentityCardProps = {
   onLogout: () => void;
   onAuthClick: () => void;
   authLoading: boolean;
-  supabaseEnabled: boolean;
+  authEnabled: boolean;
 };
 
 export function IdentityCard({
@@ -26,7 +26,7 @@ export function IdentityCard({
   onLogout,
   onAuthClick,
   authLoading,
-  supabaseEnabled,
+  authEnabled,
 }: IdentityCardProps) {
   const isLoggedIn = identity.kind === "user";
 
@@ -58,7 +58,7 @@ export function IdentityCard({
               type="button"
               className={buttonGhostSmall}
               onClick={onAuthClick}
-              disabled={!supabaseEnabled}
+              disabled={!authEnabled}
             >
               Log in / Sign up
             </button>

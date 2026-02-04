@@ -10,7 +10,7 @@ import {
 type IdentityStripProps = {
   identity: Identity;
   authLoading: boolean;
-  supabaseEnabled: boolean;
+  authEnabled: boolean;
   onLogin: () => void;
   onLogout: () => void;
 };
@@ -18,7 +18,7 @@ type IdentityStripProps = {
 export function IdentityStrip({
   identity,
   authLoading,
-  supabaseEnabled,
+  authEnabled,
   onLogin,
   onLogout,
 }: IdentityStripProps) {
@@ -50,7 +50,7 @@ export function IdentityStrip({
               type="button"
               className={buttonGhostSmall}
               onClick={onLogin}
-              disabled={!supabaseEnabled}
+              disabled={!authEnabled}
             >
               Log in / Sign up
             </button>

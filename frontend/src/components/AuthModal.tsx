@@ -18,7 +18,7 @@ import {
 
 type AuthModalProps = {
   open: boolean;
-  supabaseEnabled: boolean;
+  authEnabled: boolean;
   authMode: "signin" | "signup";
   email: string;
   password: string;
@@ -34,7 +34,7 @@ type AuthModalProps = {
 
 export function AuthModal({
   open,
-  supabaseEnabled,
+  authEnabled,
   authMode,
   email,
   password,
@@ -95,7 +95,7 @@ export function AuthModal({
             <button
               type="submit"
               className={buttonPrimary}
-              disabled={authLoading || !supabaseEnabled}
+              disabled={authLoading || !authEnabled}
             >
               {authMode === "signin" ? "Login" : "Registrieren"}
             </button>
@@ -112,8 +112,8 @@ export function AuthModal({
             </button>
           </div>
 
-          {!supabaseEnabled && (
-            <div className={pill}>Supabase nicht konfiguriert</div>
+          {!authEnabled && (
+            <div className={pill}>OAuth Proxy nicht konfiguriert</div>
           )}
           {authError && <div className={pillDanger}>{authError}</div>}
           {authNotice && <div className={pillSuccess}>{authNotice}</div>}

@@ -16,7 +16,7 @@ import {
 
 type AuthPanelProps = {
   open: boolean;
-  supabaseEnabled: boolean;
+  authEnabled: boolean;
   authMode: "signin" | "signup";
   email: string;
   password: string;
@@ -32,7 +32,7 @@ type AuthPanelProps = {
 
 export function AuthPanel({
   open,
-  supabaseEnabled,
+  authEnabled,
   authMode,
   email,
   password,
@@ -81,7 +81,7 @@ export function AuthPanel({
             <button
               type="submit"
               className={buttonPrimary}
-              disabled={authLoading || !supabaseEnabled}
+              disabled={authLoading || !authEnabled}
             >
               {authMode === "signin" ? "Login" : "Registrieren"}
             </button>
@@ -98,8 +98,8 @@ export function AuthPanel({
             </button>
           </div>
 
-          {!supabaseEnabled && (
-            <div className={pill}>Supabase nicht konfiguriert</div>
+          {!authEnabled && (
+            <div className={pill}>OAuth Proxy nicht konfiguriert</div>
           )}
           {authError && <div className={pillDanger}>{authError}</div>}
           {authNotice && <div className={pillSuccess}>{authNotice}</div>}
