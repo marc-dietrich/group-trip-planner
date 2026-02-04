@@ -37,7 +37,6 @@ import { GroupCreateModal } from "./components/GroupCreateModal";
 import { InviteModal } from "./components/InviteModal";
 import { SideMenu } from "./components/SideMenu";
 import { IdentityCard } from "./components/IdentityCard";
-import { GroupCreateCard } from "./components/GroupCreateCard";
 import { GroupsPage } from "./pages/GroupsPage";
 import { GroupDetailPage } from "./pages/GroupDetailPage";
 import { ProfilePage } from "./pages/ProfilePage";
@@ -146,11 +145,10 @@ function AppShell() {
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [groupName, setGroupName] = useState("Wochenend-Trip");
+  const [groupName, setGroupName] = useState("");
   const [health, setHealth] = useState<HealthCheck | null>(null);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<GroupCreateResult | null>(null);
   const [groupsActionError, setGroupsActionError] = useState<string | null>(
     null,
   );
@@ -288,7 +286,6 @@ function AppShell() {
     event.preventDefault();
     setCreating(true);
     setError(null);
-    setResult(null);
     setGroupsActionError(null);
 
     try {
@@ -306,8 +303,9 @@ function AppShell() {
       if (!response.ok) throw new Error(`Fehler: ${response.status}`);
 
       const data = (await response.json()) as GroupCreateResult;
-      setResult(data);
       setGroupName("");
+      setCreateOpen(false);
+      toast.success(`"${data.name}" erstellt`);
       const membership: GroupMembership = {
         groupId: data.groupId,
         name: data.name,
@@ -470,28 +468,18 @@ function AppShell() {
   const combinedGroupsError = groupsError || groupsActionError;
 
   const rightRail = isDesktop ? (
-    <>
-      <IdentityCard
-        identity={identity}
-        localDisplayName={pendingName || actor.displayName}
-        onDisplayNameChange={(value) => {
-          setPendingName(value);
-          setActorDisplayName(value);
-        }}
-        onLogout={handleLogout}
-        onAuthClick={() => setAuthPanelOpen(true)}
-        authLoading={authLoading}
-        authEnabled={oauthReady}
-      />
-      <GroupCreateCard
-        groupName={groupName}
-        creating={creating}
-        error={error}
-        result={result}
-        onGroupNameChange={setGroupName}
-        onSubmit={handleCreateGroup}
-      />
-    </>
+    <IdentityCard
+      identity={identity}
+      localDisplayName={pendingName || actor.displayName}
+      onDisplayNameChange={(value) => {
+        setPendingName(value);
+        setActorDisplayName(value);
+      }}
+      onLogout={handleLogout}
+      onAuthClick={() => setAuthPanelOpen(true)}
+      authLoading={authLoading}
+      authEnabled={oauthReady}
+    />
   ) : null;
 
   const routes = (
@@ -628,12 +616,10 @@ function AppShell() {
         groupName={groupName}
         creating={creating}
         error={error}
-        result={result}
         onGroupNameChange={setGroupName}
         onSubmit={handleCreateGroup}
         onClose={() => {
           setCreateOpen(false);
-          setResult(null);
           setError(null);
         }}
       />

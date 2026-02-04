@@ -51,7 +51,7 @@ export function GroupCreateCard({
             value={groupName}
             onChange={(e) => onGroupNameChange(e.target.value)}
             required
-            placeholder="Team Wochenende"
+            placeholder="Gruppenname"
           />
         </label>
 
