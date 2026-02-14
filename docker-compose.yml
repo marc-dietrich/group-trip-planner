@@ -1,5 +1,12 @@
 services:
+  # Set IMAGE_REGISTRY (e.g., ghcr.io/your-user) and optional IMAGE_TAG before running
+  # `docker compose build && docker compose push` to publish custom images.
   postgres:
+    image: ${IMAGE_REGISTRY:-ghcr.io/group-trip-planner}/postgres:${IMAGE_TAG:-latest}
+    build:
+      context: ./database
+      dockerfile_inline: |
+        FROM postgres:15-alpine
     extends:
       file: ./database/docker-compose.yml
       service: postgres
@@ -8,6 +15,7 @@ services:
     ports: [] # keep internal; expose only via caddy
 
   backend:
+    image: ${IMAGE_REGISTRY:-ghcr.io/group-trip-planner}/backend:${IMAGE_TAG:-latest}
     build:
       context: ./backend
     container_name: gtp-backend
@@ -22,12 +30,15 @@ services:
     restart: unless-stopped
 
   frontend:
+    image: ${IMAGE_REGISTRY:-ghcr.io/group-trip-planner}/frontend:${IMAGE_TAG:-latest}
     build:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://${CADDY_DOMAIN:-localhost}/api}
-        VITE_OAUTH_BASE_URL: ${VITE_OAUTH_BASE_URL:-https://${CADDY_DOMAIN:-localhost}/oauth2}
+        # Keep API calls same-origin by default (frontend already calls /api/* paths).
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/}
+        # Keep OAuth calls same-origin by default (frontend appends /oauth2/* paths).
+        VITE_OAUTH_BASE_URL: ${VITE_OAUTH_BASE_URL:-/}
         CUSTOM_DOMAIN: ${CUSTOM_DOMAIN:-true}
     container_name: gtp-frontend
     depends_on:
@@ -37,7 +48,11 @@ services:
     restart: unless-stopped
 
   node-exporter:
-    image: prom/node-exporter:v1.8.1
+    image: ${IMAGE_REGISTRY:-ghcr.io/group-trip-planner}/node-exporter:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM prom/node-exporter:v1.8.1
     container_name: gtp-node-exporter
     restart: unless-stopped
     expose:
@@ -53,7 +68,11 @@ services:
       - /:/host/root:ro
 
   postgres-exporter:
-    image: prometheuscommunity/postgres-exporter:v0.15.0
+    image: ${IMAGE_REGISTRY:-ghcr.io/group-trip-planner}/postgres-exporter:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM prometheuscommunity/postgres-exporter:v0.15.0
     container_name: gtp-postgres-exporter
     restart: unless-stopped
     expose:
@@ -65,7 +84,11 @@ services:
         condition: service_healthy
 
   prometheus:
-    image: prom/prometheus:v2.51.2
+    image: ${IMAGE_REGISTRY:-ghcr.io/group-trip-planner}/prometheus:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM prom/prometheus:v2.51.2
     container_name: gtp-prometheus
     restart: unless-stopped
     expose:
@@ -83,7 +106,11 @@ services:
       - prometheus_data:/prometheus
 
   grafana:
-    image: grafana/grafana:10.4.2
+    image: ${IMAGE_REGISTRY:-ghcr.io/group-trip-planner}/grafana:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM grafana/grafana:10.4.2
     container_name: gtp-grafana
     restart: unless-stopped
     expose:
@@ -100,6 +127,11 @@ services:
       - grafana_data:/var/lib/grafana
 
   oauth-proxy:
+    image: ${IMAGE_REGISTRY:-ghcr.io/group-trip-planner}/oauth-proxy:${IMAGE_TAG:-latest}
+    build:
+      context: ./oauth-proxy
+      dockerfile_inline: |
+        FROM quay.io/oauth2-proxy/oauth2-proxy:v7.6.0
     extends:
       file: ./oauth-proxy/docker-compose.yml
       service: oauth2-proxy
@@ -111,7 +143,11 @@ services:
     ports: []
 
   caddy:
-    image: caddy:2-alpine
+    image: ${IMAGE_REGISTRY:-ghcr.io/group-trip-planner}/caddy:${IMAGE_TAG:-latest}
+    build:
+      context: .
+      dockerfile_inline: |
+        FROM caddy:2-alpine
     container_name: gtp-caddy
     restart: unless-stopped
     ports:
