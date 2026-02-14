@@ -35,10 +35,8 @@ services:
       context: ./frontend
       dockerfile: Dockerfile
       args:
-        # Keep API calls same-origin by default (frontend already calls /api/* paths).
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-/}
-        # Keep OAuth calls same-origin by default (frontend appends /oauth2/* paths).
-        VITE_OAUTH_BASE_URL: ${VITE_OAUTH_BASE_URL:-/}
+        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://${CADDY_DOMAIN:-localhost}/api}
+        VITE_OAUTH_BASE_URL: ${VITE_OAUTH_BASE_URL:-https://${CADDY_DOMAIN:-localhost}/oauth2}
         CUSTOM_DOMAIN: ${CUSTOM_DOMAIN:-true}
     container_name: gtp-frontend
     depends_on:
