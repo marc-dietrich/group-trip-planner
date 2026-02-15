@@ -1,6 +1,6 @@
 import "@testing-library/jest-dom/vitest";
 import { describe, expect, it, beforeEach, afterEach, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { act } from "react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 
@@ -140,6 +140,10 @@ describe("GroupDetailPage availability summary", () => {
     });
 
     expect(screen.getByText(/TOP MATCH/i)).toBeInTheDocument();
+
+    const expandButton = screen.getByRole("button", { expanded: false });
+    fireEvent.click(expandButton);
+
     expect(screen.getByText(/2 von 5 Personen verfügbar/i)).toBeInTheDocument();
   });
 

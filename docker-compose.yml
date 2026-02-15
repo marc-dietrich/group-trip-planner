@@ -1,60 +1,95 @@
-version: "3.9"
-
 services:
   postgres:
-    image: ghcr.io/marc-dietrich/postgres:latest
+    image: postgres:15-alpine
     container_name: gtp-postgres
     restart: unless-stopped
-    env_file:
-      - database/.env
+    pull_policy: always
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-gtp}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-gtp_pw}
+      - POSTGRES_DB=${POSTGRES_DB:-gtp}
+      - PGDATA=/var/lib/postgresql/data/pgdata
     volumes:
       - db_data:/var/lib/postgresql/data
+      - ./database/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-gtp} -d ${POSTGRES_DB:-gtp}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
 
   backend:
-    image: ghcr.io/marc-dietrich/backend:latest
+    image: ghcr.io/${GHCR_OWNER:-marc-dietrich}/group-trip-planner-backend:${IMAGE_TAG:-latest}
     container_name: gtp-backend
     restart: unless-stopped
+    pull_policy: always
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-gtp}:${POSTGRES_PASSWORD:-gtp_pw}@postgres:5432/${POSTGRES_DB:-gtp}
       - PORT=8000
     expose:
       - "8000"
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
 
   frontend:
-    image: ghcr.io/marc-dietrich/frontend:latest
+    image: ghcr.io/${GHCR_OWNER:-marc-dietrich}/group-trip-planner-frontend:${IMAGE_TAG:-latest}
     container_name: gtp-frontend
     restart: unless-stopped
+    pull_policy: always
     depends_on:
       - backend
     expose:
       - "80"
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
 
   node-exporter:
-    image: ghcr.io/marc-dietrich/node-exporter:latest
+    image: prom/node-exporter:v1.8.2
     container_name: gtp-node-exporter
     restart: unless-stopped
+    pull_policy: always
     expose:
       - "9100"
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/host/root
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/host/root:ro
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
 
   postgres-exporter:
-    image: ghcr.io/marc-dietrich/postgres-exporter:latest
+    image: prometheuscommunity/postgres-exporter:v0.15.0
     container_name: gtp-postgres-exporter
     restart: unless-stopped
+    pull_policy: always
     depends_on:
-      - postgres
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATA_SOURCE_NAME=postgresql://${POSTGRES_USER:-gtp}:${POSTGRES_PASSWORD:-gtp_pw}@postgres:5432/${POSTGRES_DB:-gtp}?sslmode=disable
     expose:
       - "9187"
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
 
   prometheus:
-    image: ghcr.io/marc-dietrich/prometheus:latest
+    image: prom/prometheus:v2.54.1
     container_name: gtp-prometheus
     restart: unless-stopped
+    pull_policy: always
     depends_on:
       - backend
       - node-exporter
@@ -64,36 +99,54 @@ services:
       - prometheus_data:/prometheus
     expose:
       - "9090"
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
 
   grafana:
-    image: ghcr.io/marc-dietrich/grafana:latest
+    image: grafana/grafana-oss:11.2.0
     container_name: gtp-grafana
     restart: unless-stopped
+    pull_policy: always
     depends_on:
       - prometheus
     volumes:
       - grafana_data:/var/lib/grafana
     expose:
       - "3000"
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
 
   oauth-proxy:
-    image: ghcr.io/marc-dietrich/oauth-proxy:latest
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.6.0
     container_name: gtp-oauth-proxy
     restart: unless-stopped
+    pull_policy: always
     depends_on:
       - backend
-    env_file:
-      - oauth-proxy/.env
-    environment:
-      - OAUTH2_PROXY_UPSTREAMS=http://backend:8000
-      - OAUTH2_PROXY_REDIRECT_URL=https://${CADDY_DOMAIN:-localhost}/oauth2/callback
+    command:
+      - "--http-address=0.0.0.0:4180"
+      - "--provider=google"
+      - "--email-domain=*"
+      - "--client-id=${OAUTH_CLIENT_ID}"
+      - "--client-secret=${OAUTH_CLIENT_SECRET}"
+      - "--cookie-secret=${OAUTH_COOKIE_SECRET}"
+      - "--cookie-secure=true"
+      - "--upstream=http://backend:8000"
+      - "--redirect-url=https://${CADDY_DOMAIN:-localhost}/oauth2/callback"
+      - "--skip-provider-button=true"
+      - "--set-authorization-header=true"
+      - "--pass-authorization-header=true"
+      - "--pass-access-token=true"
     expose:
       - "4180"
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
 
   caddy:
-    image: ghcr.io/marc-dietrich/caddy:latest
+    image: caddy:2.8.4-alpine
     container_name: gtp-caddy
     restart: unless-stopped
+    pull_policy: always
     ports:
       - "80:80"
       - "443:443"
@@ -112,28 +165,29 @@ services:
       - CADDY_EMAIL=${CADDY_EMAIL:-admin@example.com}
       - MONITORING_USER=${MONITORING_USER:-monitor}
       - MONITORING_PASSWORD_HASH=${MONITORING_PASSWORD_HASH}
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
 
   cloudflared:
     image: cloudflare/cloudflared:latest
     container_name: gtp-cloudflared
     restart: unless-stopped
+    pull_policy: always
+    profiles: ["tunnel"]
     depends_on:
       - caddy
-    user: root
-    command: tunnel --config /etc/cloudflared/config.yml run
-    volumes:
-      - /home/marc/.cloudflared:/etc/cloudflared:ro
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
 
   watchtower:
-    image: containrrr/watchtower
+    image: containrrr/watchtower:1.7.1
     container_name: gtp-watchtower
     restart: unless-stopped
+    pull_policy: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
-    environment:
-      - WATCHTOWER_CLEANUP=true
-      - DOCKER_API_VERSION=1.53
-    command: --interval 300 --rolling-restart
+    command: --interval 300 --rolling-restart --cleanup --label-enable
 
 volumes:
   db_data:
@@ -141,4 +195,3 @@ volumes:
   caddy_config:
   prometheus_data:
   grafana_data:
-
