@@ -1,19 +1,31 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Identity } from "../types";
+import {
+  startOAuthLogin,
+  authEnabled as defaultAuthEnabled,
+} from "../lib/auth";
 
 export type SideMenuProps = {
   open: boolean;
   onClose: () => void;
   identity: Identity;
   onLogout?: () => void;
+  onLogin?: () => void;
+  authEnabled?: boolean;
 };
 
-export function SideMenu({ open, onClose, identity, onLogout }: SideMenuProps) {
+export function SideMenu({
+  open,
+  onClose,
+  identity,
+  onLogout,
+  onLogin,
+  authEnabled,
+}: SideMenuProps) {
   const [notifications, setNotifications] = useState(false);
   const [faceId, setFaceId] = useState(false);
-  const [rating, setRating] = useState(4);
-  const [feedbackOpen, setFeedbackOpen] = useState(false);
+  const oauthReady = authEnabled ?? defaultAuthEnabled;
 
   const pendingSurface = "bg-sage-50 border border-sage-100";
   const pendingText = "text-sage-800";
@@ -26,14 +38,33 @@ export function SideMenu({ open, onClose, identity, onLogout }: SideMenuProps) {
     "66994 Dahn",
   ];
 
+  const isActor = identity.kind === "actor";
+  const isUser = identity.kind === "user";
+
   const displayName = useMemo(
     () => identity.displayName || ("Gast" as string),
     [identity.displayName],
   );
-  const email = useMemo(() => {
-    if (identity.kind === "user") return "angemeldet";
-    return "gastnutzer";
-  }, [identity.kind]);
+  const email = useMemo(() => (isUser ? "angemeldet" : "gastnutzer"), [isUser]);
+
+  const handleComingSoon = () => {
+    toast.info("Kommt bald – Feedback und Kontakt sind demnächst verfügbar.");
+  };
+
+  const handleLoginClick = () => {
+    if (!oauthReady) {
+      toast.error(
+        "OAuth Proxy Container nicht aktiv. Bitte oauth-proxy via Docker starten.",
+      );
+      return;
+    }
+    if (onLogin) {
+      onLogin();
+    } else {
+      startOAuthLogin();
+    }
+    onClose();
+  };
 
   if (!open) return null;
 
@@ -68,11 +99,35 @@ export function SideMenu({ open, onClose, identity, onLogout }: SideMenuProps) {
                   <div className="size-12 rounded-full bg-sage-100 flex items-center justify-center text-sage-800 font-semibold border border-sage-200">
                     {displayName.slice(0, 2).toUpperCase()}
                   </div>
-                  <div className="absolute -bottom-1 -right-1 bg-white rounded-full p-0.5 shadow-sm border border-sage-100 flex items-center justify-center">
+                  <div className="absolute -top-1 -right-1 bg-white rounded-full p-0.5 shadow-sm border border-sage-100 flex items-center justify-center">
                     <span className="material-symbols-outlined text-[12px] text-amber-400">
                       crown
                     </span>
                   </div>
+                  {isActor && (
+                    <div className="absolute -bottom-1 -right-1 flex items-center justify-center">
+                      <div
+                        className="absolute size-6 rounded-full bg-white border border-sage-100 shadow-sm"
+                        aria-hidden="true"
+                      />
+                      <button
+                        type="button"
+                        aria-label="Jetzt anmelden"
+                        className={`relative flex size-[18px] items-center justify-center rounded-full transition ${oauthReady ? "text-sage-700 hover:bg-sage-50" : "text-zinc-400 cursor-not-allowed"}`}
+                        onClick={handleLoginClick}
+                        disabled={!oauthReady}
+                        title={
+                          oauthReady
+                            ? "Login öffnet den Google OAuth Proxy"
+                            : "OAuth Proxy offline – starte oauth-proxy Container"
+                        }
+                      >
+                        <span className="material-symbols-outlined text-[10px]">
+                          login
+                        </span>
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="flex flex-col">
                   <p className="text-zinc-900 dark:text-zinc-100 text-[15px] font-semibold leading-tight">
@@ -81,6 +136,25 @@ export function SideMenu({ open, onClose, identity, onLogout }: SideMenuProps) {
                   <p className="text-zinc-500 dark:text-zinc-400 text-[11px] font-normal">
                     {email}
                   </p>
+                </div>
+                <div className="ml-auto flex flex-col items-center gap-1">
+                  {isUser ? (
+                    <div className="inline-flex items-center gap-1 rounded-full border border-sage-200 bg-sage-50 px-2 py-0.5 text-[11px] font-semibold text-sage-800">
+                      <span className="material-symbols-outlined text-[14px]">
+                        verified_user
+                      </span>
+                      Google
+                    </div>
+                  ) : (
+                    <p className="text-[11px] font-semibold text-sage-800">
+                      Gastmodus
+                    </p>
+                  )}
+                  <span
+                    className={`text-[10px] uppercase tracking-wide ${oauthReady ? "text-sage-600" : "text-amber-600"}`}
+                  >
+                    {oauthReady ? "OAuth bereit" : "Proxy offline"}
+                  </span>
                 </div>
               </div>
             </div>
@@ -191,75 +265,33 @@ export function SideMenu({ open, onClose, identity, onLogout }: SideMenuProps) {
             <div className="px-6 py-2 flex flex-col gap-1.5">
               <button
                 type="button"
-                className={`flex items-center gap-3 py-3 group w-full ${pendingText}`}
-                onClick={() => setFeedbackOpen((open) => !open)}
-                aria-expanded={feedbackOpen}
+                className="flex items-center gap-3 py-3 group w-full text-sage-400 cursor-not-allowed"
+                onClick={handleComingSoon}
+                aria-disabled="true"
               >
-                <div className="text-sage-600 group-hover:text-sage-700 transition-colors flex items-center justify-center">
+                <div className="text-sage-400 flex items-center justify-center">
                   <span className="material-symbols-outlined text-[20px]">
                     forum
                   </span>
                 </div>
                 <p className="flex-1 text-left text-[14px] font-semibold">
-                  Feedback (Platzhalter)
+                  Feedback (bald verfügbar)
                 </p>
-                <span
-                  className={`material-symbols-outlined text-[20px] text-sage-500 transition-transform ${
-                    feedbackOpen ? "rotate-180" : ""
-                  }`}
-                >
-                  expand_more
-                </span>
               </button>
-              {feedbackOpen && (
-                <div
-                  className={`ml-9 mr-3 mt-2 flex flex-col gap-3 rounded-xl p-4 ${pendingSurface}`}
-                >
-                  <div className="flex gap-1.5">
-                    {[1, 2, 3, 4, 5].map((star) => (
-                      <button
-                        key={star}
-                        type="button"
-                        aria-label={`Stern ${star}`}
-                        onClick={() => setRating(star)}
-                        className="text-sage-600"
-                        disabled
-                      >
-                        <span
-                          className={`material-symbols-outlined text-[20px] ${
-                            star <= rating ? "text-sage-600" : "text-sage-200"
-                          }`}
-                        >
-                          star
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                  <textarea
-                    rows={2}
-                    placeholder="Feedback-Slot folgt"
-                    className="w-full rounded-xl border border-sage-200 bg-sage-50 p-3 text-xs text-sage-800 placeholder:text-sage-500 focus:border-sage-400 focus:ring-0 transition-all resize-none"
-                    disabled
-                  />
-                  <button
-                    type="button"
-                    className="flex h-9 w-full items-center justify-center rounded-xl bg-sage-100 text-sage-700 text-xs font-semibold cursor-not-allowed border border-sage-200"
-                    aria-disabled="true"
-                  >
-                    Kommt bald
-                  </button>
-                </div>
-              )}
               <button
-                className={`flex items-center gap-3 py-3 group ${pendingText}`}
+                className="flex items-center gap-3 py-3 group text-sage-400 cursor-not-allowed"
                 type="button"
+                onClick={handleComingSoon}
+                aria-disabled="true"
               >
-                <div className="text-sage-600 group-hover:text-sage-700 transition-colors flex items-center justify-center">
+                <div className="text-sage-400 flex items-center justify-center">
                   <span className="material-symbols-outlined text-[20px]">
                     mail
                   </span>
                 </div>
-                <p className="text-[14px] font-semibold">Kontakt (bald)</p>
+                <p className="text-[14px] font-semibold">
+                  Kontakt (bald verfügbar)
+                </p>
               </button>
               <button
                 className="flex items-center gap-3 py-3 group"
@@ -299,9 +331,6 @@ export function SideMenu({ open, onClose, identity, onLogout }: SideMenuProps) {
                   <p key={line}>{line}</p>
                 ))}
               </div>
-              <p className={`${pendingText} mt-2 text-[10px] leading-relaxed`}>
-                Rechtliche Angaben bereitgestellt.
-              </p>
             </div>
           </div>
         </div>

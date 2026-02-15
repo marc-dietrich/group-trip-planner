@@ -16,7 +16,7 @@ from jose import jwt
 from sqlalchemy.ext.asyncio import AsyncEngine, create_async_engine
 from testcontainers.postgres import PostgresContainer
 
-MIGRATIONS_PATH = Path(__file__).resolve().parents[2] / "migrations"
+MIGRATIONS_PATH = Path(__file__).resolve().parents[3] / "database" / "migrations"
 
 
 def _split_sql_statements(sql: str) -> list[str]:

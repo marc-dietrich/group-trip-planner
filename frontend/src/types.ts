@@ -53,7 +53,7 @@ export type Identity =
       actorId: string;
       userId: string;
       displayName: string;
-      accessToken: string;
+      accessToken?: string;
     };
 
 export type AvailabilityEntry = {

@@ -1,0 +1,197 @@
+services:
+  postgres:
+    image: postgres:15-alpine
+    container_name: gtp-postgres
+    restart: unless-stopped
+    pull_policy: always
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER:-gtp}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-gtp_pw}
+      - POSTGRES_DB=${POSTGRES_DB:-gtp}
+      - PGDATA=/var/lib/postgresql/data/pgdata
+    volumes:
+      - db_data:/var/lib/postgresql/data
+      - ./database/migrations:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${POSTGRES_USER:-gtp} -d ${POSTGRES_DB:-gtp}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
+
+  backend:
+    image: ghcr.io/${GHCR_OWNER:-marc-dietrich}/group-trip-planner-backend:${IMAGE_TAG:-latest}
+    container_name: gtp-backend
+    restart: unless-stopped
+    pull_policy: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-gtp}:${POSTGRES_PASSWORD:-gtp_pw}@postgres:5432/${POSTGRES_DB:-gtp}
+      - PORT=8000
+    expose:
+      - "8000"
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
+
+  frontend:
+    image: ghcr.io/${GHCR_OWNER:-marc-dietrich}/group-trip-planner-frontend:${IMAGE_TAG:-latest}
+    container_name: gtp-frontend
+    restart: unless-stopped
+    pull_policy: always
+    depends_on:
+      - backend
+    expose:
+      - "80"
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
+
+  node-exporter:
+    image: prom/node-exporter:v1.8.2
+    container_name: gtp-node-exporter
+    restart: unless-stopped
+    pull_policy: always
+    expose:
+      - "9100"
+    command:
+      - --path.procfs=/host/proc
+      - --path.sysfs=/host/sys
+      - --path.rootfs=/host/root
+    volumes:
+      - /proc:/host/proc:ro
+      - /sys:/host/sys:ro
+      - /:/host/root:ro
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
+
+  postgres-exporter:
+    image: prometheuscommunity/postgres-exporter:v0.15.0
+    container_name: gtp-postgres-exporter
+    restart: unless-stopped
+    pull_policy: always
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      - DATA_SOURCE_NAME=postgresql://${POSTGRES_USER:-gtp}:${POSTGRES_PASSWORD:-gtp_pw}@postgres:5432/${POSTGRES_DB:-gtp}?sslmode=disable
+    expose:
+      - "9187"
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
+
+  prometheus:
+    image: prom/prometheus:v2.54.1
+    container_name: gtp-prometheus
+    restart: unless-stopped
+    pull_policy: always
+    depends_on:
+      - backend
+      - node-exporter
+      - postgres-exporter
+    volumes:
+      - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus_data:/prometheus
+    expose:
+      - "9090"
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
+
+  grafana:
+    image: grafana/grafana-oss:11.2.0
+    container_name: gtp-grafana
+    restart: unless-stopped
+    pull_policy: always
+    depends_on:
+      - prometheus
+    volumes:
+      - grafana_data:/var/lib/grafana
+    expose:
+      - "3000"
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
+
+  oauth-proxy:
+    image: quay.io/oauth2-proxy/oauth2-proxy:v7.6.0
+    container_name: gtp-oauth-proxy
+    restart: unless-stopped
+    pull_policy: always
+    depends_on:
+      - backend
+    command:
+      - "--http-address=0.0.0.0:4180"
+      - "--provider=google"
+      - "--email-domain=*"
+      - "--client-id=${OAUTH_CLIENT_ID}"
+      - "--client-secret=${OAUTH_CLIENT_SECRET}"
+      - "--cookie-secret=${OAUTH_COOKIE_SECRET}"
+      - "--cookie-secure=true"
+      - "--upstream=http://backend:8000"
+      - "--redirect-url=https://${CADDY_DOMAIN:-localhost}/oauth2/callback"
+      - "--skip-provider-button=true"
+      - "--set-authorization-header=true"
+      - "--pass-authorization-header=true"
+      - "--pass-access-token=true"
+    expose:
+      - "4180"
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
+
+  caddy:
+    image: caddy:2.8.4-alpine
+    container_name: gtp-caddy
+    restart: unless-stopped
+    pull_policy: always
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+    depends_on:
+      - frontend
+      - backend
+      - oauth-proxy
+      - grafana
+      - prometheus
+    environment:
+      - CADDY_DOMAIN=${CADDY_DOMAIN:-localhost}
+      - CADDY_EMAIL=${CADDY_EMAIL:-admin@example.com}
+      - MONITORING_USER=${MONITORING_USER:-monitor}
+      - MONITORING_PASSWORD_HASH=${MONITORING_PASSWORD_HASH}
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: gtp-cloudflared
+    restart: unless-stopped
+    pull_policy: always
+    profiles: ["tunnel"]
+    depends_on:
+      - caddy
+    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
+    labels:
+      - com.centurylinklabs.watchtower.enable=true
+
+  watchtower:
+    image: containrrr/watchtower:1.7.1
+    container_name: gtp-watchtower
+    restart: unless-stopped
+    pull_policy: always
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    command: --interval 300 --rolling-restart --cleanup --label-enable
+
+volumes:
+  db_data:
+  caddy_data:
+  caddy_config:
+  prometheus_data:
+  grafana_data:

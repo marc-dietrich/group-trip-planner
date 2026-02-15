@@ -19,6 +19,9 @@ venv/
 .venv/
 .pytest_cache/
 
+# Deployment-only compose overrides
+docker-compose-server.yml
+
 # IDEs
 .vscode/
 .idea/

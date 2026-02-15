@@ -1,5 +1,4 @@
 import type { FormEvent } from "react";
-import { GroupCreateResult } from "../types";
 import {
   buttonGhostSmall,
   buttonPrimary,
@@ -8,14 +7,10 @@ import {
   eyebrow,
   field,
   input,
-  metaRow,
   modalCard,
   modalOverlay,
-  mono,
   muted,
   pillDanger,
-  pillSuccess,
-  resultBox,
   stackSm,
 } from "../ui";
 
@@ -24,7 +19,6 @@ type GroupCreateModalProps = {
   groupName: string;
   creating: boolean;
   error: string | null;
-  result: GroupCreateResult | null;
   onGroupNameChange: (value: string) => void;
   onSubmit: (event: FormEvent) => void;
   onClose: () => void;
@@ -35,7 +29,6 @@ export function GroupCreateModal({
   groupName,
   creating,
   error,
-  result,
   onGroupNameChange,
   onSubmit,
   onClose,
@@ -70,7 +63,7 @@ export function GroupCreateModal({
               value={groupName}
               onChange={(e) => onGroupNameChange(e.target.value)}
               required
-              placeholder="Team Wochenende"
+              placeholder="Gruppenname"
             />
           </label>
 
@@ -88,30 +81,6 @@ export function GroupCreateModal({
           </div>
 
           {error && <div className={pillDanger}>{error}</div>}
-          {result && (
-            <div className={resultBox}>
-              <div className={pillSuccess}>Gruppe erstellt</div>
-              <div className={metaRow}>
-                <span className={muted}>Group ID</span>
-                <code className={mono}>{result.groupId}</code>
-              </div>
-              <div className={metaRow}>
-                <span className={muted}>Invite Link</span>
-                <a
-                  className="text-blue-600 underline"
-                  href={result.inviteLink}
-                  target="_blank"
-                  rel="noreferrer"
-                >
-                  {result.inviteLink}
-                </a>
-              </div>
-              <div className={metaRow}>
-                <span className={muted}>Rolle</span>
-                <span>{result.role}</span>
-              </div>
-            </div>
-          )}
         </form>
       </div>
     </div>

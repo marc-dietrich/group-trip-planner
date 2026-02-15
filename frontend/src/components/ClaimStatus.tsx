@@ -1,8 +1,8 @@
-import type { Session } from "@supabase/supabase-js";
+import type { AuthSession } from "../lib/auth";
 import { cardHeader, muted, mutedCard, pill } from "../ui";
 
 type ClaimStatusProps = {
-  session: Session | null;
+  session: AuthSession | null;
 };
 
 export function ClaimStatus({ session }: ClaimStatusProps) {

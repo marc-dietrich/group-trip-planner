@@ -11,8 +11,8 @@ jobs:
     name: Frontend (typecheck & build)
     runs-on: ubuntu-latest
     env:
-      VITE_SUPABASE_URL: https://fdlmelfgshydwrcbvryg.supabase.co
-      VITE_SUPABASE_PUBLIC_KEY: sb_publishable_iTlkCvERUbGMbm6qND9cJw_jv2O03N-
+      VITE_API_BASE_URL: http://localhost:8000
+      VITE_OAUTH_BASE_URL: http://localhost:4180
     defaults:
       run:
         working-directory: frontend

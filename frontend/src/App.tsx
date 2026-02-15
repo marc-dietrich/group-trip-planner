@@ -7,7 +7,6 @@ import {
   useNavigate,
   useParams,
 } from "react-router-dom";
-import type { Session } from "@supabase/supabase-js";
 import { toast } from "sonner";
 import {
   DEFAULT_ACTOR_NAME,
@@ -15,12 +14,13 @@ import {
   useLocalActor,
 } from "./lib/actor";
 import {
+  AuthSession,
+  authEnabled,
   getExistingSession,
-  getUserDisplayName,
   persistJwt,
-  supabase,
-  supabaseEnabled,
-} from "./lib/supabase";
+  startOAuthLogin,
+  startOAuthLogout,
+} from "./lib/auth";
 import { buildIdentityHeaders } from "./lib/identity";
 import {
   GroupCreateResult,
@@ -37,7 +37,6 @@ import { GroupCreateModal } from "./components/GroupCreateModal";
 import { InviteModal } from "./components/InviteModal";
 import { SideMenu } from "./components/SideMenu";
 import { IdentityCard } from "./components/IdentityCard";
-import { GroupCreateCard } from "./components/GroupCreateCard";
 import { GroupsPage } from "./pages/GroupsPage";
 import { GroupDetailPage } from "./pages/GroupDetailPage";
 import { ProfilePage } from "./pages/ProfilePage";
@@ -139,18 +138,17 @@ function AppShell() {
   const [actor, setActorDisplayName] = useLocalActor(DEFAULT_ACTOR_NAME);
   const [namePromptOpen, setNamePromptOpen] = useState(false);
   const [pendingName, setPendingName] = useState("");
-  const [session, setSession] = useState<Session | null>(null);
+  const [session, setSession] = useState<AuthSession | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
   const [authError, setAuthError] = useState<string | null>(null);
   const [authNotice, setAuthNotice] = useState<string | null>(null);
   const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [groupName, setGroupName] = useState("Wochenend-Trip");
+  const [groupName, setGroupName] = useState("");
   const [health, setHealth] = useState<HealthCheck | null>(null);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [result, setResult] = useState<GroupCreateResult | null>(null);
   const [groupsActionError, setGroupsActionError] = useState<string | null>(
     null,
   );
@@ -167,15 +165,16 @@ function AppShell() {
   const [joining, setJoining] = useState(false);
   const [alreadyMember, setAlreadyMember] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const oauthReady = authEnabled;
 
   const identity = useMemo<Identity>(() => {
-    if (session?.user) {
+    if (session?.userId) {
       return {
         kind: "user",
         actorId: actor.actorId,
-        userId: session.user.id,
-        displayName: getUserDisplayName(session.user) || actor.displayName,
-        accessToken: session.access_token,
+        userId: session.userId,
+        displayName: session.displayName || actor.displayName,
+        accessToken: session.accessToken,
       };
     }
 
@@ -235,15 +234,8 @@ function AppShell() {
         setAuthLoading(false);
       });
 
-    const { data } = supabase.auth.onAuthStateChange((_event, newSession) => {
-      if (!isActive) return;
-      setSession(newSession);
-      persistJwt(newSession);
-    });
-
     return () => {
       isActive = false;
-      data?.subscription.unsubscribe();
     };
   }, []);
 
@@ -294,7 +286,6 @@ function AppShell() {
     event.preventDefault();
     setCreating(true);
     setError(null);
-    setResult(null);
     setGroupsActionError(null);
 
     try {
@@ -312,8 +303,9 @@ function AppShell() {
       if (!response.ok) throw new Error(`Fehler: ${response.status}`);
 
       const data = (await response.json()) as GroupCreateResult;
-      setResult(data);
       setGroupName("");
+      setCreateOpen(false);
+      toast.success(`"${data.name}" erstellt`);
       const membership: GroupMembership = {
         groupId: data.groupId,
         name: data.name,
@@ -439,39 +431,18 @@ function AppShell() {
     event.preventDefault();
     setAuthError(null);
     setAuthNotice(null);
-    setAuthLoading(true);
 
-    try {
-      if (!supabaseEnabled) throw new Error("Supabase nicht konfiguriert");
-      if (!email || !password) throw new Error("E-Mail und Passwort angeben");
-
-      if (authMode === "signin") {
-        const { error } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-        if (error) throw error;
-      } else {
-        const { data, error } = await supabase.auth.signUp({ email, password });
-        if (error) throw error;
-        if (!data.session) {
-          const { error: signinError } = await supabase.auth.signInWithPassword(
-            { email, password },
-          );
-          if (signinError)
-            throw new Error("Login nach Registrierung fehlgeschlagen");
-          setAuthNotice(null);
-        }
-      }
-    } catch (err) {
-      setAuthError(err instanceof Error ? err.message : "Login fehlgeschlagen");
-    } finally {
-      setAuthLoading(false);
+    if (!authEnabled) {
+      setAuthError("OAuth Login ist nicht konfiguriert.");
+      return;
     }
+
+    setAuthNotice("Weiterleitung zum OAuth Login...");
+    startOAuthLogin();
   };
 
   const handleLogout = async () => {
-    await supabase.auth.signOut();
+    startOAuthLogout();
     persistJwt(null);
     setSession(null);
   };
@@ -497,28 +468,18 @@ function AppShell() {
   const combinedGroupsError = groupsError || groupsActionError;
 
   const rightRail = isDesktop ? (
-    <>
-      <IdentityCard
-        identity={identity}
-        localDisplayName={pendingName || actor.displayName}
-        onDisplayNameChange={(value) => {
-          setPendingName(value);
-          setActorDisplayName(value);
-        }}
-        onLogout={handleLogout}
-        onAuthClick={() => setAuthPanelOpen(true)}
-        authLoading={authLoading}
-        supabaseEnabled={supabaseEnabled}
-      />
-      <GroupCreateCard
-        groupName={groupName}
-        creating={creating}
-        error={error}
-        result={result}
-        onGroupNameChange={setGroupName}
-        onSubmit={handleCreateGroup}
-      />
-    </>
+    <IdentityCard
+      identity={identity}
+      localDisplayName={pendingName || actor.displayName}
+      onDisplayNameChange={(value) => {
+        setPendingName(value);
+        setActorDisplayName(value);
+      }}
+      onLogout={handleLogout}
+      onAuthClick={() => setAuthPanelOpen(true)}
+      authLoading={authLoading}
+      authEnabled={oauthReady}
+    />
   ) : null;
 
   const routes = (
@@ -571,7 +532,7 @@ function AppShell() {
           <ProfilePage
             identity={identity}
             authLoading={authLoading}
-            supabaseEnabled={supabaseEnabled}
+            authEnabled={oauthReady}
             health={health}
             onLogin={() => setAuthPanelOpen(true)}
             onLogout={handleLogout}
@@ -626,6 +587,8 @@ function AppShell() {
           onClose={() => setMenuOpen(false)}
           identity={identity}
           onLogout={handleLogout}
+          onLogin={() => setAuthPanelOpen(true)}
+          authEnabled={oauthReady}
         />
       )}
 
@@ -653,19 +616,17 @@ function AppShell() {
         groupName={groupName}
         creating={creating}
         error={error}
-        result={result}
         onGroupNameChange={setGroupName}
         onSubmit={handleCreateGroup}
         onClose={() => {
           setCreateOpen(false);
-          setResult(null);
           setError(null);
         }}
       />
 
       <AuthModal
         open={authPanelOpen && identity.kind === "actor"}
-        supabaseEnabled={supabaseEnabled}
+        authEnabled={oauthReady}
         authMode={authMode}
         email={email}
         password={password}

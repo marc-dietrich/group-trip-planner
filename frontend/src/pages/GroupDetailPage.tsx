@@ -1,11 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { useNavigate, useParams } from "react-router-dom";
 import { GroupMembership, Identity } from "../types";
 import { buildIdentityHeaders } from "../lib/identity";
 import { apiPath } from "../lib/api";
 import { AvailabilityFlow } from "../components/AvailabilityFlow";
-import { modalCard, modalOverlay, muted } from "../ui";
+import { muted } from "../ui";
 import { useGroupAvailability } from "../hooks/useGroupAvailability";
 import { useGroupMemberAvailabilities } from "../hooks/useGroupMemberAvailabilities";
 import { useGroupStats } from "../hooks/useGroupStats";
@@ -16,9 +16,6 @@ const dateFormatter = new Intl.DateTimeFormat("de-DE", {
   year: "numeric",
 });
 
-const pendingBadge =
-  "inline-flex items-center gap-1 rounded-full bg-rose-100 px-2 py-0.5 text-[10px] font-semibold uppercase tracking-[0.08em] text-rose-700 border border-rose-200";
-
 type GroupDetailPageProps = {
   identity: Identity;
   groups: GroupMembership[];
@@ -27,8 +24,9 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
   const { groupId } = useParams();
   const navigate = useNavigate();
   const [groupName, setGroupName] = useState<string>("Gruppe");
-  const [summaryExpanded, setSummaryExpanded] = useState(false);
-  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [selfListOpen, setSelfListOpen] = useState(false);
+  const [groupListOpen, setGroupListOpen] = useState(false);
+  const titleRef = useRef<HTMLHeadingElement | null>(null);
 
   const { data: summary, refetch: refetchSummary } = useGroupAvailability(
     groupId ?? null,
@@ -76,8 +74,17 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
   const singleGroupList = useMemo(() => {
     if (!groupId) return [] as GroupMembership[];
     const match = groups.find((g) => g.groupId === groupId);
-    return match ? [match] : [];
-  }, [groupId, groups]);
+    if (match) return [match];
+
+    return [
+      {
+        groupId,
+        name: groupName || "Gruppe",
+        role: "member",
+        inviteLink: "",
+      },
+    ];
+  }, [groupId, groups, groupName]);
 
   const bestSummaryIndex = useMemo(() => {
     if (summary.length === 0) return -1;
@@ -116,13 +123,27 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
     "https://lh3.googleusercontent.com/aida-public/AB6AXuD3i28Elw_Feunq2K3GfAGi-SNBmuJFRw46SjkuVJxn1SV_e3ecsDrL6YnmIyQSWf2cfzld5CMTox5AfIpWuR8hGDT9qQrICDXbRE1Ir2yWi66Armm-FolWtypSAiZOj5wyfOjUxf3IEeraftLM3paFFSFyTTPRcVORQJQa4zK_LKbLbwhLhqRAPW3PYy9Hgr1gTXdlAmR7j-9ulu_PlKypxJshdKhhDyplp6ZEJIwty-RC_AqZNlufncHY5p_uBrpdL9xaDhBivH4";
 
   const memberCount = stats.totalUsers || memberAvailabilities.length || 0;
-  const submittedCount = stats.usersWithAvailability || 0;
-  const progressPercent = Math.min(
-    100,
-    Math.max(0, Math.round((stats.progress || 0) * 100)),
-  );
   const compactMembers = memberAvailabilities.slice(0, 4);
   const remainingMembers = Math.max(0, memberCount - compactMembers.length);
+  const currentGroup = useMemo(() => {
+    if (!groupId) return null;
+    return (
+      groups.find((g) => g.groupId === groupId) || {
+        groupId,
+        name: groupName || "Gruppe",
+        role: "member",
+        inviteLink: "",
+      }
+    );
+  }, [groupId, groupName, groups]);
+  const inviteLink = useMemo(() => {
+    if (!currentGroup) return null;
+    if (currentGroup.inviteLink) return currentGroup.inviteLink;
+    if (typeof window === "undefined") return null;
+    const base = import.meta.env.BASE_URL || "/";
+    const normalizedBase = base === "/" ? "" : base.replace(/\/$/, "");
+    return `${window.location.origin}${normalizedBase}/invite/${currentGroup.groupId}`;
+  }, [currentGroup]);
 
   const selfEntries = useMemo(
     () =>
@@ -136,6 +157,14 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
       [...selfEntries].sort((a, b) => a.startDate.localeCompare(b.startDate)),
     [selfEntries],
   );
+  const otherSelfEntries = useMemo(
+    () => sortedSelfEntries.slice(1),
+    [sortedSelfEntries],
+  );
+  const extraSelfCount = otherSelfEntries.length;
+  const hasExtraSelfEntries = extraSelfCount > 0;
+  const extraGroupCount = otherIntervals.length;
+  const hasExtraGroupIntervals = extraGroupCount > 0;
 
   const showComingSoon = () => {
     toast("Coming soon");
@@ -151,6 +180,26 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
           100,
       )
     : 0;
+  const isReadyToBook = Boolean(
+    highlightInterval &&
+    highlightInterval.totalMembers > 0 &&
+    highlightInterval.availableCount >= highlightInterval.totalMembers,
+  );
+
+  const handleShareInvite = async () => {
+    if (!inviteLink) {
+      toast.error("Kein Einladungslink verfügbar");
+      return;
+    }
+    try {
+      if (!navigator?.clipboard)
+        throw new Error("Clipboard API nicht verfügbar");
+      await navigator.clipboard.writeText(inviteLink);
+      toast.success("Einladungslink kopiert");
+    } catch (err) {
+      toast.error("Konnte Link nicht kopieren");
+    }
+  };
 
   const formatMemberName = (value: string) => {
     const trimmed = (value || "").trim();
@@ -162,6 +211,60 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
     }
     return trimmed;
   };
+
+  useEffect(() => {
+    setSelfListOpen(false);
+  }, [sortedSelfEntries.length]);
+
+  useEffect(() => {
+    setGroupListOpen(false);
+  }, [extraGroupCount]);
+
+  useLayoutEffect(() => {
+    const node = titleRef.current;
+    if (!node) return;
+    const BASE_SIZE = 24;
+    const MIN_SIZE = 16;
+
+    let frame = 0;
+
+    const applySize = (size: number) => {
+      node.style.setProperty("--group-title-size", `${size}px`);
+    };
+
+    const measure = () => {
+      const el = titleRef.current;
+      if (!el) return;
+      applySize(BASE_SIZE);
+      const available = el.offsetWidth;
+      const scroll = el.scrollWidth;
+      if (!available || !scroll) {
+        applySize(BASE_SIZE);
+        return;
+      }
+      let next = BASE_SIZE;
+      if (scroll > available) {
+        const ratio = available / scroll;
+        next = Math.max(MIN_SIZE, Math.floor(BASE_SIZE * ratio));
+      }
+      applySize(next);
+    };
+
+    measure();
+
+    const observer = new ResizeObserver(() => {
+      cancelAnimationFrame(frame);
+      frame = requestAnimationFrame(measure);
+    });
+
+    observer.observe(node);
+    if (node.parentElement) observer.observe(node.parentElement);
+
+    return () => {
+      observer.disconnect();
+      cancelAnimationFrame(frame);
+    };
+  }, [groupName]);
   return (
     <div className="relative pb-28 space-y-6">
       <div className="relative h-[32vh] w-full overflow-hidden rounded-3xl shadow-soft">
@@ -181,22 +284,25 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
             >
               <span className="material-symbols-outlined">arrow_back</span>
             </button>
-            <h1 className="text-2xl font-bold tracking-tight max-w-[60%] leading-tight">
+            <h1
+              ref={titleRef}
+              className="text-2xl font-bold tracking-tight max-w-[60%] leading-tight whitespace-nowrap"
+              style={{
+                fontSize: "var(--group-title-size, 24px)",
+                overflow: "visible",
+              }}
+            >
               {groupName}
             </h1>
           </div>
-          <div className="flex items-center gap-2">
-            <button
-              type="button"
-              className="w-10 h-10 rounded-full border border-slate-200 bg-white/70 backdrop-blur-md flex items-center justify-center text-slate-500 hover:bg-white hover:text-slate-700 transition"
-              aria-label="Gruppen-Einstellungen (Platzhalter)"
-              onClick={() => setSettingsOpen(true)}
-            >
-              <span className="material-symbols-outlined text-[22px]">
-                settings
-              </span>
-            </button>
-          </div>
+          <button
+            type="button"
+            aria-label="Einladungslink teilen"
+            onClick={handleShareInvite}
+            className="w-9 h-9 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 text-white hover:bg-white/30 transition"
+          >
+            <span className="material-symbols-outlined">share</span>
+          </button>
         </div>
         <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between">
           <div className="bg-white/95 dark:bg-slate-900/90 backdrop-blur-md px-4 py-2 rounded-xl border border-white/40 shadow-sm flex items-center gap-2">
@@ -227,31 +333,6 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
       </div>
 
       <div className="px-1 space-y-6">
-        <div className="bg-white border border-sage-100 rounded-3xl p-4 shadow-soft">
-          <div className="flex items-center justify-between mb-3">
-            <div>
-              <p className="text-[10px] font-bold uppercase tracking-[0.18em] text-sage-600">
-                Verfügbarkeits-Fortschritt
-              </p>
-              <p className="text-sm text-sage-700 font-semibold">
-                Wer hat schon eingetragen?
-              </p>
-            </div>
-            <span className="text-sm font-bold text-sage-800">
-              {submittedCount} von {memberCount}
-            </span>
-          </div>
-          <div className="h-3 w-full bg-sage-100 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-sage-600 rounded-full transition-all duration-500"
-              style={{ width: `${progressPercent}%` }}
-            ></div>
-          </div>
-          <p className="mt-2 text-[11px] font-semibold text-sage-700">
-            {progressPercent}% ausgefüllt
-          </p>
-        </div>
-
         <div>
           <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 mb-4 px-1">
             Mitglieder
@@ -294,12 +375,9 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
                 </span>
               </div>
               <div className="flex-1">
-                <div className="flex items-center gap-2 flex-wrap">
-                  <h2 className="text-xl font-bold text-slate-900 leading-tight">
-                    Nächste Reise
-                  </h2>
-                  <span className={pendingBadge}>Platzhalter</span>
-                </div>
+                <h2 className="text-xl font-bold text-slate-900 leading-tight">
+                  Nächste Reise
+                </h2>
                 <p className="text-slate-500 text-sm font-medium mt-0.5">
                   {highlightInterval
                     ? `${dateFormatter.format(
@@ -318,9 +396,7 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
                     Status
                   </span>
                   <span className="text-sm font-semibold text-slate-700">
-                    {highlightInterval
-                      ? "Fast bereit zur Buchung"
-                      : "Wartet auf Verfügbarkeiten"}
+                    {isReadyToBook ? "Bereit zur Buchung ✓" : "Noch in Planung"}
                   </span>
                 </div>
                 {highlightInterval && (
@@ -339,12 +415,6 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
                 ></div>
               </div>
             </div>
-            <button
-              className="w-full mt-6 py-4 text-[12px] font-bold bg-slate-50 text-brand-primary rounded-2xl hover:bg-brand-primary hover:text-white transition-all duration-200 uppercase tracking-widest border border-slate-100"
-              type="button"
-            >
-              Planung öffnen
-            </button>
           </div>
 
           <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-soft">
@@ -357,19 +427,37 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
                 </div>
                 <h2 className="text-base font-bold text-slate-900">
                   Meine Verfügbarkeit
+                  {hasExtraSelfEntries ? (
+                    <span className="ml-1 text-xs font-semibold text-slate-500">
+                      (+ {extraSelfCount})
+                    </span>
+                  ) : null}
                 </h2>
               </div>
-              <span className="material-symbols-outlined text-slate-300">
-                expand_more
-              </span>
+              {hasExtraSelfEntries ? (
+                <button
+                  type="button"
+                  className="p-1 text-slate-400 transition hover:text-slate-600"
+                  onClick={() => setSelfListOpen((prev) => !prev)}
+                  aria-expanded={selfListOpen}
+                >
+                  <span
+                    className={`material-symbols-outlined text-[22px] transition-transform ${
+                      selfListOpen ? "rotate-180" : ""
+                    }`}
+                  >
+                    expand_more
+                  </span>
+                </button>
+              ) : null}
             </div>
-            <div className="bg-brand-primary text-white rounded-xl p-4 shadow-sm border border-white/10">
+            <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 shadow-sm">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-[10px] uppercase font-bold text-white/80 mb-1 tracking-widest">
+                  <p className="text-[10px] uppercase font-bold text-slate-500 mb-1 tracking-widest">
                     Bester Zeitraum
                   </p>
-                  <p className="text-sm font-semibold">
+                  <p className="text-sm font-semibold text-slate-900">
                     {selfHighlight
                       ? `${dateFormatter.format(
                           new Date(selfHighlight.startDate),
@@ -379,11 +467,25 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
                       : "Noch nichts hinterlegt"}
                   </p>
                 </div>
-                <span className="material-symbols-outlined text-white fill-1">
+                <span className="material-symbols-outlined text-brand-primary">
                   check_circle
                 </span>
               </div>
             </div>
+            {hasExtraSelfEntries && selfListOpen && (
+              <ul className="mt-3 space-y-2">
+                {otherSelfEntries.map((entry) => (
+                  <li
+                    key={entry.id}
+                    className="rounded-xl border border-slate-100 bg-white px-3 py-2 text-sm text-slate-700"
+                  >
+                    {`${dateFormatter.format(
+                      new Date(entry.startDate),
+                    )} — ${dateFormatter.format(new Date(entry.endDate))}`}
+                  </li>
+                ))}
+              </ul>
+            )}
           </div>
 
           <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-soft">
@@ -396,16 +498,34 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
                 </div>
                 <h2 className="text-base font-bold text-slate-900">
                   Beste Gruppen-Zeiträume
+                  {hasExtraGroupIntervals ? (
+                    <span className="ml-1 text-xs font-semibold text-slate-500">
+                      (+ {extraGroupCount})
+                    </span>
+                  ) : null}
                 </h2>
               </div>
-              <span className="material-symbols-outlined text-slate-300">
-                expand_more
-              </span>
+              {hasExtraGroupIntervals ? (
+                <button
+                  type="button"
+                  className="p-1 text-slate-400 transition hover:text-slate-600"
+                  onClick={() => setGroupListOpen((prev) => !prev)}
+                  aria-expanded={groupListOpen}
+                >
+                  <span
+                    className={`material-symbols-outlined text-[22px] transition-transform ${
+                      groupListOpen ? "rotate-180" : ""
+                    }`}
+                  >
+                    expand_more
+                  </span>
+                </button>
+              ) : null}
             </div>
             <div className="space-y-3">
               {highlightInterval ? (
                 <div className="flex items-center gap-4">
-                  <div className="flex-1 bg-slate-50 p-4 rounded-xl border border-slate-100">
+                  <div className="flex-1 bg-slate-50 p-4 rounded-xl border border-slate-200">
                     <div className="flex justify-between items-center mb-1">
                       <p className="text-sm font-bold text-slate-900">
                         {dateFormatter.format(new Date(highlightInterval.from))}{" "}
@@ -424,38 +544,27 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
               ) : (
                 <p className={muted}>Noch keine Überschneidungen vorhanden.</p>
               )}
-
-              {otherIntervals
-                .slice(0, summaryExpanded ? otherIntervals.length : 2)
-                .map((item, idx) => (
-                  <div
-                    key={`${item.from}-${item.to}-${idx}`}
-                    className="flex items-center gap-4"
-                  >
-                    <div className="flex-1 bg-slate-50 p-4 rounded-xl border border-slate-100">
-                      <div className="flex justify-between items-center mb-1">
-                        <p className="text-sm font-bold text-slate-900">
-                          {dateFormatter.format(new Date(item.from))} -{" "}
-                          {dateFormatter.format(new Date(item.to))}
-                        </p>
+              {hasExtraGroupIntervals && groupListOpen && (
+                <ul className="space-y-3">
+                  {otherIntervals.map((item, idx) => (
+                    <li key={`${item.from}-${item.to}-${idx}`}>
+                      <div className="flex items-center gap-4">
+                        <div className="flex-1 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                          <div className="flex justify-between items-center mb-1">
+                            <p className="text-sm font-bold text-slate-900">
+                              {dateFormatter.format(new Date(item.from))} -{" "}
+                              {dateFormatter.format(new Date(item.to))}
+                            </p>
+                          </div>
+                          <p className="text-[11px] text-slate-500 font-medium">
+                            {item.availableCount} von {item.totalMembers}{" "}
+                            Personen verfügbar
+                          </p>
+                        </div>
                       </div>
-                      <p className="text-[11px] text-slate-500 font-medium">
-                        {item.availableCount} von {item.totalMembers} Personen
-                        verfügbar
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              {otherIntervals.length > 2 && (
-                <button
-                  type="button"
-                  className="w-full text-left text-[12px] font-semibold text-brand-primary underline underline-offset-4"
-                  onClick={() => setSummaryExpanded((prev) => !prev)}
-                >
-                  {summaryExpanded
-                    ? "Weniger anzeigen"
-                    : `Mehr anzeigen (+${otherIntervals.length - 2})`}
-                </button>
+                    </li>
+                  ))}
+                </ul>
               )}
             </div>
           </div>
@@ -465,74 +574,43 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
       <div className="fixed bottom-6 left-0 right-0 max-w-[520px] mx-auto p-4 flex items-center justify-end gap-3 pointer-events-none">
         <button
           type="button"
-          className="pointer-events-auto w-14 h-14 rounded-full shadow-2xl flex items-center justify-center hover:scale-95 transition-transform active:scale-90 bg-slate-100 border border-slate-200 text-slate-600"
+          className="pointer-events-auto w-14 h-14 rounded-full shadow-2xl flex items-center justify-center hover:scale-95 transition-transform active:scale-90 bg-slate-100 border border-slate-200 text-brand-primary"
           onClick={showComingSoon}
           aria-label="Kalender Import (Platzhalter)"
         >
-          <span className="material-symbols-outlined text-slate-600 text-2xl">
+          <span className="material-symbols-outlined text-brand-primary text-2xl">
             calendar_add_on
           </span>
         </button>
-        <AvailabilityFlow
-          groups={singleGroupList}
-          identity={identity}
-          fixedGroupId={groupId ?? null}
-          hideSavedList
-          embedded
-          renderTrigger={({ open }) => (
-            <button
-              type="button"
-              className="pointer-events-auto h-14 px-6 bg-brand-primary text-white rounded-full shadow-2xl flex items-center gap-2 hover:scale-95 transition-transform active:scale-90 border border-white/10"
-              onClick={open}
-            >
-              <span className="material-symbols-outlined font-bold text-xl">
-                add
-              </span>
-              <span className="text-[13px] font-bold tracking-tight">
-                Neue Verfügbarkeit
-              </span>
-            </button>
-          )}
-          onChange={() => {
-            void refetchSummary();
-            void refetchMembers();
-            void refetchStats();
-          }}
-        />
-      </div>
-
-      {settingsOpen ? (
-        <div className={modalOverlay} role="dialog" aria-modal="true">
-          <div className={`${modalCard} bg-white`}>
-            <div className="flex items-start justify-between gap-3 mb-4">
-              <div>
-                <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-slate-500">
-                  Entwickler-Hinweis
-                </p>
-                <h3 className="text-lg font-semibold text-slate-900">
-                  Gruppen-Einstellungen
-                </h3>
-              </div>
+        <div className="pointer-events-auto">
+          <AvailabilityFlow
+            groups={singleGroupList}
+            identity={identity}
+            fixedGroupId={groupId ?? null}
+            hideSavedList
+            embedded
+            renderTrigger={({ open }) => (
               <button
                 type="button"
-                className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-semibold text-slate-700 hover:bg-slate-100"
-                onClick={() => setSettingsOpen(false)}
+                className="pointer-events-auto h-14 px-6 bg-brand-primary text-white rounded-full shadow-2xl flex items-center gap-2 hover:scale-95 transition-transform active:scale-90 border border-white/10"
+                onClick={open}
               >
-                Schließen
+                <span className="material-symbols-outlined font-bold text-xl">
+                  add
+                </span>
+                <span className="text-[13px] font-bold tracking-tight">
+                  Neue Verfügbarkeit
+                </span>
               </button>
-            </div>
-            <div className="space-y-3 rounded-xl border border-rose-200 bg-rose-50 px-4 py-3">
-              <p className="text-sm font-semibold text-rose-700">
-                This feature is not implemented yet.
-              </p>
-              <p className="text-sm text-rose-600">
-                It is intentionally left as a development placeholder. No
-                functionality is available beyond this notice.
-              </p>
-            </div>
-          </div>
+            )}
+            onChange={() => {
+              void refetchSummary();
+              void refetchMembers();
+              void refetchStats();
+            }}
+          />
         </div>
-      ) : null}
+      </div>
     </div>
   );
 }
