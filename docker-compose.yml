@@ -1,100 +1,60 @@
+version: "3.9"
+
 services:
-  # Set IMAGE_REGISTRY (e.g., ghcr.io/your-user) and optional IMAGE_TAG before running
-  # `docker compose build && docker compose push` to publish custom images.
   postgres:
-    image: ${IMAGE_REGISTRY:-ghcr.io/group-trip-planner}/postgres:${IMAGE_TAG:-latest}
-    build:
-      context: ./database
-      dockerfile_inline: |
-        FROM postgres:15-alpine
-    extends:
-      file: ./database/docker-compose.yml
-      service: postgres
+    image: ghcr.io/marc-dietrich/postgres:latest
+    container_name: gtp-postgres
+    restart: unless-stopped
     env_file:
       - database/.env
-    ports: [] # keep internal; expose only via caddy
+    volumes:
+      - db_data:/var/lib/postgresql/data
 
   backend:
-    image: ${IMAGE_REGISTRY:-ghcr.io/group-trip-planner}/backend:${IMAGE_TAG:-latest}
-    build:
-      context: ./backend
+    image: ghcr.io/marc-dietrich/backend:latest
     container_name: gtp-backend
+    restart: unless-stopped
     depends_on:
-      postgres:
-        condition: service_healthy
+      - postgres
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-gtp}:${POSTGRES_PASSWORD:-gtp_pw}@postgres:5432/${POSTGRES_DB:-gtp}
       - PORT=8000
     expose:
       - "8000"
-    restart: unless-stopped
 
   frontend:
-    image: ${IMAGE_REGISTRY:-ghcr.io/group-trip-planner}/frontend:${IMAGE_TAG:-latest}
-    build:
-      context: ./frontend
-      dockerfile: Dockerfile
-      args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://${CADDY_DOMAIN:-localhost}/api}
-        VITE_OAUTH_BASE_URL: ${VITE_OAUTH_BASE_URL:-https://${CADDY_DOMAIN:-localhost}/oauth2}
-        CUSTOM_DOMAIN: ${CUSTOM_DOMAIN:-true}
+    image: ghcr.io/marc-dietrich/frontend:latest
     container_name: gtp-frontend
+    restart: unless-stopped
     depends_on:
       - backend
     expose:
       - "80"
-    restart: unless-stopped
 
   node-exporter:
-    image: ${IMAGE_REGISTRY:-ghcr.io/group-trip-planner}/node-exporter:${IMAGE_TAG:-latest}
-    build:
-      context: .
-      dockerfile_inline: |
-        FROM prom/node-exporter:v1.8.1
+    image: ghcr.io/marc-dietrich/node-exporter:latest
     container_name: gtp-node-exporter
     restart: unless-stopped
     expose:
       - "9100"
-    command:
-      - "--path.procfs=/host/proc"
-      - "--path.sysfs=/host/sys"
-      - "--path.rootfs=/host/root"
-      - "--collector.filesystem.mount-points-exclude=^/(sys|proc|dev|host|etc)($$|/)"
     volumes:
       - /proc:/host/proc:ro
       - /sys:/host/sys:ro
       - /:/host/root:ro
 
   postgres-exporter:
-    image: ${IMAGE_REGISTRY:-ghcr.io/group-trip-planner}/postgres-exporter:${IMAGE_TAG:-latest}
-    build:
-      context: .
-      dockerfile_inline: |
-        FROM prometheuscommunity/postgres-exporter:v0.15.0
+    image: ghcr.io/marc-dietrich/postgres-exporter:latest
     container_name: gtp-postgres-exporter
     restart: unless-stopped
+    depends_on:
+      - postgres
     expose:
       - "9187"
-    environment:
-      - DATA_SOURCE_NAME=postgresql://${POSTGRES_USER:-gtp}:${POSTGRES_PASSWORD:-gtp_pw}@postgres:5432/${POSTGRES_DB:-gtp}?sslmode=disable
-    depends_on:
-      postgres:
-        condition: service_healthy
 
   prometheus:
-    image: ${IMAGE_REGISTRY:-ghcr.io/group-trip-planner}/prometheus:${IMAGE_TAG:-latest}
-    build:
-      context: .
-      dockerfile_inline: |
-        FROM prom/prometheus:v2.51.2
+    image: ghcr.io/marc-dietrich/prometheus:latest
     container_name: gtp-prometheus
     restart: unless-stopped
-    expose:
-      - "9090"
-    command:
-      - --config.file=/etc/prometheus/prometheus.yml
-      - --storage.tsdb.path=/prometheus
-      - --storage.tsdb.retention.time=15d
     depends_on:
       - backend
       - node-exporter
@@ -102,62 +62,41 @@ services:
     volumes:
       - ./monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
       - prometheus_data:/prometheus
+    expose:
+      - "9090"
 
   grafana:
-    image: ${IMAGE_REGISTRY:-ghcr.io/group-trip-planner}/grafana:${IMAGE_TAG:-latest}
-    build:
-      context: .
-      dockerfile_inline: |
-        FROM grafana/grafana:10.4.2
+    image: ghcr.io/marc-dietrich/grafana:latest
     container_name: gtp-grafana
     restart: unless-stopped
-    expose:
-      - "3000"
-    environment:
-      - GF_SECURITY_ADMIN_USER=${GRAFANA_ADMIN_USER:-observer}
-      - GF_SECURITY_ADMIN_PASSWORD=${GRAFANA_ADMIN_PASSWORD:-local-metrics-please}
-      - GF_USERS_ALLOW_SIGN_UP=false
-      - GF_SERVER_ROOT_URL=${GF_SERVER_ROOT_URL:-https://${CADDY_DOMAIN:-localhost}/ops/grafana/}
-      - GF_SERVER_SERVE_FROM_SUB_PATH=true
     depends_on:
       - prometheus
     volumes:
       - grafana_data:/var/lib/grafana
+    expose:
+      - "3000"
 
   oauth-proxy:
-    image: ${IMAGE_REGISTRY:-ghcr.io/group-trip-planner}/oauth-proxy:${IMAGE_TAG:-latest}
-    build:
-      context: ./oauth-proxy
-      dockerfile_inline: |
-        FROM quay.io/oauth2-proxy/oauth2-proxy:v7.6.0
-    extends:
-      file: ./oauth-proxy/docker-compose.yml
-      service: oauth2-proxy
+    image: ghcr.io/marc-dietrich/oauth-proxy:latest
+    container_name: gtp-oauth-proxy
+    restart: unless-stopped
+    depends_on:
+      - backend
     env_file:
       - oauth-proxy/.env
     environment:
-      - OAUTH_UPSTREAM=${OAUTH_UPSTREAM:-http://backend:8000}
-      - OAUTH_REDIRECT_URL=${OAUTH_REDIRECT_URL:-https://${CADDY_DOMAIN:-localhost}/oauth2/callback}
-    ports: []
+      - OAUTH2_PROXY_UPSTREAMS=http://backend:8000
+      - OAUTH2_PROXY_REDIRECT_URL=https://${CADDY_DOMAIN:-localhost}/oauth2/callback
+    expose:
+      - "4180"
 
   caddy:
-    image: ${IMAGE_REGISTRY:-ghcr.io/group-trip-planner}/caddy:${IMAGE_TAG:-latest}
-    build:
-      context: .
-      dockerfile_inline: |
-        FROM caddy:2-alpine
+    image: ghcr.io/marc-dietrich/caddy:latest
     container_name: gtp-caddy
     restart: unless-stopped
     ports:
       - "80:80"
       - "443:443"
-    expose:
-      - "2019"
-    environment:
-      - CADDY_DOMAIN=${CADDY_DOMAIN:-localhost}
-      - CADDY_EMAIL=${CADDY_EMAIL:-admin@example.com}
-      - MONITORING_USER=${MONITORING_USER:-monitor}
-      - MONITORING_PASSWORD_HASH=${MONITORING_PASSWORD_HASH:-$$2a$$14$$oPfUKnGPvrpCYaP/iO6pCeZPpHzdajL99JVJT7lboAsWbb7ULdySi}
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data
@@ -168,6 +107,33 @@ services:
       - oauth-proxy
       - grafana
       - prometheus
+    environment:
+      - CADDY_DOMAIN=${CADDY_DOMAIN:-localhost}
+      - CADDY_EMAIL=${CADDY_EMAIL:-admin@example.com}
+      - MONITORING_USER=${MONITORING_USER:-monitor}
+      - MONITORING_PASSWORD_HASH=${MONITORING_PASSWORD_HASH}
+
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    container_name: gtp-cloudflared
+    restart: unless-stopped
+    depends_on:
+      - caddy
+    user: root
+    command: tunnel --config /etc/cloudflared/config.yml run
+    volumes:
+      - /home/marc/.cloudflared:/etc/cloudflared:ro
+
+  watchtower:
+    image: containrrr/watchtower
+    container_name: gtp-watchtower
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - WATCHTOWER_CLEANUP=true
+      - DOCKER_API_VERSION=1.53
+    command: --interval 300 --rolling-restart
 
 volumes:
   db_data:
@@ -175,3 +141,4 @@ volumes:
   caddy_config:
   prometheus_data:
   grafana_data:
+

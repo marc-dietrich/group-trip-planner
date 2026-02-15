@@ -35,6 +35,11 @@ type GroupSlot = {
   placeholder?: boolean;
 };
 
+function isTransientNetworkError(error: string | null): boolean {
+  if (!error) return false;
+  return /failed to fetch|networkerror|load failed/i.test(error);
+}
+
 function pickBestInterval(intervals: GroupAvailabilityInterval[]) {
   return intervals.reduce((best, current) => {
     if (!best) return current;
@@ -274,8 +279,13 @@ export function GroupsPage({
     activeGroups.some((group) => summaries[group.groupId]?.loading);
 
   const listBody = useMemo(() => {
+    const transientNetworkIssue = isTransientNetworkError(groupsError);
+
     if (groupsLoading) return <p className={muted}>Gruppen werden geladen…</p>;
-    if (groupsError) return <div className={pillDanger}>{groupsError}</div>;
+    if (groupsError && !transientNetworkIssue)
+      return <div className={pillDanger}>{groupsError}</div>;
+    if (groupsError && transientNetworkIssue)
+      return <p className={muted}>Verbindung wird hergestellt…</p>;
     if (!activeGroups.length)
       return (
         <div className="rounded-2xl border border-dashed border-sage-200 bg-sage-50 p-5 text-sm text-sage-700">
