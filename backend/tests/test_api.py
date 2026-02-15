@@ -30,7 +30,7 @@ def _auth_headers(
         "email": email,
         "user_metadata": metadata,
     }
-    token = jwt.encode(claims, settings.supabase_jwt_secret, algorithm="HS256")
+    token = jwt.encode(claims, settings.jwt_secret, algorithm="HS256")
     return {"Authorization": f"Bearer {token}"}, uid
 
 

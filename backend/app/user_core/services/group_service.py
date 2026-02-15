@@ -97,7 +97,7 @@ class GroupService:
         return await self.repo.get_groups_for_identity(actor_id=actor_id, user_id=user_id)
 
     async def claim_memberships_for_user(self, actor_id: str, user_id: UUID) -> int:
-        """Assign a Supabase user to all memberships created by an actor."""
+        """Assign an authenticated user to all memberships created by an actor."""
         return await self.repo.claim_memberships_for_user(actor_id=actor_id, user_id=user_id)
 
     async def get_invite_preview(self, token: str, ttl_days: int) -> Tuple[Group, GroupInvite]:

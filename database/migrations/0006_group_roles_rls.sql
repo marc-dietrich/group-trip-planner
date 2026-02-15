@@ -1,13 +1,13 @@
 -- 0006_group_roles_rls.sql
 -- Purpose: Add per-group role RLS for groups and group_members
--- Notes: additive, idempotent, safe for Supabase SQL editor and PostgreSQL >=14
+-- Notes: additive, idempotent, safe for PostgreSQL >=14
 
 BEGIN;
 
 -- Ensure consistent schema resolution
 SET search_path TO public;
 
--- Provide minimal auth schema + auth.uid() helper for local/test containers lacking Supabase defaults
+-- Provide minimal auth schema + auth.uid() helper for local/test containers
 DO $do$
 BEGIN
     IF NOT EXISTS (SELECT 1 FROM pg_namespace WHERE nspname = 'auth') THEN
@@ -62,7 +62,7 @@ $$;
 ALTER TABLE groups ENABLE ROW LEVEL SECURITY;
 ALTER TABLE group_members ENABLE ROW LEVEL SECURITY;
 
--- Auto-create owner membership for the creator (Supabase auth user)
+-- Auto-create owner membership for the creator (authenticated user)
 CREATE OR REPLACE FUNCTION public.fn_group_owner_seed()
 RETURNS trigger
 LANGUAGE plpgsql

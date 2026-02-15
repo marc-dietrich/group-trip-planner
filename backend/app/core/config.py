@@ -9,7 +9,11 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 class Settings(BaseSettings):
     """Application settings."""
 
-    model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8")
+    model_config = SettingsConfigDict(
+        env_file=("../../.env", ".env"),
+        env_file_encoding="utf-8",
+        extra="ignore",
+    )
 
     # Database
     database_url: str = "postgresql+asyncpg://trip_planner:trip_password@localhost/group_trip_planner_db"
@@ -38,12 +42,8 @@ class Settings(BaseSettings):
         "https://planning.made-simple.online",
     ]
 
-    # Supabase
-    supabase_url: str | None = None
-    supabase_anon_key: str | None = None
-    supabase_public_key: str | None = None
-    supabase_service_key: str | None = None
-    supabase_jwt_secret: str = ""
+    # JWT (used for Bearer token auth via OAuth2-Proxy or similar)
+    jwt_secret: str = ""
 
 @lru_cache()
 def get_settings() -> Settings:

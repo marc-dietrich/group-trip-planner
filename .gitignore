@@ -7,6 +7,7 @@ dist/
 .env.development.local
 .env.test.local
 .env.production.local
+# .env.example is committed as a template — do NOT ignore it
 
 # Python
 __pycache__/
@@ -19,8 +20,8 @@ venv/
 .venv/
 .pytest_cache/
 
-# Deployment-only compose overrides
-docker-compose-server.yml
+# Cloudflare Tunnel (secrets + credentials)
+cloudflared/
 
 # IDEs
 .vscode/

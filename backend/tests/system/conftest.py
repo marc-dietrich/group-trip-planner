@@ -159,7 +159,7 @@ async def database_url(postgres_container: PostgresContainer) -> AsyncIterator[s
 def app(database_url: str):
     mp = MonkeyPatch()
     mp.setenv("DATABASE_URL", database_url)
-    mp.setenv("SUPABASE_JWT_SECRET", os.environ.get("SUPABASE_JWT_SECRET", "test-secret"))
+    mp.setenv("JWT_SECRET", os.environ.get("JWT_SECRET", "test-secret"))
     mp.setenv("PGSSLMODE", "disable")
     try:
         yield _reload_app()
@@ -176,7 +176,7 @@ async def client(app):
 
 @pytest.fixture()
 def token_factory() -> Callable[[str], str]:
-    secret = os.environ["SUPABASE_JWT_SECRET"]
+    secret = os.environ["JWT_SECRET"]
 
     def _make(user_id: str) -> str:
         claims = {

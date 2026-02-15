@@ -10,6 +10,7 @@ import {
 import { toast } from "sonner";
 import {
   DEFAULT_ACTOR_NAME,
+  ensureActorRemote,
   isPlaceholderActorName,
   useLocalActor,
 } from "./lib/actor";
@@ -289,6 +290,10 @@ function AppShell() {
     setGroupsActionError(null);
 
     try {
+      if (identity.kind === "actor") {
+        await ensureActorRemote(identity);
+      }
+
       const headers: HeadersInit = buildIdentityHeaders(identity, {
         "Content-Type": "application/json",
       });

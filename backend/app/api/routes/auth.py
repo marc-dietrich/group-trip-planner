@@ -1,4 +1,4 @@
-"""Authentication endpoints for linking local actors to Supabase users."""
+"""Authentication endpoints for linking local actors to authenticated users."""
 
 from datetime import datetime, timedelta
 from uuid import UUID
@@ -28,12 +28,7 @@ class ClaimResponse(BaseModel):
 
 
 def _issue_claim_token(*, actor_id: str, user_id: str) -> str:
-    secret = (
-        settings.supabase_jwt_secret
-        or settings.supabase_anon_key
-        or settings.supabase_public_key
-        or settings.supabase_service_key
-    )
+    secret = settings.jwt_secret
     if not secret:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="JWT secret not configured")
 
@@ -58,7 +53,7 @@ async def claim_actor(
     try:
         user_uuid = UUID(identity.user_id)
     except (TypeError, ValueError) as exc:  # pragma: no cover - defensive
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid Supabase user id") from exc
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid user id") from exc
 
     result = await service.claim_actor(
         actor_id=payload.actorId,
