@@ -34,6 +34,8 @@ services:
         condition: service_healthy
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-gtp}:${POSTGRES_PASSWORD:-gtp_pw}@postgres:5432/${POSTGRES_DB:-gtp}
+      - JWT_SECRET=${JWT_SECRET:-change-me}
+      - DEBUG=${DEBUG:-false}
       - PORT=8000
     expose:
       - "8000"
@@ -165,18 +167,6 @@ services:
       - CADDY_EMAIL=${CADDY_EMAIL:-admin@example.com}
       - MONITORING_USER=${MONITORING_USER:-monitor}
       - MONITORING_PASSWORD_HASH=${MONITORING_PASSWORD_HASH}
-    labels:
-      - com.centurylinklabs.watchtower.enable=true
-
-  cloudflared:
-    image: cloudflare/cloudflared:latest
-    container_name: gtp-cloudflared
-    restart: unless-stopped
-    pull_policy: always
-    profiles: ["tunnel"]
-    depends_on:
-      - caddy
-    command: tunnel --no-autoupdate run --token ${CLOUDFLARE_TUNNEL_TOKEN}
     labels:
       - com.centurylinklabs.watchtower.enable=true
 

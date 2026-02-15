@@ -1,4 +1,4 @@
-"""Authentication-related helpers for Supabase claims (user core)."""
+"""Authentication-related helpers for user claims (user core)."""
 
 from typing import Optional
 from uuid import UUID
@@ -7,7 +7,7 @@ from app.user_core.repositories import GroupRepository, IdentityRepository
 
 
 class AuthService:
-    """Service functions for linking Supabase users with local actors."""
+    """Service functions for linking authenticated users with local actors."""
 
     def __init__(self, identity_repo: IdentityRepository, group_repo: GroupRepository):
         self.identity_repo = identity_repo
@@ -20,7 +20,7 @@ class AuthService:
         display_name: Optional[str],
         email: Optional[str],
     ) -> dict:
-        """Claim a local actor for the authenticated Supabase user."""
+        """Claim a local actor for the authenticated user."""
 
         await self.identity_repo.upsert_user(user_id=user_id, display_name=display_name, email=email)
         mapping = await self.identity_repo.record_claim(actor_id=actor_id, user_id=user_id)

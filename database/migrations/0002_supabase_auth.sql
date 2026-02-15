@@ -1,4 +1,4 @@
--- Add Supabase-backed user tables and link actors
+-- Add user tables and link actors to authenticated users
 CREATE TABLE IF NOT EXISTS users (
     id UUID PRIMARY KEY,
     display_name VARCHAR(150),

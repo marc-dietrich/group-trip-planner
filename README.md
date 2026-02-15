@@ -45,39 +45,23 @@ npm run dev
 
 Frontend läuft auf: http://localhost:3000
 
-### Backend per Docker (Supabase DB)
-
-Supabase-Postgres ist IPv6-only. Docker muss daher mit IPv6 laufen. Beispiel `/etc/docker/daemon.json`:
-
-```json
-{
-  "features": { "buildkit": true },
-  "ipv6": true,
-  "fixed-cidr-v6": "fd00:dead:beef::/48"
-}
-```
-
-Danach Docker neu starten (`sudo systemctl restart docker`). Dann:
+### Backend per Docker (lokale PostgreSQL)
 
 ```bash
 docker build -t gtp-backend ./backend
 
 docker run --rm -p 8000:8000 \
-  -e DATABASE_URL="postgresql+asyncpg://postgres:<password>@db.fdlmelfgshydwrcbvryg.supabase.co:5432/postgres" \
-  -e DATABASE_SSL_REQUIRE=True \
-  -e SUPABASE_URL="https://fdlmelfgshydwrcbvryg.supabase.co" \
-  -e SUPABASE_JWT_SECRET="<jwt-secret>" \
-  -e SUPABASE_PUBLIC_KEY="<anon-key>" \
+  -e DATABASE_URL="postgresql+asyncpg://trip_planner:trip_password@localhost/group_trip_planner_db" \
+  -e DATABASE_SSL_REQUIRE=False \
+  -e JWT_SECRET="<your-jwt-secret>" \
   gtp-backend
 ```
 
 Wichtige Variablen (siehe `backend/.env` Vorlage):
 
-- `DATABASE_URL` (Supabase-Postgres, asyncpg-URL)
-- `DATABASE_SSL_REQUIRE=True`
-- `SUPABASE_URL`, `SUPABASE_JWT_SECRET`, `SUPABASE_PUBLIC_KEY`
-
-Alternative lokal: nutze den lokalen Dev-Postgres (`trip_planner:trip_password@localhost/group_trip_planner_db`) und setze `DATABASE_SSL_REQUIRE=False`.
+- `DATABASE_URL` (asyncpg PostgreSQL URL)
+- `DATABASE_SSL_REQUIRE=False` (lokal) / `True` (Remote mit TLS)
+- `JWT_SECRET` – geheimer Schlüssel für Token-Signierung
 
 ## Tests & CI
 
@@ -86,7 +70,7 @@ Alternative lokal: nutze den lokalen Dev-Postgres (`trip_planner:trip_password@l
   - Frontend: `cd frontend && npm run build`
 - Optionaler DB-Smoke-Test (führt nur `SELECT 1` aus, keine Mutationen):
   - `cd backend && DATABASE_URL=<postgres-connection> pytest -m db_smoke`
-- CI: baut Frontend mit öffentlichen Supabase-Keys und führt Backend-Tests ohne DB aus; der Smoke-Job läuft nur, wenn `DATABASE_URL` gesetzt ist.
+- CI: baut Frontend und führt Backend-Tests ohne DB aus; der Smoke-Job läuft nur, wenn `DATABASE_URL` gesetzt ist.
 
 Letzte lokale Läufe:
 
@@ -97,27 +81,17 @@ Letzte lokale Läufe:
 
 - `GET /api/health` – Health check
 - `GET /api/groups?actorId=` – Gruppen für anonymen Actor (oder alle ohne Parameter)
-- `GET /api/groups` mit `Authorization: Bearer <jwt>` – Gruppen für Supabase User
-- `POST /api/groups` – Neue Gruppe erstellen (anonym mit `actorId`, oder mit Supabase-JWT)
+- `GET /api/groups` mit `Authorization: Bearer <jwt>` – Gruppen für authentifizierten User
+- `POST /api/groups` – Neue Gruppe erstellen (anonym mit `actorId`, oder mit JWT)
 - `DELETE /api/groups/{id}` – Gruppe löschen (keine Rollenprüfung in Phase 1)
-- `POST /api/auth/claim` – Lokalen Actor mit Supabase User verknüpfen (JWT nötig)
+- `POST /api/auth/claim` – Lokalen Actor mit authentifiziertem User verknüpfen (JWT nötig)
 
-## Supabase Auth Setup
+## Auth Setup
 
 Backend (.env):
 
 ```
-SUPABASE_JWT_SECRET=<service_role_jwt_secret>
-# optional für Transparenz
-SUPABASE_URL=...
-SUPABASE_ANON_KEY=...
-```
-
-Frontend (frontend/.env.local oder `.env.example` als Vorlage):
-
-```
-VITE_SUPABASE_URL=<project-url>
-VITE_SUPABASE_PUBLIC_KEY=<public-anon-or-publishable-key>
+JWT_SECRET=<your-jwt-secret>
 ```
 
 DB Migration (fügt Nutzer-Tabellen und user_id auf group_members hinzu):
@@ -131,5 +105,5 @@ Minimaler Flow zum Testen:
 1. Starte Backend (`python main.py`) und Frontend (`npm run dev`).
 2. Öffne http://localhost:3000, erzeuge einen lokalen Actor (wird in localStorage gespeichert).
 3. Lege eine Gruppe an – sie gehört dem lokalen Actor.
-4. Klicke „Mit Google anmelden“ (Supabase OAuth). Nach Redirect wird dein Supabase-User mit dem Actor verknüpft (`/api/auth/claim`).
-5. Lade die Gruppenliste neu: sie wird jetzt über den JWT geladen und die bestehenden Mitgliedschaften sind dem Supabase-User zugeordnet.
+4. Melde dich über OAuth2-Proxy an (Google). Nach Redirect wird dein User mit dem Actor verknüpft (`/api/auth/claim`).
+5. Lade die Gruppenliste neu: sie wird jetzt über den JWT geladen und die bestehenden Mitgliedschaften sind dem User zugeordnet.

@@ -33,7 +33,7 @@ def _auth_headers(
 		"email": email,
 		"user_metadata": metadata,
 	}
-	token = jwt.encode(claims, settings.supabase_jwt_secret, algorithm="HS256")
+	token = jwt.encode(claims, settings.jwt_secret, algorithm="HS256")
 	return {"Authorization": f"Bearer {token}"}, uid
 
 
@@ -74,7 +74,7 @@ async def test_claim_actor_updates_membership_and_returns_token(fake_group_repo)
 	)
 	assert owner.user_id is None
 
-	headers, user_id = _auth_headers(display_name="Supabase User")
+	headers, user_id = _auth_headers(display_name="Test User")
 
 	transport = ASGITransport(app=app)
 	async with AsyncClient(transport=transport, base_url="http://test") as client:
