@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Identity } from "../types";
+import { createDonationCheckoutSession } from "../services/donationService";
 import {
   startOAuthLogin,
   authEnabled as defaultAuthEnabled,
@@ -25,7 +26,32 @@ export function SideMenu({
 }: SideMenuProps) {
   const [notifications, setNotifications] = useState(false);
   const [faceId, setFaceId] = useState(false);
+  const [donationLoading, setDonationLoading] = useState(false);
+  const [donationExpanded, setDonationExpanded] = useState(false);
   const oauthReady = authEnabled ?? defaultAuthEnabled;
+  const donationAmounts = [5, 10, 20];
+
+  const donationMotionClass = (index: number) => {
+    if (donationExpanded) {
+      return "translate-x-0 scale-100 opacity-100";
+    }
+
+    if (index === 0) {
+      return "translate-x-[calc(100%+0.5rem)] scale-75 opacity-0";
+    }
+
+    if (index === 2) {
+      return "translate-x-[calc(-100%-0.5rem)] scale-75 opacity-0";
+    }
+
+    return "translate-x-0 scale-75 opacity-0";
+  };
+
+  const donationDelayClass = (index: number) => {
+    if (index === 1) return "delay-75";
+    if (index === 2) return "delay-150";
+    return "delay-0";
+  };
 
   const pendingSurface = "bg-sage-50 border border-sage-100";
   const pendingText = "text-sage-800";
@@ -64,6 +90,30 @@ export function SideMenu({
       startOAuthLogin();
     }
     onClose();
+  };
+
+  const handleDonationClick = async (amountInEur: number) => {
+    if (donationLoading) return;
+
+    try {
+      setDonationLoading(true);
+      const sessionUrl = await createDonationCheckoutSession(amountInEur);
+
+      if (!sessionUrl) {
+        throw new Error("Keine Checkout-URL erhalten");
+      }
+
+      window.location.assign(sessionUrl);
+    } catch (error) {
+      console.error("Donation checkout failed:", error);
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Spende konnte nicht gestartet werden. Bitte später erneut.";
+      toast.error(message);
+    } finally {
+      setDonationLoading(false);
+    }
   };
 
   if (!open) return null;
@@ -162,26 +212,49 @@ export function SideMenu({
             <div className="p-6">
               <div
                 className="flex flex-col rounded-2xl p-4 gap-3"
-                aria-label="Spenden Coming Soon"
+                aria-label="Spenden"
               >
                 <div className="flex flex-col gap-1">
                   <p
                     className={`text-xs font-bold uppercase tracking-tight ${mutedText}`}
                   >
-                    Unterstütze uns
+                    Unterstützung
                   </p>
                   <p className="text-[11px] leading-relaxed text-zinc-600">
                     Dieses Tool bleibt kostenlos. Spenden sind freiwillig und
                     ohne Vorteile.
                   </p>
                 </div>
-                <button
-                  type="button"
-                  className="mt-3 flex h-10 w-full items-center justify-center rounded-xl bg-zinc-200 text-[12px] font-semibold text-zinc-600 cursor-not-allowed border border-zinc-200"
-                  aria-disabled="true"
-                >
-                  Coming soon
-                </button>
+                <div className="mt-3">
+                  <button
+                    type="button"
+                    className={`flex w-full items-center justify-center rounded-xl bg-sage-700 text-[12px] font-semibold text-white border border-sage-700 transition duration-200 hover:bg-sage-800 disabled:cursor-not-allowed disabled:opacity-60 overflow-hidden focus-visible:outline-none focus-visible:ring-0 active:outline-none [-webkit-tap-highlight-color:transparent] ${donationExpanded ? "h-0 opacity-0 scale-95 border-0 bg-transparent pointer-events-none" : "h-10 opacity-100 scale-100"}`}
+                    disabled={donationLoading}
+                    onClick={() => {
+                      setDonationExpanded(true);
+                    }}
+                  >
+                    {donationLoading ? "Weiterleitung…" : "Supporter werden"}
+                  </button>
+
+                  <div
+                    className={`grid grid-cols-3 gap-2 overflow-hidden transition-all duration-300 ease-out ${donationExpanded ? "mt-2 max-h-14 opacity-100" : "max-h-0 opacity-0 pointer-events-none"}`}
+                  >
+                    {donationAmounts.map((amount, index) => (
+                      <button
+                        key={amount}
+                        type="button"
+                        className={`flex h-10 items-center justify-center rounded-xl bg-sage-700 text-[12px] font-semibold text-white border border-sage-700 transition-transform transition-opacity duration-300 ease-out hover:bg-sage-800 disabled:cursor-not-allowed disabled:opacity-60 focus-visible:outline-none focus-visible:ring-0 active:outline-none [-webkit-tap-highlight-color:transparent] ${donationMotionClass(index)} ${donationDelayClass(index)}`}
+                        disabled={donationLoading}
+                        onClick={() => {
+                          void handleDonationClick(amount);
+                        }}
+                      >
+                        {donationLoading ? "..." : `${amount} €`}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
             <div className="flex flex-col px-6 pb-4 gap-3">

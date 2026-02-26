@@ -42,6 +42,23 @@ services:
     labels:
       - com.centurylinklabs.watchtower.enable=true
 
+  stripe-service:
+    build:
+      context: ./apps/stripe-service
+    container_name: gtp-stripe-service
+    restart: unless-stopped
+    depends_on:
+      - backend
+    environment:
+      - PORT=3000
+      - ALLOWED_ORIGIN=${STRIPE_ALLOWED_ORIGIN:-http://localhost:5173}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - CHECKOUT_SUCCESS_URL=${CHECKOUT_SUCCESS_URL}
+      - CHECKOUT_CANCEL_URL=${CHECKOUT_CANCEL_URL}
+    expose:
+      - "3000"
+
   frontend:
     image: ghcr.io/${GHCR_OWNER:-marc-dietrich}/group-trip-planner-frontend:${IMAGE_TAG:-latest}
     container_name: gtp-frontend
@@ -177,6 +194,8 @@ services:
     pull_policy: always
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
+    environment:
+      - DOCKER_API_VERSION=1.44
     command: --interval 300 --rolling-restart --cleanup --label-enable
 
 volumes:
