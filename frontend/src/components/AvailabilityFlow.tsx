@@ -50,6 +50,8 @@ type MonthCalendarProps = {
   atEnd: boolean;
   rangeStart?: string | null;
   rangeEnd?: string | null;
+  hoverDate?: string | null;
+  onHoverDate?: (iso: string | null) => void;
   onPrev: () => void;
   onNext: () => void;
   onSelect: (iso: string) => void;
@@ -117,7 +119,7 @@ function buildMonthGroups(daysAhead = 730): MonthGroup[] {
 
     const iso = toLocalISO(current);
     const monthKey = `${current.getFullYear()}-${String(
-      current.getMonth() + 1
+      current.getMonth() + 1,
     ).padStart(2, "0")}`;
     const monthLabel = monthFormatter.format(current);
 
@@ -129,7 +131,7 @@ function buildMonthGroups(daysAhead = 730): MonthGroup[] {
       iso,
       label: dayFormatter.format(current),
       weekday: new Intl.DateTimeFormat("de-DE", { weekday: "long" }).format(
-        current
+        current,
       ),
       monthLabel,
       monthKey,
@@ -138,7 +140,7 @@ function buildMonthGroups(daysAhead = 730): MonthGroup[] {
   }
 
   return Object.values(groups).sort((a, b) =>
-    a.monthKey.localeCompare(b.monthKey)
+    a.monthKey.localeCompare(b.monthKey),
   );
 }
 
@@ -166,6 +168,8 @@ function MonthCalendar({
   atEnd,
   rangeStart,
   rangeEnd,
+  hoverDate,
+  onHoverDate,
   onPrev,
   onNext,
   onSelect,
@@ -183,8 +187,8 @@ function MonthCalendar({
   const cells: Array<DayOption | null> = baseCells.concat(
     Array.from(
       { length: totalCells - baseCells.length },
-      () => null as DayOption | null
-    )
+      () => null as DayOption | null,
+    ),
   );
 
   return (
@@ -229,15 +233,28 @@ function MonthCalendar({
             return <div key={`empty-${idx}`} className="aspect-square" />;
 
           const isDisabled = Boolean(
-            (minDate && cell.iso < minDate) || (maxDate && cell.iso > maxDate)
+            (minDate && cell.iso < minDate) || (maxDate && cell.iso > maxDate),
           );
           const isSelected = selected === cell.iso;
           const isToday = todayIso === cell.iso;
+          const effectiveRangeEnd = hoverDate ?? rangeEnd;
+          const rangeFrom =
+            rangeStart && effectiveRangeEnd
+              ? rangeStart <= effectiveRangeEnd
+                ? rangeStart
+                : effectiveRangeEnd
+              : null;
+          const rangeTo =
+            rangeStart && effectiveRangeEnd
+              ? rangeStart <= effectiveRangeEnd
+                ? effectiveRangeEnd
+                : rangeStart
+              : null;
           const inRange =
-            rangeStart &&
-            rangeEnd &&
-            cell.iso >= rangeStart &&
-            cell.iso <= rangeEnd;
+            rangeFrom &&
+            rangeTo &&
+            cell.iso >= rangeFrom &&
+            cell.iso <= rangeTo;
 
           const base =
             "relative flex aspect-square w-full items-center justify-center rounded-xl border text-sm font-semibold transition";
@@ -246,7 +263,10 @@ function MonthCalendar({
             : "border-sage-100 bg-sage-50 text-sage-900 hover:border-brand-primary/40";
           const today = isToday && !isSelected ? "border-brand-primary/40" : "";
           const disabled = isDisabled ? "cursor-not-allowed opacity-40" : "";
-          const range = inRange && !isSelected ? "bg-brand-primary/10" : "";
+          const range =
+            inRange && !isSelected
+              ? "bg-brand-primary/25 text-brand-primary border-brand-primary/30"
+              : "";
 
           return (
             <button
@@ -255,15 +275,13 @@ function MonthCalendar({
               className={`${base} ${state} ${today} ${disabled} ${range}`}
               disabled={isDisabled}
               onClick={() => onSelect(cell.iso)}
+              onMouseEnter={() => {
+                if (!isDisabled) onHoverDate?.(cell.iso);
+              }}
+              onMouseLeave={() => onHoverDate?.(null)}
               aria-pressed={isSelected}
             >
               <span className="text-base">{cell.day}</span>
-              {inRange && !isSelected ? (
-                <span
-                  className="absolute inset-y-1 left-1 right-1 rounded-lg border border-brand-primary/10"
-                  aria-hidden="true"
-                ></span>
-              ) : null}
             </button>
           );
         })}
@@ -291,12 +309,13 @@ export function AvailabilityFlow({
   const [selectedGroupId, setSelectedGroupId] = useState<string | null>(null);
   const [mutationError, setMutationError] = useState<string | null>(null);
   const [monthIndex, setMonthIndex] = useState(0);
+  const [hoveredEndDate, setHoveredEndDate] = useState<string | null>(null);
 
   const optimisticAdd = useGroupStore(
-    (state) => state.optimisticAddAvailability
+    (state) => state.optimisticAddAvailability,
   );
   const optimisticDelete = useGroupStore(
-    (state) => state.optimisticDeleteAvailability
+    (state) => state.optimisticDeleteAvailability,
   );
 
   const {
@@ -359,7 +378,7 @@ export function AvailabilityFlow({
   const goPrevMonth = () => setMonthIndex((idx) => Math.max(0, idx - 1));
   const goNextMonth = () =>
     setMonthIndex((idx) =>
-      Math.min(monthGroups.length - 1, Math.max(0, idx + 1))
+      Math.min(monthGroups.length - 1, Math.max(0, idx + 1)),
     );
 
   const stepMeta =
@@ -371,24 +390,24 @@ export function AvailabilityFlow({
           cta: "Weiter",
         }
       : step === "end"
-      ? {
-          badge: "2/3 Enddatum",
-          title: "Enddatum wählen",
-          subtitle: "Wähle nun ein Enddatum",
-          cta: "Weiter",
-        }
-      : {
-          badge: "3/3 Prüfen & Bestätigen",
-          title: "Zusammenfassung",
-          subtitle: "Alles korrekt?",
-          cta: saving ? "Speichere..." : "Bestätigen & Speichern",
-        };
+        ? {
+            badge: "2/3 Enddatum",
+            title: "Enddatum wählen",
+            subtitle: "Wähle nun ein Enddatum",
+            cta: "Weiter",
+          }
+        : {
+            badge: "3/3 Prüfen & Bestätigen",
+            title: "Zusammenfassung",
+            subtitle: "Alles korrekt?",
+            cta: saving ? "Speichere..." : "Bestätigen & Speichern",
+          };
 
   const canSave = Boolean(draft.start && draft.end && draft.groupId && !saving);
 
   const orderedRanges = useMemo(
     () => [...ranges].sort((a, b) => a.startDate.localeCompare(b.startDate)),
-    [ranges]
+    [ranges],
   );
 
   const selectedGroupName = useMemo(() => {
@@ -400,8 +419,8 @@ export function AvailabilityFlow({
     const fallbackGroupId = fixedGroupId
       ? fixedGroupId
       : selectedGroupId && groups.some((g) => g.groupId === selectedGroupId)
-      ? selectedGroupId
-      : groups[0]?.groupId ?? null;
+        ? selectedGroupId
+        : (groups[0]?.groupId ?? null);
 
     setDraft({ ...initialDraft, groupId: fallbackGroupId });
     setStep("start");
@@ -419,6 +438,7 @@ export function AvailabilityFlow({
     resetFlow();
     setOpen(false);
     setPrefaceOpen(false);
+    setHoveredEndDate(null);
   };
 
   const handlePrefaceSelect = (groupId: string) => {
@@ -431,11 +451,13 @@ export function AvailabilityFlow({
 
   const handleStartSelect = (iso: string) => {
     setDraft((prev) => ({ ...prev, start: iso, end: iso }));
+    setHoveredEndDate(null);
     setStep("end");
   };
 
   const handleEndSelect = (iso: string) => {
     setDraft((prev) => ({ ...prev, end: iso }));
+    setHoveredEndDate(null);
     setStep("review");
   };
 
@@ -658,6 +680,8 @@ export function AvailabilityFlow({
                       atEnd={atEnd}
                       rangeStart={draft.start}
                       rangeEnd={draft.end}
+                      hoverDate={hoveredEndDate}
+                      onHoverDate={setHoveredEndDate}
                       onPrev={goPrevMonth}
                       onNext={goNextMonth}
                       onSelect={handleEndSelect}
@@ -730,8 +754,8 @@ export function AvailabilityFlow({
                 {rangesLoading
                   ? "Lade..."
                   : orderedRanges.length
-                  ? `${orderedRanges.length} Einträge`
-                  : "Noch nichts gespeichert"}
+                    ? `${orderedRanges.length} Einträge`
+                    : "Noch nichts gespeichert"}
               </h4>
             </div>
           </div>
@@ -787,7 +811,7 @@ export function AvailabilityFlow({
                       </div>
                     </div>
                   </li>
-                )
+                ),
               )}
             </ul>
           )}

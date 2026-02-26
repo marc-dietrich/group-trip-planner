@@ -43,6 +43,10 @@ export default defineConfig({
         target: "http://localhost:8000",
         changeOrigin: true,
       },
+      "/mail": {
+        target: "http://localhost:3002",
+        changeOrigin: true,
+      },
     },
   },
   test: {

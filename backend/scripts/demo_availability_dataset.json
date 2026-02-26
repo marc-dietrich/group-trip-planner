@@ -1,0 +1,547 @@
+{
+  "groupName": "Gro\u00dfe Demo-Reise",
+  "ownerActorId": "demo-owner-833a3801-aa5e-4928-b83b-27c391264065",
+  "ownerDisplayName": "Marc Demo",
+  "members": [
+    {
+      "actorId": "demo-owner-833a3801-aa5e-4928-b83b-27c391264065",
+      "displayName": "Marc Demo",
+      "ranges": [
+        {
+          "startDate": "2026-08-17",
+          "endDate": "2026-08-19"
+        },
+        {
+          "startDate": "2026-04-24",
+          "endDate": "2026-04-28"
+        },
+        {
+          "startDate": "2026-05-21",
+          "endDate": "2026-05-24"
+        },
+        {
+          "startDate": "2026-03-14",
+          "endDate": "2026-03-18"
+        },
+        {
+          "startDate": "2026-07-08",
+          "endDate": "2026-07-10"
+        },
+        {
+          "startDate": "2026-06-25",
+          "endDate": "2026-06-29"
+        },
+        {
+          "startDate": "2026-07-23",
+          "endDate": "2026-07-26"
+        },
+        {
+          "startDate": "2026-03-18",
+          "endDate": "2026-03-22"
+        },
+        {
+          "startDate": "2026-06-05",
+          "endDate": "2026-06-08"
+        },
+        {
+          "startDate": "2026-07-03",
+          "endDate": "2026-07-06"
+        },
+        {
+          "startDate": "2026-05-27",
+          "endDate": "2026-05-29"
+        },
+        {
+          "startDate": "2026-08-02",
+          "endDate": "2026-08-06"
+        }
+      ]
+    },
+    {
+      "actorId": "demo-member-2-880493a6-5f97-483c-a6bd-6f77192b7dd0",
+      "displayName": "Member 2",
+      "ranges": [
+        {
+          "startDate": "2026-07-17",
+          "endDate": "2026-07-19"
+        },
+        {
+          "startDate": "2026-03-22",
+          "endDate": "2026-03-26"
+        },
+        {
+          "startDate": "2026-04-18",
+          "endDate": "2026-04-22"
+        },
+        {
+          "startDate": "2026-07-19",
+          "endDate": "2026-07-23"
+        },
+        {
+          "startDate": "2026-05-18",
+          "endDate": "2026-05-22"
+        },
+        {
+          "startDate": "2026-09-04",
+          "endDate": "2026-09-07"
+        },
+        {
+          "startDate": "2026-05-01",
+          "endDate": "2026-05-05"
+        },
+        {
+          "startDate": "2026-04-09",
+          "endDate": "2026-04-13"
+        },
+        {
+          "startDate": "2026-06-11",
+          "endDate": "2026-06-15"
+        },
+        {
+          "startDate": "2026-03-08",
+          "endDate": "2026-03-11"
+        },
+        {
+          "startDate": "2026-02-27",
+          "endDate": "2026-03-01"
+        }
+      ]
+    },
+    {
+      "actorId": "demo-member-3-7bab7a9f-cec2-4c6d-8a69-f7f60ef54024",
+      "displayName": "Member 3",
+      "ranges": [
+        {
+          "startDate": "2026-09-06",
+          "endDate": "2026-09-09"
+        },
+        {
+          "startDate": "2026-03-08",
+          "endDate": "2026-03-12"
+        },
+        {
+          "startDate": "2026-09-07",
+          "endDate": "2026-09-09"
+        },
+        {
+          "startDate": "2026-08-22",
+          "endDate": "2026-08-25"
+        },
+        {
+          "startDate": "2026-03-14",
+          "endDate": "2026-03-17"
+        },
+        {
+          "startDate": "2026-06-21",
+          "endDate": "2026-06-25"
+        },
+        {
+          "startDate": "2026-03-07",
+          "endDate": "2026-03-10"
+        },
+        {
+          "startDate": "2026-09-10",
+          "endDate": "2026-09-13"
+        },
+        {
+          "startDate": "2026-07-24",
+          "endDate": "2026-07-28"
+        },
+        {
+          "startDate": "2026-03-25",
+          "endDate": "2026-03-28"
+        },
+        {
+          "startDate": "2026-03-29",
+          "endDate": "2026-03-31"
+        }
+      ]
+    },
+    {
+      "actorId": "demo-member-4-d6887664-89d9-4a5e-a510-0bca0d196c7b",
+      "displayName": "Member 4",
+      "ranges": [
+        {
+          "startDate": "2026-09-06",
+          "endDate": "2026-09-10"
+        },
+        {
+          "startDate": "2026-08-07",
+          "endDate": "2026-08-09"
+        },
+        {
+          "startDate": "2026-08-31",
+          "endDate": "2026-09-03"
+        },
+        {
+          "startDate": "2026-03-15",
+          "endDate": "2026-03-17"
+        },
+        {
+          "startDate": "2026-09-16",
+          "endDate": "2026-09-20"
+        },
+        {
+          "startDate": "2026-03-21",
+          "endDate": "2026-03-25"
+        },
+        {
+          "startDate": "2026-06-25",
+          "endDate": "2026-06-28"
+        },
+        {
+          "startDate": "2026-03-10",
+          "endDate": "2026-03-13"
+        },
+        {
+          "startDate": "2026-06-15",
+          "endDate": "2026-06-19"
+        },
+        {
+          "startDate": "2026-05-17",
+          "endDate": "2026-05-20"
+        },
+        {
+          "startDate": "2026-09-18",
+          "endDate": "2026-09-20"
+        },
+        {
+          "startDate": "2026-08-20",
+          "endDate": "2026-08-22"
+        }
+      ]
+    },
+    {
+      "actorId": "demo-member-5-31b351ae-cab4-49d4-88fd-fa082effa796",
+      "displayName": "Member 5",
+      "ranges": [
+        {
+          "startDate": "2026-09-24",
+          "endDate": "2026-09-26"
+        },
+        {
+          "startDate": "2026-03-31",
+          "endDate": "2026-04-03"
+        },
+        {
+          "startDate": "2026-03-16",
+          "endDate": "2026-03-19"
+        },
+        {
+          "startDate": "2026-07-08",
+          "endDate": "2026-07-11"
+        },
+        {
+          "startDate": "2026-04-25",
+          "endDate": "2026-04-28"
+        },
+        {
+          "startDate": "2026-03-20",
+          "endDate": "2026-03-22"
+        },
+        {
+          "startDate": "2026-09-13",
+          "endDate": "2026-09-17"
+        },
+        {
+          "startDate": "2026-06-01",
+          "endDate": "2026-06-03"
+        },
+        {
+          "startDate": "2026-08-09",
+          "endDate": "2026-08-13"
+        }
+      ]
+    },
+    {
+      "actorId": "demo-member-6-b85197a3-b76d-4920-ab08-a64e8bc5917a",
+      "displayName": "Member 6",
+      "ranges": [
+        {
+          "startDate": "2026-05-06",
+          "endDate": "2026-05-09"
+        },
+        {
+          "startDate": "2026-08-16",
+          "endDate": "2026-08-19"
+        },
+        {
+          "startDate": "2026-06-27",
+          "endDate": "2026-07-01"
+        },
+        {
+          "startDate": "2026-07-19",
+          "endDate": "2026-07-22"
+        },
+        {
+          "startDate": "2026-05-03",
+          "endDate": "2026-05-07"
+        },
+        {
+          "startDate": "2026-04-27",
+          "endDate": "2026-05-01"
+        },
+        {
+          "startDate": "2026-03-01",
+          "endDate": "2026-03-05"
+        },
+        {
+          "startDate": "2026-07-25",
+          "endDate": "2026-07-29"
+        },
+        {
+          "startDate": "2026-09-03",
+          "endDate": "2026-09-07"
+        },
+        {
+          "startDate": "2026-03-02",
+          "endDate": "2026-03-05"
+        },
+        {
+          "startDate": "2026-09-06",
+          "endDate": "2026-09-08"
+        }
+      ]
+    },
+    {
+      "actorId": "demo-member-7-baabfa94-3e78-4de8-9a0e-1dea9087e329",
+      "displayName": "Member 7",
+      "ranges": [
+        {
+          "startDate": "2026-04-04",
+          "endDate": "2026-04-06"
+        },
+        {
+          "startDate": "2026-03-03",
+          "endDate": "2026-03-05"
+        },
+        {
+          "startDate": "2026-07-08",
+          "endDate": "2026-07-12"
+        },
+        {
+          "startDate": "2026-07-30",
+          "endDate": "2026-08-02"
+        },
+        {
+          "startDate": "2026-04-01",
+          "endDate": "2026-04-04"
+        },
+        {
+          "startDate": "2026-09-08",
+          "endDate": "2026-09-11"
+        },
+        {
+          "startDate": "2026-03-31",
+          "endDate": "2026-04-02"
+        },
+        {
+          "startDate": "2026-08-02",
+          "endDate": "2026-08-04"
+        },
+        {
+          "startDate": "2026-03-28",
+          "endDate": "2026-03-31"
+        }
+      ]
+    },
+    {
+      "actorId": "demo-member-8-ac5f1b94-0593-4f04-aa09-9c8b7152d505",
+      "displayName": "Member 8",
+      "ranges": [
+        {
+          "startDate": "2026-08-07",
+          "endDate": "2026-08-10"
+        },
+        {
+          "startDate": "2026-09-21",
+          "endDate": "2026-09-23"
+        },
+        {
+          "startDate": "2026-04-20",
+          "endDate": "2026-04-23"
+        },
+        {
+          "startDate": "2026-04-27",
+          "endDate": "2026-04-30"
+        },
+        {
+          "startDate": "2026-07-25",
+          "endDate": "2026-07-27"
+        },
+        {
+          "startDate": "2026-03-04",
+          "endDate": "2026-03-07"
+        },
+        {
+          "startDate": "2026-09-18",
+          "endDate": "2026-09-20"
+        },
+        {
+          "startDate": "2026-07-17",
+          "endDate": "2026-07-21"
+        },
+        {
+          "startDate": "2026-05-29",
+          "endDate": "2026-05-31"
+        }
+      ]
+    },
+    {
+      "actorId": "demo-member-9-c2a9e58b-6426-48c7-8996-3299fd9a24de",
+      "displayName": "Member 9",
+      "ranges": [
+        {
+          "startDate": "2026-09-24",
+          "endDate": "2026-09-28"
+        },
+        {
+          "startDate": "2026-03-31",
+          "endDate": "2026-04-03"
+        },
+        {
+          "startDate": "2026-07-30",
+          "endDate": "2026-08-03"
+        },
+        {
+          "startDate": "2026-09-01",
+          "endDate": "2026-09-04"
+        },
+        {
+          "startDate": "2026-03-14",
+          "endDate": "2026-03-16"
+        },
+        {
+          "startDate": "2026-05-16",
+          "endDate": "2026-05-18"
+        },
+        {
+          "startDate": "2026-08-12",
+          "endDate": "2026-08-15"
+        },
+        {
+          "startDate": "2026-06-10",
+          "endDate": "2026-06-14"
+        }
+      ]
+    },
+    {
+      "actorId": "demo-member-10-dc124f67-c2a2-46eb-8f13-2beca552ace4",
+      "displayName": "Member 10",
+      "ranges": [
+        {
+          "startDate": "2026-08-05",
+          "endDate": "2026-08-07"
+        },
+        {
+          "startDate": "2026-06-13",
+          "endDate": "2026-06-15"
+        },
+        {
+          "startDate": "2026-06-24",
+          "endDate": "2026-06-27"
+        },
+        {
+          "startDate": "2026-07-08",
+          "endDate": "2026-07-10"
+        },
+        {
+          "startDate": "2026-05-06",
+          "endDate": "2026-05-08"
+        },
+        {
+          "startDate": "2026-06-10",
+          "endDate": "2026-06-12"
+        },
+        {
+          "startDate": "2026-09-19",
+          "endDate": "2026-09-23"
+        },
+        {
+          "startDate": "2026-05-01",
+          "endDate": "2026-05-05"
+        }
+      ]
+    },
+    {
+      "actorId": "demo-member-11-2a30812b-b493-490c-a17a-778e58484f37",
+      "displayName": "Member 11",
+      "ranges": [
+        {
+          "startDate": "2026-09-20",
+          "endDate": "2026-09-23"
+        },
+        {
+          "startDate": "2026-05-18",
+          "endDate": "2026-05-21"
+        },
+        {
+          "startDate": "2026-07-31",
+          "endDate": "2026-08-02"
+        },
+        {
+          "startDate": "2026-08-31",
+          "endDate": "2026-09-03"
+        },
+        {
+          "startDate": "2026-08-11",
+          "endDate": "2026-08-15"
+        },
+        {
+          "startDate": "2026-05-22",
+          "endDate": "2026-05-24"
+        },
+        {
+          "startDate": "2026-09-22",
+          "endDate": "2026-09-26"
+        },
+        {
+          "startDate": "2026-04-17",
+          "endDate": "2026-04-21"
+        }
+      ]
+    },
+    {
+      "actorId": "demo-member-12-1c8d642c-f944-490d-9333-923efb145bcb",
+      "displayName": "Member 12",
+      "ranges": [
+        {
+          "startDate": "2026-08-30",
+          "endDate": "2026-09-02"
+        },
+        {
+          "startDate": "2026-04-14",
+          "endDate": "2026-04-18"
+        },
+        {
+          "startDate": "2026-06-12",
+          "endDate": "2026-06-14"
+        },
+        {
+          "startDate": "2026-03-07",
+          "endDate": "2026-03-11"
+        },
+        {
+          "startDate": "2026-05-03",
+          "endDate": "2026-05-07"
+        },
+        {
+          "startDate": "2026-02-26",
+          "endDate": "2026-03-02"
+        },
+        {
+          "startDate": "2026-03-25",
+          "endDate": "2026-03-27"
+        },
+        {
+          "startDate": "2026-04-01",
+          "endDate": "2026-04-04"
+        },
+        {
+          "startDate": "2026-05-18",
+          "endDate": "2026-05-22"
+        }
+      ]
+    }
+  ]
+}

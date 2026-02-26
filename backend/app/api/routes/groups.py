@@ -10,6 +10,7 @@ from urllib.parse import urlsplit, urlunsplit
 from app.core.config import get_settings
 from app.core.security import Identity, get_identity
 from app.user_core.services import GroupService, InviteExpiredError, InviteNotFoundError
+from app.user_core.services import AvailabilityService
 from app.api.deps import get_group_service
 
 settings = get_settings()
@@ -194,8 +195,29 @@ async def get_group(group_id: UUID, service: GroupService = Depends(get_group_se
 
 
 @router.delete("/groups/{group_id}", status_code=204)
-async def delete_group(group_id: UUID, service: GroupService = Depends(get_group_service)):
-    """Delete a group; currently no role checks applied."""
+async def delete_group(
+    group_id: UUID,
+    actor_id: str | None = Header(default=None, alias="X-Actor-Id"),
+    identity: Identity = Depends(get_identity),
+    service: GroupService = Depends(get_group_service),
+):
+    """Delete a group only when the caller is an owner member of that group."""
+
+    user_uuid = _parse_uuid(identity.user_id)
+    resolved_actor = (actor_id or identity.user_id or "").strip() or None
+    if not resolved_actor and not user_uuid:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="actorId header required")
+
+    member = await service.get_member_for_identity(
+        group_id=group_id,
+        actor_id=resolved_actor,
+        user_id=user_uuid,
+    )
+    if not member:
+        raise HTTPException(status_code=404, detail="Mitgliedschaft nicht gefunden")
+    if member.role != "owner":
+        raise HTTPException(status_code=403, detail="Nur Gruppenbesitzer dürfen löschen")
+
     deleted = await service.delete_group(group_id)
     if not deleted:
         raise HTTPException(status_code=404, detail="Gruppe nicht gefunden")
@@ -234,6 +256,9 @@ async def join_group(
 
     invite_link = f"{_frontend_base_url(request)}/invite/{group.id}"
 
+    # Keep cached summary totals aligned with current membership count.
+    AvailabilityService._schedule_group_summary_rebuild(group.id)
+
     return JoinGroupResponse(
         groupId=group.id,
         name=group.name,
@@ -242,3 +267,27 @@ async def join_group(
         inviteExpiresAt=invite.expires_at,
         alreadyMember=not created,
     )
+
+
+@router.post("/groups/{group_id}/leave", status_code=204)
+async def leave_group(
+    group_id: UUID,
+    actor_id: str | None = Header(default=None, alias="X-Actor-Id"),
+    identity: Identity = Depends(get_identity),
+    service: GroupService = Depends(get_group_service),
+):
+    """Allow a member (including owner) to leave a group."""
+
+    user_uuid = _parse_uuid(identity.user_id)
+    resolved_actor = (actor_id or identity.user_id or "").strip() or None
+    if not resolved_actor and not user_uuid:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="actorId header required")
+
+    left = await service.leave_group(group_id=group_id, actor_id=resolved_actor, user_id=user_uuid)
+    if not left:
+        raise HTTPException(status_code=404, detail="Mitgliedschaft nicht gefunden")
+
+    # Keep cached summary totals aligned with current membership count.
+    AvailabilityService._schedule_group_summary_rebuild(group_id)
+
+    return Response(status_code=204)

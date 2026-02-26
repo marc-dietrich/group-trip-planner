@@ -48,6 +48,14 @@ class GroupRepository(Protocol):
     async def get_member_by_actor(self, group_id: UUID, actor_id: str) -> Optional[GroupMember]:
         ...
 
+    async def get_member_for_identity(
+        self,
+        group_id: UUID,
+        actor_id: Optional[str] = None,
+        user_id: Optional[UUID] = None,
+    ) -> Optional[GroupMember]:
+        ...
+
     async def add_member_to_group(
         self,
         group_id: UUID,
@@ -65,6 +73,14 @@ class GroupRepository(Protocol):
         ...
 
     async def increment_invite_used_count(self, invite_id: UUID) -> GroupInvite:
+        ...
+
+    async def leave_group(
+        self,
+        group_id: UUID,
+        actor_id: Optional[str] = None,
+        user_id: Optional[UUID] = None,
+    ) -> bool:
         ...
 
     async def commit(self) -> None:
@@ -162,6 +178,27 @@ class SQLModelGroupRepository(GroupRepository):
         result = await self.session.execute(stmt)
         return result.scalars().first()
 
+    async def get_member_for_identity(
+        self,
+        group_id: UUID,
+        actor_id: Optional[str] = None,
+        user_id: Optional[UUID] = None,
+    ) -> Optional[GroupMember]:
+        conditions = []
+        if actor_id:
+            conditions.append(GroupMember.actor_id == actor_id)
+        if user_id:
+            conditions.append(GroupMember.user_id == user_id)
+        if not conditions:
+            return None
+
+        stmt = select(GroupMember).where(
+            GroupMember.group_id == group_id,
+            or_(*conditions),
+        )
+        result = await self.session.execute(stmt)
+        return result.scalars().first()
+
     async def add_member_to_group(
         self,
         group_id: UUID,
@@ -213,6 +250,38 @@ class SQLModelGroupRepository(GroupRepository):
         await self.session.commit()
         updated = result.scalar_one()
         return updated
+
+    async def leave_group(
+        self,
+        group_id: UUID,
+        actor_id: Optional[str] = None,
+        user_id: Optional[UUID] = None,
+    ) -> bool:
+        member = await self.get_member_for_identity(
+            group_id=group_id,
+            actor_id=actor_id,
+            user_id=user_id,
+        )
+        if not member:
+            return False
+
+        was_owner = member.role == "owner"
+        await self.session.delete(member)
+
+        if was_owner:
+            replacement_stmt = (
+                select(GroupMember)
+                .where(GroupMember.group_id == group_id)
+                .order_by(GroupMember.joined_at.asc())
+                .limit(1)
+            )
+            replacement_result = await self.session.execute(replacement_stmt)
+            replacement = replacement_result.scalars().first()
+            if replacement:
+                replacement.role = "owner"
+
+        await self.session.commit()
+        return True
 
     async def commit(self) -> None:
         await self.session.commit()
@@ -299,6 +368,21 @@ class InMemoryGroupRepository(GroupRepository):
                 return member
         return None
 
+    async def get_member_for_identity(
+        self,
+        group_id: UUID,
+        actor_id: Optional[str] = None,
+        user_id: Optional[UUID] = None,
+    ) -> Optional[GroupMember]:
+        for member in self.members.values():
+            if member.group_id != group_id:
+                continue
+            if actor_id and member.actor_id == actor_id:
+                return member
+            if user_id and member.user_id and str(member.user_id) == str(user_id):
+                return member
+        return None
+
     async def add_member_to_group(
         self,
         group_id: UUID,
@@ -336,6 +420,31 @@ class InMemoryGroupRepository(GroupRepository):
                 invite.used_count += 1
                 return invite
         raise ValueError(f"Invite {invite_id} not found")
+
+    async def leave_group(
+        self,
+        group_id: UUID,
+        actor_id: Optional[str] = None,
+        user_id: Optional[UUID] = None,
+    ) -> bool:
+        member = await self.get_member_for_identity(
+            group_id=group_id,
+            actor_id=actor_id,
+            user_id=user_id,
+        )
+        if not member:
+            return False
+
+        was_owner = member.role == "owner"
+        self.members.pop(member.id, None)
+
+        if was_owner:
+            remaining = [m for m in self.members.values() if m.group_id == group_id]
+            if remaining:
+                replacement = min(remaining, key=lambda m: m.joined_at)
+                replacement.role = "owner"
+
+        return True
 
     async def commit(self) -> None:  # pragma: no cover - no-op for in-memory
         return None

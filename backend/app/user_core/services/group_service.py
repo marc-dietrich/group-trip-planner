@@ -84,9 +84,35 @@ class GroupService:
         """Fetch all members of a group."""
         return await self.repo.get_group_members(group_id)
 
+    async def get_member_for_identity(
+        self,
+        group_id: UUID,
+        actor_id: Optional[str] = None,
+        user_id: Optional[UUID] = None,
+    ) -> Optional[GroupMember]:
+        """Fetch the caller's membership in a group, if any."""
+        return await self.repo.get_member_for_identity(
+            group_id=group_id,
+            actor_id=actor_id,
+            user_id=user_id,
+        )
+
     async def delete_group(self, group_id: UUID) -> bool:
         """Delete a group (and cascading members) if it exists."""
         return await self.repo.delete_group(group_id)
+
+    async def leave_group(
+        self,
+        group_id: UUID,
+        actor_id: Optional[str] = None,
+        user_id: Optional[UUID] = None,
+    ) -> bool:
+        """Remove the caller's membership from a group."""
+        return await self.repo.leave_group(
+            group_id=group_id,
+            actor_id=actor_id,
+            user_id=user_id,
+        )
 
     async def get_groups_for_identity(
         self,

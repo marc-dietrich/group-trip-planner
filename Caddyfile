@@ -37,6 +37,10 @@
     reverse_proxy oauth-proxy:4180
   }
 
+  handle /mail/* {
+    reverse_proxy contact-service:3002
+  }
+
   handle {
     reverse_proxy frontend:80
   }
