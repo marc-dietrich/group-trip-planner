@@ -8,7 +8,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import text
 from sqlmodel import select
 
-from app.user_core.models import Availability, GroupMember
+from app.user_core.models import Availability, GroupMember, GroupAvailabilitySummary
 
 
 class AvailabilityRepository(Protocol):
@@ -37,6 +37,17 @@ class AvailabilityRepository(Protocol):
     async def get_group_submission_stats(
         self, *, group_id: UUID, members: Sequence[GroupMember]
     ) -> tuple[int, int]:
+        ...
+
+    async def list_group_summary(self, *, group_id: UUID) -> List[GroupAvailabilitySummary]:
+        ...
+
+    async def replace_group_summary(
+        self,
+        *,
+        group_id: UUID,
+        intervals: Sequence[dict],
+    ) -> None:
         ...
 
     async def delete_for_actor(self, *, availability_id: UUID, actor_id: str) -> bool:
@@ -123,6 +134,38 @@ class SQLModelAvailabilityRepository(AvailabilityRepository):
         submitted = int(row.get("users_with_availability") or 0)
         return total, submitted
 
+    async def list_group_summary(self, *, group_id: UUID) -> List[GroupAvailabilitySummary]:
+        stmt = (
+            select(GroupAvailabilitySummary)
+            .where(GroupAvailabilitySummary.group_id == group_id)
+            .order_by(GroupAvailabilitySummary.from_date.asc(), GroupAvailabilitySummary.to_date.asc())
+        )
+        result = await self.session.execute(stmt)
+        return list(result.scalars().all())
+
+    async def replace_group_summary(
+        self,
+        *,
+        group_id: UUID,
+        intervals: Sequence[dict],
+    ) -> None:
+        existing = await self.list_group_summary(group_id=group_id)
+        for row in existing:
+            await self.session.delete(row)
+
+        for item in intervals:
+            self.session.add(
+                GroupAvailabilitySummary(
+                    group_id=group_id,
+                    from_date=item["from"],
+                    to_date=item["to"],
+                    available_count=int(item["availableCount"]),
+                    total_members=int(item["totalMembers"]),
+                )
+            )
+
+        await self.session.flush()
+
     async def commit(self) -> None:
         await self.session.commit()
 
@@ -132,6 +175,7 @@ class InMemoryAvailabilityRepository(AvailabilityRepository):
 
     def __init__(self) -> None:
         self._rows: list[Availability] = []
+        self._summary_rows: list[GroupAvailabilitySummary] = []
 
     async def create_availability(
         self,
@@ -177,6 +221,30 @@ class InMemoryAvailabilityRepository(AvailabilityRepository):
             a.actor_id for a in self._rows if a.group_id == group_id and a.actor_id in member_actor_ids
         }
         return total_users, len(submitted_actor_ids)
+
+    async def list_group_summary(self, *, group_id: UUID) -> List[GroupAvailabilitySummary]:
+        return sorted(
+            [row for row in self._summary_rows if row.group_id == group_id],
+            key=lambda row: (row.from_date, row.to_date),
+        )
+
+    async def replace_group_summary(
+        self,
+        *,
+        group_id: UUID,
+        intervals: Sequence[dict],
+    ) -> None:
+        self._summary_rows = [row for row in self._summary_rows if row.group_id != group_id]
+        for item in intervals:
+            self._summary_rows.append(
+                GroupAvailabilitySummary(
+                    group_id=group_id,
+                    from_date=item["from"],
+                    to_date=item["to"],
+                    available_count=int(item["availableCount"]),
+                    total_members=int(item["totalMembers"]),
+                )
+            )
 
     async def commit(self) -> None:  # pragma: no cover - nothing to do
         return None

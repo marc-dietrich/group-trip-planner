@@ -135,7 +135,7 @@ async def get_group_availability_summary(
     if not resolved_actor:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="actorId header required")
 
-    items = await service.calculate_group_availability(group_id=group_id, actor_id=resolved_actor)
+    items = await service.get_cached_group_availability(group_id=group_id, actor_id=resolved_actor)
     # Convert dict items to Pydantic-compatible keys
     parsed = [
         AvailabilitySummaryItem(

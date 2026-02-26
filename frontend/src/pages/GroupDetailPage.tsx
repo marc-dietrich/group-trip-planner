@@ -9,6 +9,7 @@ import { muted } from "../ui";
 import { useGroupAvailability } from "../hooks/useGroupAvailability";
 import { useGroupMemberAvailabilities } from "../hooks/useGroupMemberAvailabilities";
 import { useGroupStats } from "../hooks/useGroupStats";
+import { useGroupStore } from "../state/groupStore";
 
 const dateFormatter = new Intl.DateTimeFormat("de-DE", {
   day: "2-digit",
@@ -26,7 +27,10 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
   const [groupName, setGroupName] = useState<string>("Gruppe");
   const [selfListOpen, setSelfListOpen] = useState(false);
   const [groupListOpen, setGroupListOpen] = useState(false);
+  const [actionMenuOpen, setActionMenuOpen] = useState(false);
+  const actionMenuRef = useRef<HTMLDivElement | null>(null);
   const titleRef = useRef<HTMLHeadingElement | null>(null);
+  const removeGroup = useGroupStore((state) => state.removeGroup);
 
   const { data: summary, refetch: refetchSummary } = useGroupAvailability(
     groupId ?? null,
@@ -144,6 +148,8 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
     const normalizedBase = base === "/" ? "" : base.replace(/\/$/, "");
     return `${window.location.origin}${normalizedBase}/invite/${currentGroup.groupId}`;
   }, [currentGroup]);
+  const isOwner = currentGroup?.role === "owner";
+  const canLeaveGroup = Boolean(currentGroup);
 
   const selfEntries = useMemo(
     () =>
@@ -201,6 +207,54 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
     }
   };
 
+  const handleDeleteGroup = async () => {
+    if (!groupId) return;
+    const confirmed = window.confirm(
+      "Gruppe wirklich löschen? Diese Aktion kann nicht rückgängig gemacht werden.",
+    );
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(apiPath(`/api/groups/${groupId}`), {
+        method: "DELETE",
+        headers: buildIdentityHeaders(identity),
+      });
+      if (!res.ok) throw new Error(`Fehler: ${res.status}`);
+      removeGroup(groupId);
+      toast.success("Gruppe gelöscht");
+      navigate("/groups", { replace: true });
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Löschen fehlgeschlagen",
+      );
+    } finally {
+      setActionMenuOpen(false);
+    }
+  };
+
+  const handleLeaveGroup = async () => {
+    if (!groupId) return;
+    const confirmed = window.confirm("Gruppe verlassen?");
+    if (!confirmed) return;
+
+    try {
+      const res = await fetch(apiPath(`/api/groups/${groupId}/leave`), {
+        method: "POST",
+        headers: buildIdentityHeaders(identity),
+      });
+      if (!res.ok) throw new Error(`Fehler: ${res.status}`);
+      removeGroup(groupId);
+      toast.success("Gruppe verlassen");
+      navigate("/groups", { replace: true });
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Verlassen fehlgeschlagen",
+      );
+    } finally {
+      setActionMenuOpen(false);
+    }
+  };
+
   const formatMemberName = (value: string) => {
     const trimmed = (value || "").trim();
     if (!trimmed) return "Unbekanntes Mitglied";
@@ -219,6 +273,26 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
   useEffect(() => {
     setGroupListOpen(false);
   }, [extraGroupCount]);
+
+  useEffect(() => {
+    if (!actionMenuOpen) return undefined;
+
+    const handleClickOutside = (event: MouseEvent) => {
+      if (actionMenuRef.current?.contains(event.target as Node)) return;
+      setActionMenuOpen(false);
+    };
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setActionMenuOpen(false);
+    };
+
+    document.addEventListener("mousedown", handleClickOutside);
+    window.addEventListener("keydown", handleEscape);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      window.removeEventListener("keydown", handleEscape);
+    };
+  }, [actionMenuOpen]);
 
   useLayoutEffect(() => {
     const node = titleRef.current;
@@ -295,14 +369,47 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
               {groupName}
             </h1>
           </div>
-          <button
-            type="button"
-            aria-label="Einladungslink teilen"
-            onClick={handleShareInvite}
-            className="w-9 h-9 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 text-white hover:bg-white/30 transition"
-          >
-            <span className="material-symbols-outlined">share</span>
-          </button>
+          <div className="relative flex items-center gap-2" ref={actionMenuRef}>
+            <button
+              type="button"
+              aria-label="Einladungslink teilen"
+              onClick={handleShareInvite}
+              className="w-9 h-9 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 text-white hover:bg-white/30 transition"
+            >
+              <span className="material-symbols-outlined">share</span>
+            </button>
+            <button
+              type="button"
+              aria-label="Gruppenaktionen"
+              onClick={() => setActionMenuOpen((open) => !open)}
+              className="w-9 h-9 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/30 text-white hover:bg-white/30 transition"
+            >
+              <span className="material-symbols-outlined">more_vert</span>
+            </button>
+
+            {actionMenuOpen ? (
+              <div className="absolute right-0 top-11 z-30 w-48 rounded-2xl border border-sage-200 bg-white p-1.5 shadow-card">
+                {isOwner ? (
+                  <button
+                    type="button"
+                    className="w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-red-700 transition hover:bg-red-50"
+                    onClick={handleDeleteGroup}
+                  >
+                    Gruppe löschen
+                  </button>
+                ) : null}
+                {canLeaveGroup ? (
+                  <button
+                    type="button"
+                    className="w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-sage-900 transition hover:bg-sage-50"
+                    onClick={handleLeaveGroup}
+                  >
+                    Gruppe verlassen
+                  </button>
+                ) : null}
+              </div>
+            ) : null}
+          </div>
         </div>
         <div className="absolute bottom-6 left-6 right-6 flex items-end justify-between">
           <div className="bg-white/95 dark:bg-slate-900/90 backdrop-blur-md px-4 py-2 rounded-xl border border-white/40 shadow-sm flex items-center gap-2">
@@ -574,11 +681,11 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
       <div className="fixed bottom-6 left-0 right-0 max-w-[520px] mx-auto p-4 flex items-center justify-end gap-3 pointer-events-none">
         <button
           type="button"
-          className="pointer-events-auto w-14 h-14 rounded-full shadow-2xl flex items-center justify-center hover:scale-95 transition-transform active:scale-90 bg-slate-100 border border-slate-200 text-brand-primary"
+          className="pointer-events-auto w-14 h-14 rounded-full shadow-2xl flex items-center justify-center hover:scale-95 transition-transform active:scale-90 bg-brand-primary border border-white/10 text-white"
           onClick={showComingSoon}
           aria-label="Kalender Import (Platzhalter)"
         >
-          <span className="material-symbols-outlined text-brand-primary text-2xl">
+          <span className="material-symbols-outlined text-white text-2xl">
             calendar_add_on
           </span>
         </button>

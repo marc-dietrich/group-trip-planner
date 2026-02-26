@@ -7,5 +7,15 @@ from .group_member import GroupMember
 from .user import User
 from .user_actor import UserActor
 from .availability import Availability
+from .group_availability_summary import GroupAvailabilitySummary
 
-__all__ = ["Actor", "Group", "GroupInvite", "GroupMember", "User", "UserActor", "Availability"]
+__all__ = [
+	"Actor",
+	"Group",
+	"GroupInvite",
+	"GroupMember",
+	"User",
+	"UserActor",
+	"Availability",
+	"GroupAvailabilitySummary",
+]

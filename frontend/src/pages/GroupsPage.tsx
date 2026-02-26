@@ -12,11 +12,20 @@ const heroImages = [
   "https://lh3.googleusercontent.com/aida-public/AB6AXuD3i28Elw_Feunq2K3GfAGi-SNBmuJFRw46SjkuVJxn1SV_e3ecsDrL6YnmIyQSWf2cfzld5CMTox5AfIpWuR8hGDT9qQrICDXbRE1Ir2yWi66Armm-FolWtypSAiZOj5wyfOjUxf3IEeraftLM3paFFSFyTTPRcVORQJQa4zK_LKbLbwhLhqRAPW3PYy9Hgr1gTXdlAmR7j-9ulu_PlKypxJshdKhhDyplp6ZEJIwty-RC_AqZNlufncHY5p_uBrpdL9xaDhBivH4",
 ];
 
-const intervalFormatter = new Intl.DateTimeFormat("de-DE", {
-  day: "2-digit",
-  month: "short",
-  year: "numeric",
-});
+const monthLabels = [
+  "Jan",
+  "Feb",
+  "Mär",
+  "Apr",
+  "Mai",
+  "Jun",
+  "Jul",
+  "Aug",
+  "Sep",
+  "Okt",
+  "Nov",
+  "Dez",
+];
 
 const HISTORY_DAYS = 7;
 const FALLBACK_TEST_HOURS = 1;
@@ -208,6 +217,12 @@ export function GroupsPage({
   }, [filteredGroups]);
 
   useEffect(() => {
+    if (!historyGroups.length && showHistory) {
+      setShowHistory(false);
+    }
+  }, [historyGroups.length, showHistory]);
+
+  useEffect(() => {
     if (!activeGroups.length) return;
     activeGroups.forEach((group) => {
       void fetchGroupSummary(group.groupId, identity, { background: true });
@@ -216,11 +231,8 @@ export function GroupsPage({
 
   const totalCount = groups.length;
   const filteredCount = filteredGroups.length;
-
-  const formatIntervalRange = (interval: GroupAvailabilityInterval | null) =>
-    interval
-      ? `${intervalFormatter.format(new Date(interval.from))} – ${intervalFormatter.format(new Date(interval.to))}`
-      : "Verfügbarkeiten eintragen";
+  const isEmptyState =
+    !groupsLoading && !groupsError && groups.length === 0 && !isFiltered;
 
   const groupSlots = useMemo<GroupSlot[]>(() => {
     const now = Date.now();
@@ -252,28 +264,31 @@ export function GroupsPage({
   }, [activeGroups, summaries]);
 
   const highlightSlot = groupSlots.find((slot) => !slot.placeholder) ?? null;
-  const placeholderSlots = groupSlots.filter((slot) => slot.placeholder);
-  const remainingSlots = groupSlots.filter(
-    (slot) => slot !== highlightSlot && !slot.placeholder,
-  );
-  const prioritizedRemaining = useMemo(() => {
-    return [...remainingSlots].sort((a, b) => {
-      if (a.perfect !== b.perfect) {
-        return a.perfect ? -1 : 1;
-      }
-      return a.startMs - b.startMs;
-    });
-  }, [remainingSlots]);
+  const hasBannerSlot = Boolean(highlightSlot?.interval);
+  const highlightFill = highlightSlot?.interval
+    ? Math.round(
+        (highlightSlot.interval.availableCount /
+          Math.max(1, highlightSlot.interval.totalMembers)) *
+          100,
+      )
+    : 0;
+  const highlightedTripMonths = useMemo(() => {
+    if (!highlightSlot?.interval) return new Set<number>();
 
-  const perfectSlots = prioritizedRemaining.filter((slot) => slot.perfect);
-  const otherSlots = [
-    ...prioritizedRemaining.filter((slot) => !slot.perfect),
-    ...placeholderSlots,
-  ];
-  const hasHighlight = Boolean(highlightSlot);
-  const hasPerfect = perfectSlots.length > 0;
-  const hasOther = otherSlots.length > 0;
-  const hasAnySlots = hasHighlight || hasPerfect || hasOther;
+    const from = new Date(highlightSlot.interval.from);
+    const to = new Date(highlightSlot.interval.to);
+    const start = new Date(from.getFullYear(), from.getMonth(), 1);
+    const end = new Date(to.getFullYear(), to.getMonth(), 1);
+    const months = new Set<number>();
+
+    const cursor = new Date(start);
+    while (cursor <= end) {
+      months.add(cursor.getMonth());
+      cursor.setMonth(cursor.getMonth() + 1);
+    }
+
+    return months;
+  }, [highlightSlot?.interval]);
   const anySummaryLoading =
     activeGroups.length > 0 &&
     activeGroups.some((group) => summaries[group.groupId]?.loading);
@@ -338,8 +353,8 @@ export function GroupsPage({
 
   return (
     <div className="relative min-h-[80vh] pb-24">
-      <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md px-1 py-4 flex items-center justify-between border-b border-sage-50">
-        <div className="flex items-center w-12">
+      <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md px-1 py-4 flex items-center justify-between">
+        <div className="flex items-center">
           <button
             type="button"
             aria-label="Menü"
@@ -349,22 +364,28 @@ export function GroupsPage({
             <span className="material-symbols-outlined">menu</span>
           </button>
         </div>
-        <button
-          type="button"
-          className="whitespace-nowrap rounded-full border border-sage-100 bg-white/90 px-4 py-2 text-brand-primary shadow-soft transition-all hover:-translate-y-0.5 hover:border-brand-primary/60 hover:shadow-card font-semibold text-sm tracking-tight"
-          onClick={onCreate}
-        >
-          + Gruppe erstellen
-        </button>
+        {isEmptyState ? (
+          <h1 className="text-base font-semibold tracking-tight text-sage-900">
+            Gruppen
+          </h1>
+        ) : (
+          <button
+            type="button"
+            className="whitespace-nowrap px-1 py-1 text-brand-primary font-semibold text-sm tracking-tight transition-colors hover:text-sage-900"
+            onClick={onCreate}
+          >
+            + Gruppe erstellen
+          </button>
+        )}
         <div
-          className="relative flex items-center justify-end w-12"
+          className="relative flex items-center justify-end"
           ref={filterWrapperRef}
         >
           <button
-            className={`rounded-full p-2 shadow-soft transition-colors border ${
+            className={`p-2 transition-colors ${
               isFiltered
-                ? "border-brand-primary/60 bg-brand-soft text-brand-primary"
-                : "border-sage-100 bg-white text-sage-900 hover:border-brand-primary/60"
+                ? "text-brand-primary"
+                : "text-sage-900 hover:text-brand-primary"
             }`}
             type="button"
             aria-label="Gruppen filtern"
@@ -419,216 +440,194 @@ export function GroupsPage({
       </header>
 
       <main className="px-1 sm:px-0 pt-8 space-y-8">
-        <section className="px-1 space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-[11px] font-bold text-sage-400 uppercase tracking-[0.2em]">
-              Nächste Reise
-            </h3>
-            <div className="h-px flex-1 ml-4 bg-sage-100"></div>
-          </div>
-          {hasAnySlots ? (
-            <div className="rounded-[32px] border border-sage-100 bg-sage-50/60 p-5 shadow-soft space-y-4">
-              {highlightSlot ? (
-                <div className="space-y-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sage-500">
-                    Demnächst
+        {isEmptyState ? (
+          <section className="px-1 pt-6">
+            <div className="min-h-[62vh] flex flex-col items-center justify-center text-center">
+              <div className="relative mb-8">
+                <div className="absolute inset-0 translate-x-2 translate-y-2 rounded-[40px] bg-brand-primary/18" />
+                <div className="absolute inset-0 -translate-x-2 -translate-y-2 rounded-[40px] bg-brand-primary/12" />
+                <div className="relative size-32 rounded-[40px] bg-brand-primary/20 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-brand-primary !text-[42px]">
+                    groups
+                  </span>
+                </div>
+              </div>
+
+              <h2 className="text-[36px] font-semibold leading-tight tracking-tight text-slate-900 max-w-[340px]">
+                Plannungen sollte leichter sein.
+              </h2>
+              <p className="mt-3 max-w-[300px] text-sm leading-relaxed text-slate-500">
+                Erstelle deine erste Gruppe, um zu starten.
+              </p>
+
+              <button
+                type="button"
+                className="mt-8 rounded-full bg-brand-primary px-6 py-3 text-sm font-semibold text-white shadow-pop transition hover:bg-sage-600"
+                onClick={onCreate}
+              >
+                + Neue Gruppe erstellen
+              </button>
+            </div>
+          </section>
+        ) : (
+          <>
+            <section className="relative left-1/2 w-screen -translate-x-1/2">
+              {hasBannerSlot && highlightSlot?.interval ? (
+                <div className="bg-sage-50/60 px-3 py-8 sm:px-4 sm:py-10">
+                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-sage-500">
+                    Nächste Reise
                   </p>
-                  <div className="flex items-center justify-between gap-4">
-                    <div className="flex items-center gap-3">
-                      <div className="bg-white p-2.5 rounded-2xl shadow-soft text-brand-primary">
-                        <span className="material-symbols-outlined !text-[20px]">
-                          calendar_today
-                        </span>
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-sage-900 leading-tight">
-                          {highlightSlot.group.name}
-                        </p>
-                        <p className="text-xs text-sage-600">
-                          {formatIntervalRange(highlightSlot.interval)}
-                        </p>
-                      </div>
-                    </div>
-                    {!highlightSlot.perfect && highlightSlot.interval ? (
-                      <span className="rounded-full px-3 py-1 text-[11px] font-semibold border border-sage-200 bg-white text-sage-600">
-                        {highlightSlot.interval.availableCount}/
-                        {highlightSlot.interval.totalMembers} Zusagen
-                      </span>
-                    ) : null}
+                  <p className="mt-2 text-[30px] leading-tight font-semibold tracking-tight text-slate-900">
+                    {highlightSlot.group.name}
+                  </p>
+                  <div className="mt-5 grid grid-cols-12 gap-1.5">
+                    {monthLabels.map((month, index) => {
+                      const active = highlightedTripMonths.has(index);
+                      return (
+                        <div
+                          key={month}
+                          className={`rounded-md px-0.5 py-1 text-center text-[10px] font-semibold ${
+                            active
+                              ? "bg-sage-300 text-sage-900"
+                              : "bg-sage-100 text-sage-500"
+                          }`}
+                        >
+                          {month}
+                        </div>
+                      );
+                    })}
+                  </div>
+                  <div className="mt-7 flex items-center justify-between gap-3 text-sm font-semibold text-slate-500">
+                    <span>
+                      {highlightSlot.interval.availableCount}/
+                      {highlightSlot.interval.totalMembers} dabei
+                    </span>
+                    <span className="text-sage-700">{highlightFill}%</span>
+                  </div>
+                  <div className="mt-2 h-1 rounded-full bg-sage-200">
+                    <div
+                      className="h-1 rounded-full bg-sage-500 transition-all"
+                      style={{ width: `${highlightFill}%` }}
+                    />
                   </div>
                 </div>
-              ) : null}
-
-              {hasHighlight && (hasPerfect || hasOther) ? (
-                <hr className="border-dashed border-sage-200" />
-              ) : null}
-
-              {hasPerfect ? (
-                <div className="space-y-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sage-600">
-                    Meine Reisen
-                  </p>
-                  <ul className="space-y-1">
-                    {perfectSlots.map((slot) => (
-                      <li
-                        key={`${slot.group.groupId}-${slot.interval?.from ?? "perfect"}`}
-                        className="flex items-center justify-between gap-4 rounded-2xl px-1.5 py-2"
-                      >
-                        <div>
-                          <p className="text-sm font-semibold text-sage-900">
-                            {slot.group.name}
-                          </p>
-                          <p className="text-xs text-sage-600">
-                            {formatIntervalRange(slot.interval)}
-                          </p>
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
+              ) : (
+                <div className="bg-sage-50/40 px-3 py-10 sm:px-4">
+                  {anySummaryLoading ? (
+                    <p className="text-sm text-sage-600">
+                      Lade Gruppen-Zeiträume ...
+                    </p>
+                  ) : (
+                    <div className="mx-auto flex max-w-[330px] flex-col items-center text-center">
+                      <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-sage-200 bg-white shadow-soft">
+                        <span className="material-symbols-outlined text-[28px] text-sage-500">
+                          calendar_month
+                        </span>
+                      </div>
+                      <h3 className="mt-1 whitespace-nowrap text-[28px] font-semibold leading-tight tracking-tight text-slate-800">
+                        Wo geht die Reise hin?
+                      </h3>
+                      <p className="mt-3 max-w-[280px] text-sm leading-relaxed text-slate-500">
+                        Sobald ihr euch auf einen Zeitraum einigt, erscheint er
+                        hier.
+                      </p>
+                    </div>
+                  )}
                 </div>
-              ) : null}
+              )}
+            </section>
 
-              {hasPerfect && hasOther ? (
-                <hr className="border-dashed border-sage-200" />
-              ) : null}
-
-              {hasOther ? (
-                <div className="space-y-2">
-                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-sage-500">
-                    In Planung
-                  </p>
-                  <ul className="space-y-1">
-                    {otherSlots.map((slot) => (
-                      <li
-                        key={`${slot.group.groupId}-${slot.interval?.from ?? "placeholder"}`}
-                        className="rounded-2xl px-1.5 py-2"
-                      >
-                        <div className="flex items-center justify-between gap-4">
-                          <div>
-                            <p className="text-sm font-semibold text-sage-900">
-                              {slot.group.name}
-                            </p>
-                            <p className="text-xs text-sage-600">
-                              {formatIntervalRange(slot.interval)}
-                            </p>
-                            {slot.placeholder ? (
-                              <p className="mt-1 text-[11px] font-semibold uppercase tracking-[0.16em] text-brand-primary"></p>
-                            ) : null}
-                          </div>
-                          {!slot.placeholder ? (
-                            <span className="text-[11px] font-semibold text-slate-500">
-                              {slot.interval?.availableCount ?? 0}/
-                              {slot.interval?.totalMembers ?? 0} Zusagen
-                            </span>
-                          ) : null}
-                        </div>
-                      </li>
-                    ))}
-                  </ul>
+            <section className="space-y-8 px-1">
+              <div className="flex items-center justify-between">
+                <h3 className="text-[11px] font-bold text-sage-400 uppercase tracking-[0.2em]">
+                  Aktive Gruppen
+                </h3>
+                <div className="h-px flex-1 ml-4 bg-sage-100"></div>
+              </div>
+              {listBody}
+              {!showHistory && historyGroups.length > 0 && (
+                <div className="mt-4">
+                  <button
+                    className="w-full py-6 text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-3 transition-colors rounded-2xl border bg-sage-100 text-sage-900 border-sage-200 hover:bg-sage-200 hover:border-sage-300 active:scale-[0.99] shadow-soft"
+                    type="button"
+                    aria-label="Historie anzeigen"
+                    onClick={() => setShowHistory(true)}
+                  >
+                    Historie anzeigen · {historyLabel}
+                    <span className="material-symbols-outlined !text-[18px] text-sage-700">
+                      history
+                    </span>
+                  </button>
                 </div>
-              ) : null}
-            </div>
-          ) : (
-            <div className="rounded-[32px] border border-dashed border-sage-200 bg-white p-5 text-sm text-sage-600">
-              {anySummaryLoading
-                ? "Lade Gruppen-Zeiträume ..."
-                : "Noch keine passenden Zeitfenster. Erfasse Verfügbarkeiten, um Vorschläge zu erhalten."}
-            </div>
-          )}
-        </section>
+              )}
+            </section>
 
-        <section className="space-y-8 px-1">
-          <div className="flex items-center justify-between">
-            <h3 className="text-[11px] font-bold text-sage-400 uppercase tracking-[0.2em]">
-              Aktive Gruppen
-            </h3>
-            <div className="h-px flex-1 ml-4 bg-sage-100"></div>
-          </div>
-          {listBody}
-          {!showHistory && (
-            <div className="mt-4">
-              <button
-                className="w-full py-6 text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-3 transition-colors rounded-2xl border bg-sage-100 text-sage-900 border-sage-200 hover:bg-sage-200 hover:border-sage-300 active:scale-[0.99] shadow-soft"
-                type="button"
-                aria-label="Historie anzeigen"
-                onClick={() => setShowHistory(true)}
-              >
-                Historie anzeigen · {historyLabel}
-                <span className="material-symbols-outlined !text-[18px] text-sage-700">
-                  history
-                </span>
-              </button>
-            </div>
-          )}
-        </section>
-
-        {showHistory ? (
-          <section className="space-y-6 px-1 pb-2">
-            <div
-              className="flex items-center gap-3 cursor-pointer select-none"
-              role="button"
-              tabIndex={0}
-              aria-label="Historien-Filter deaktivieren"
-              onClick={() => setShowHistory(false)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" || e.key === " ") setShowHistory(false);
-              }}
-            >
-              <div className="h-px flex-1 bg-sage-100"></div>
-              <div className="px-3 py-1 rounded-full bg-sage-900 text-white text-[11px] font-bold uppercase tracking-[0.16em] border border-sage-800">
-                Ältere Gruppen · {historyLabel}
-              </div>
-              <div className="h-px flex-1 bg-sage-100"></div>
-            </div>
-            {historyGroups.length ? (
-              <ul className="flex flex-col gap-6">
-                {historyGroups.map((group, idx) => (
-                  <GroupCard
-                    key={group.groupId}
-                    group={group}
-                    identity={identity}
-                    image={
-                      heroImages[
-                        (idx + activeGroups.length) % heroImages.length
-                      ]
-                    }
-                  />
-                ))}
-              </ul>
-            ) : (
-              <div className="rounded-2xl border border-dashed border-amber-100 bg-amber-50/70 p-4 text-sm text-amber-900">
-                Keine Gruppen im gewählten Zeitraum.
-              </div>
-            )}
-          </section>
-        ) : null}
+            {showHistory && historyGroups.length > 0 ? (
+              <section className="space-y-6 px-1 pb-2">
+                <div
+                  className="flex items-center gap-3 cursor-pointer select-none"
+                  role="button"
+                  tabIndex={0}
+                  aria-label="Historien-Filter deaktivieren"
+                  onClick={() => setShowHistory(false)}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" || e.key === " ")
+                      setShowHistory(false);
+                  }}
+                >
+                  <div className="h-px flex-1 bg-sage-100"></div>
+                  <div className="px-3 py-1 rounded-full bg-sage-900 text-white text-[11px] font-bold uppercase tracking-[0.16em] border border-sage-800">
+                    Ältere Gruppen · {historyLabel}
+                  </div>
+                  <div className="h-px flex-1 bg-sage-100"></div>
+                </div>
+                <ul className="flex flex-col gap-6">
+                  {historyGroups.map((group, idx) => (
+                    <GroupCard
+                      key={group.groupId}
+                      group={group}
+                      identity={identity}
+                      image={
+                        heroImages[
+                          (idx + activeGroups.length) % heroImages.length
+                        ]
+                      }
+                    />
+                  ))}
+                </ul>
+              </section>
+            ) : null}
+          </>
+        )}
       </main>
 
-      <div className="fixed bottom-10 left-0 right-0 w-full max-w-[520px] mx-auto px-4 z-20 pointer-events-none">
-        <div className="flex justify-end pointer-events-auto">
-          <AvailabilityFlow
-            groups={groups}
-            identity={identity}
-            embedded
-            hideSavedList
-            showGroupPickerOnOpen
-            renderTrigger={({ open }) => (
-              <button
-                type="button"
-                className="bg-sage-900 text-white flex items-center gap-3 px-7 py-4 rounded-full shadow-xl hover:bg-sage-800 transition-all active:scale-95"
-                onClick={open}
-              >
-                <span className="material-symbols-outlined !text-[20px] text-white">
-                  add
-                </span>
-                <span className="text-sm font-semibold tracking-tight">
-                  Neue Verfügbarkeit
-                </span>
-              </button>
-            )}
-          />
+      {!isEmptyState ? (
+        <div className="fixed bottom-10 left-0 right-0 w-full max-w-[520px] mx-auto px-4 z-20 pointer-events-none">
+          <div className="flex justify-end pointer-events-auto">
+            <AvailabilityFlow
+              groups={groups}
+              identity={identity}
+              embedded
+              hideSavedList
+              showGroupPickerOnOpen
+              renderTrigger={({ open }) => (
+                <button
+                  type="button"
+                  className="bg-sage-900 text-white flex items-center gap-3 px-7 py-4 rounded-full shadow-xl hover:bg-sage-800 transition-all active:scale-95"
+                  onClick={open}
+                >
+                  <span className="material-symbols-outlined !text-[20px] text-white">
+                    add
+                  </span>
+                  <span className="text-sm font-semibold tracking-tight">
+                    Neue Verfügbarkeit
+                  </span>
+                </button>
+              )}
+            />
+          </div>
         </div>
-      </div>
+      ) : null}
     </div>
   );
 }

@@ -1,7 +1,12 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Identity } from "../types";
 import { createDonationCheckoutSession } from "../services/donationService";
+import {
+  getSupportEmail,
+  sendContactMessage,
+  sendFeedback,
+} from "../services/contactFeedbackService";
 import {
   startOAuthLogin,
   authEnabled as defaultAuthEnabled,
@@ -24,12 +29,22 @@ export function SideMenu({
   onLogin,
   authEnabled,
 }: SideMenuProps) {
+  const ANIMATION_DURATION_MS = 220;
+  const [rendered, setRendered] = useState(open);
+  const [visible, setVisible] = useState(open);
   const [notifications, setNotifications] = useState(false);
   const [faceId, setFaceId] = useState(false);
   const [donationLoading, setDonationLoading] = useState(false);
   const [donationExpanded, setDonationExpanded] = useState(false);
+  const [feedbackExpanded, setFeedbackExpanded] = useState(false);
+  const [feedbackRating, setFeedbackRating] = useState<number | null>(null);
+  const [feedbackLoading, setFeedbackLoading] = useState(false);
+  const [contactExpanded, setContactExpanded] = useState(false);
+  const [contactMessage, setContactMessage] = useState("");
+  const [contactLoading, setContactLoading] = useState(false);
   const oauthReady = authEnabled ?? defaultAuthEnabled;
   const donationAmounts = [5, 10, 20];
+  const supportEmail = getSupportEmail();
 
   const donationMotionClass = (index: number) => {
     if (donationExpanded) {
@@ -53,7 +68,7 @@ export function SideMenu({
     return "delay-0";
   };
 
-  const pendingSurface = "bg-sage-50 border border-sage-100";
+  const pendingSurface = "bg-sage-50 border-sage-100";
   const pendingText = "text-sage-800";
   const infoText = "text-slate-800";
   const mutedText = "text-zinc-700";
@@ -73,9 +88,28 @@ export function SideMenu({
   );
   const email = useMemo(() => (isUser ? "angemeldet" : "gastnutzer"), [isUser]);
 
-  const handleComingSoon = () => {
-    toast.info("Kommt bald – Feedback und Kontakt sind demnächst verfügbar.");
-  };
+  useEffect(() => {
+    if (open) {
+      setRendered(true);
+      const frameId = window.requestAnimationFrame(() => {
+        setVisible(true);
+      });
+
+      return () => {
+        window.cancelAnimationFrame(frameId);
+      };
+    }
+
+    setVisible(false);
+
+    const timeoutId = window.setTimeout(() => {
+      setRendered(false);
+    }, ANIMATION_DURATION_MS);
+
+    return () => {
+      window.clearTimeout(timeoutId);
+    };
+  }, [open]);
 
   const handleLoginClick = () => {
     if (!oauthReady) {
@@ -116,22 +150,79 @@ export function SideMenu({
     }
   };
 
-  if (!open) return null;
+  const handleFeedbackSubmit = async () => {
+    if (feedbackLoading || !feedbackRating) return;
+
+    try {
+      setFeedbackLoading(true);
+      await sendFeedback({
+        rating: feedbackRating,
+        actorId: identity.actorId,
+        displayName,
+      });
+      toast.success("Danke für dein Feedback!");
+      setFeedbackRating(null);
+      setFeedbackExpanded(false);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Feedback konnte nicht gesendet werden.";
+      toast.error(message);
+    } finally {
+      setFeedbackLoading(false);
+    }
+  };
+
+  const handleContactSubmit = async () => {
+    if (contactLoading) return;
+
+    const trimmedMessage = contactMessage.trim();
+    if (!trimmedMessage) {
+      toast.error("Bitte gib eine Nachricht ein.");
+      return;
+    }
+
+    try {
+      setContactLoading(true);
+      await sendContactMessage({
+        message: trimmedMessage,
+        actorId: identity.actorId,
+        displayName,
+      });
+      toast.success("Nachricht wurde gesendet.");
+      setContactMessage("");
+      setContactExpanded(false);
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Nachricht konnte nicht gesendet werden.";
+      toast.error(message);
+    } finally {
+      setContactLoading(false);
+    }
+  };
+
+  if (!rendered) return null;
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center">
       <button
         type="button"
-        className="absolute inset-0 bg-black/40"
+        className={`absolute inset-0 bg-black/40 transition-opacity duration-200 ease-out ${visible ? "opacity-100" : "opacity-0"}`}
         aria-label="Menü schließen"
         onClick={onClose}
+        disabled={!visible}
       />
       <div className="relative w-full max-w-[430px] h-full flex">
         <div
-          className="absolute inset-0 bg-black/5 pointer-events-none"
+          className={`absolute inset-0 bg-black/5 pointer-events-none transition-opacity duration-200 ease-out ${visible ? "opacity-100" : "opacity-0"}`}
           aria-hidden="true"
         />
-        <div className="relative left-0 top-0 z-50 h-full w-[82%] bg-white dark:bg-zinc-950 shadow-xl flex flex-col overflow-hidden rounded-r-[32px] border-r border-zinc-900/5">
+        <div
+          className={`relative left-0 top-0 z-50 h-full w-[82%] bg-white dark:bg-zinc-950 shadow-xl flex flex-col overflow-hidden rounded-r-[32px] border-r border-zinc-900/5 transition-all duration-200 ease-out ${visible ? "translate-x-0 opacity-100" : "-translate-x-6 opacity-0"}`}
+        >
           <div className="absolute right-3 top-3 z-10">
             <button
               type="button"
@@ -338,34 +429,113 @@ export function SideMenu({
             <div className="px-6 py-2 flex flex-col gap-1.5">
               <button
                 type="button"
-                className="flex items-center gap-3 py-3 group w-full text-sage-400 cursor-not-allowed"
-                onClick={handleComingSoon}
-                aria-disabled="true"
+                className="flex items-center gap-3 py-3 group w-full"
+                onClick={() => {
+                  setFeedbackExpanded((prev) => !prev);
+                  setContactExpanded(false);
+                }}
+                aria-expanded={feedbackExpanded}
               >
-                <div className="text-sage-400 flex items-center justify-center">
+                <div className="text-zinc-400 group-hover:text-sage-300 transition-colors flex items-center justify-center">
                   <span className="material-symbols-outlined text-[20px]">
                     forum
                   </span>
                 </div>
-                <p className="flex-1 text-left text-[14px] font-semibold">
-                  Feedback (bald verfügbar)
+                <p className="flex-1 text-left text-[14px] font-medium text-zinc-600 dark:text-zinc-400 group-hover:text-sage-700 transition-colors">
+                  Feedback
                 </p>
+                <span className="material-symbols-outlined text-zinc-400 text-[18px]">
+                  {feedbackExpanded ? "expand_less" : "expand_more"}
+                </span>
               </button>
-              <button
-                className="flex items-center gap-3 py-3 group text-sage-400 cursor-not-allowed"
-                type="button"
-                onClick={handleComingSoon}
-                aria-disabled="true"
+              <div
+                className={`overflow-hidden transition-all duration-200 ${feedbackExpanded ? "max-h-40 opacity-100 pb-2" : "max-h-0 opacity-0"}`}
               >
-                <div className="text-sage-400 flex items-center justify-center">
+                <div className="rounded-xl border border-sage-100 bg-sage-50 p-3">
+                  <p className="text-[11px] text-zinc-600">
+                    Wie zufrieden bist du?
+                  </p>
+                  <div className="mt-2 flex items-center gap-1">
+                    {[1, 2, 3, 4, 5].map((star) => (
+                      <button
+                        key={star}
+                        type="button"
+                        className="p-1"
+                        aria-label={`${star} Sterne`}
+                        onClick={() => setFeedbackRating(star)}
+                      >
+                        <span
+                          className={`material-symbols-outlined text-[24px] ${feedbackRating && star <= feedbackRating ? "text-amber-400" : "text-zinc-300"}`}
+                        >
+                          star
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                  <button
+                    type="button"
+                    className="mt-3 w-full rounded-lg bg-sage-700 px-3 py-2 text-[12px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={feedbackLoading || !feedbackRating}
+                    onClick={() => {
+                      void handleFeedbackSubmit();
+                    }}
+                  >
+                    {feedbackLoading ? "Sende..." : "Feedback senden"}
+                  </button>
+                </div>
+              </div>
+              <button
+                className="flex items-center gap-3 py-3 group"
+                type="button"
+                onClick={() => {
+                  setContactExpanded((prev) => !prev);
+                  setFeedbackExpanded(false);
+                }}
+                aria-expanded={contactExpanded}
+              >
+                <div className="text-zinc-400 group-hover:text-sage-300 transition-colors flex items-center justify-center">
                   <span className="material-symbols-outlined text-[20px]">
                     mail
                   </span>
                 </div>
-                <p className="text-[14px] font-semibold">
-                  Kontakt (bald verfügbar)
+                <p className="flex-1 text-left text-[14px] font-medium text-zinc-600 dark:text-zinc-400 group-hover:text-sage-700 transition-colors">
+                  Kontakt
                 </p>
+                <span className="material-symbols-outlined text-zinc-400 text-[18px]">
+                  {contactExpanded ? "expand_less" : "expand_more"}
+                </span>
               </button>
+              <div
+                className={`overflow-hidden transition-all duration-200 ${contactExpanded ? "max-h-80 opacity-100 pb-2" : "max-h-0 opacity-0"}`}
+              >
+                <div className="rounded-xl border border-sage-100 bg-sage-50 p-3">
+                  <p className="text-[11px] text-zinc-600">
+                    E-Mail:{" "}
+                    <span className="font-semibold text-zinc-800">
+                      {supportEmail}
+                    </span>
+                  </p>
+                  <textarea
+                    rows={4}
+                    value={contactMessage}
+                    onChange={(event) => setContactMessage(event.target.value)}
+                    placeholder="Deine Nachricht..."
+                    className="mt-2 w-full rounded-lg border border-sage-200 bg-white px-3 py-2 text-sm text-zinc-800 outline-none transition focus:border-sage-400"
+                  />
+                  <button
+                    type="button"
+                    className="mt-3 w-full rounded-lg bg-sage-700 px-3 py-2 text-[12px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
+                    disabled={
+                      contactLoading || contactMessage.trim().length === 0
+                    }
+                    onClick={() => {
+                      void handleContactSubmit();
+                    }}
+                  >
+                    {contactLoading ? "Sende..." : "Nachricht senden"}
+                  </button>
+                </div>
+              </div>
               <button
                 className="flex items-center gap-3 py-3 group"
                 type="button"
@@ -384,25 +554,25 @@ export function SideMenu({
                 </p>
               </button>
             </div>
-          </div>
-          <div className={`mt-auto p-6 border-t ${pendingSurface}`}>
-            <div className="flex flex-col gap-1.5">
-              <div className="flex items-center justify-between">
-                <p
-                  className={`text-[10px] font-bold uppercase tracking-widest ${pendingText}`}
+            <div className={`mt-3 p-6 border-t ${pendingSurface}`}>
+              <div className="flex flex-col gap-1.5">
+                <div className="flex items-center justify-between">
+                  <p
+                    className={`text-[10px] font-bold uppercase tracking-widest ${pendingText}`}
+                  >
+                    Impressum
+                  </p>
+                  <span className={`text-[10px] font-mono ${pendingText}`}>
+                    v1.2.0
+                  </span>
+                </div>
+                <div
+                  className={`flex flex-col text-[11px] space-y-0.5 ${pendingText}`}
                 >
-                  Impressum
-                </p>
-                <span className={`text-[10px] font-mono ${pendingText}`}>
-                  v1.2.0
-                </span>
-              </div>
-              <div
-                className={`flex flex-col text-[11px] space-y-0.5 ${pendingText}`}
-              >
-                {impressumLines.map((line) => (
-                  <p key={line}>{line}</p>
-                ))}
+                  {impressumLines.map((line) => (
+                    <p key={line}>{line}</p>
+                  ))}
+                </div>
               </div>
             </div>
           </div>

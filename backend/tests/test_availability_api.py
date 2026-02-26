@@ -120,6 +120,9 @@ async def test_availability_summary_endpoint(fake_group_repo, fake_availability_
         end_date=date(2025, 1, 3),
     )
 
+    cache_service = AvailabilityService(fake_availability_repo, fake_group_repo)
+    await cache_service.rebuild_group_summary_cache(group_id=group.id)
+
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
         res = await client.get(f"/api/groups/{group.id}/availability-summary")
@@ -175,3 +178,53 @@ async def test_availability_stats_endpoint_counts_distinct_users(fake_group_repo
         assert body["totalUsers"] == 2
         assert body["usersWithAvailability"] == 1
         assert body["progress"] == 0.5
+
+
+@pytest.mark.asyncio
+async def test_member_availabilities_hides_other_members_ranges(fake_group_repo, fake_availability_repo):
+    group_service = GroupService(fake_group_repo)
+    group, _ = await group_service.create_group(
+        group_name="Privacy Trip",
+        actor_id=None,
+        display_name="Owner",
+        user_id=UUID(USER_ID),
+    )
+
+    other_user = UUID("aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")
+    await fake_group_repo.add_member_to_group(
+        group.id,
+        actor_id=str(other_user),
+        user_id=other_user,
+        display_name="Member",
+    )
+
+    await fake_availability_repo.create_availability(
+        group_id=group.id,
+        actor_id=str(USER_ID),
+        user_id=UUID(USER_ID),
+        start_date=date(2025, 3, 1),
+        end_date=date(2025, 3, 3),
+    )
+    await fake_availability_repo.create_availability(
+        group_id=group.id,
+        actor_id=str(other_user),
+        user_id=other_user,
+        start_date=date(2025, 3, 5),
+        end_date=date(2025, 3, 7),
+    )
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        res = await client.get(f"/api/groups/{group.id}/member-availabilities")
+        assert res.status_code == 200
+        rows = res.json()
+
+        own = next((row for row in rows if row["actorId"] == USER_ID), None)
+        other = next((row for row in rows if row["actorId"] == str(other_user)), None)
+
+        assert own is not None
+        assert other is not None
+        assert len(own["availabilities"]) == 1
+        assert own["availabilities"][0]["startDate"] == "2025-03-01"
+        assert own["availabilities"][0]["endDate"] == "2025-03-03"
+        assert other["availabilities"] == []

@@ -9,6 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from .core.config import get_settings
 from .core.database import create_db_and_tables
 from .api.routes import auth_router, groups_router, health_router, voice_mock_router, availability_router, actor_router
+from .user_core.services import AvailabilityService
 
 settings = get_settings()
 
@@ -18,6 +19,7 @@ async def lifespan(app: FastAPI):
     # Only touch the database when a real connection string is provided
     if os.getenv("DATABASE_URL"):
         await create_db_and_tables()
+        AvailabilityService.schedule_all_group_summary_backfill()
     yield
 
 

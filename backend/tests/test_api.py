@@ -135,6 +135,30 @@ async def test_delete_group():
 
 
 @pytest.mark.asyncio
+async def test_non_owner_cannot_delete_group():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        owner_headers, _ = _auth_headers(display_name="Owner")
+        create_res = await client.post(
+            "/api/groups",
+            json={"groupName": "Protected", "displayName": "Owner"},
+            headers=owner_headers,
+        )
+        assert create_res.status_code == 200
+        group_id = create_res.json()["groupId"]
+
+        member_headers, _ = _auth_headers(display_name="Member")
+        join_res = await client.post(f"/api/groups/{group_id}/join", headers=member_headers)
+        assert join_res.status_code == 200
+
+        forbidden_delete = await client.delete(f"/api/groups/{group_id}", headers=member_headers)
+        assert forbidden_delete.status_code == 403
+
+        owner_delete = await client.delete(f"/api/groups/{group_id}", headers=owner_headers)
+        assert owner_delete.status_code == 204
+
+
+@pytest.mark.asyncio
 async def test_create_group_uses_default_display_name():
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as client:
@@ -176,6 +200,68 @@ async def test_join_group_via_invite_link():
         list_res = await client.get("/api/groups", headers=guest_headers)
         assert list_res.status_code == 200
         assert any(g["groupId"] == group_id for g in list_res.json())
+
+
+@pytest.mark.asyncio
+async def test_member_and_owner_can_leave_group():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        owner_headers, _ = _auth_headers(display_name="Owner")
+        create_res = await client.post(
+            "/api/groups",
+            json={"groupName": "Leavable", "displayName": "Owner"},
+            headers=owner_headers,
+        )
+        assert create_res.status_code == 200
+        group_id = create_res.json()["groupId"]
+
+        member_headers, _ = _auth_headers(display_name="Member")
+        join_res = await client.post(f"/api/groups/{group_id}/join", headers=member_headers)
+        assert join_res.status_code == 200
+
+        member_leave = await client.post(f"/api/groups/{group_id}/leave", headers=member_headers)
+        assert member_leave.status_code == 204
+
+        member_list = await client.get("/api/groups", headers=member_headers)
+        assert member_list.status_code == 200
+        assert all(g["groupId"] != group_id for g in member_list.json())
+
+        owner_leave = await client.post(f"/api/groups/{group_id}/leave", headers=owner_headers)
+        assert owner_leave.status_code == 204
+
+        owner_list = await client.get("/api/groups", headers=owner_headers)
+        assert owner_list.status_code == 200
+        assert all(g["groupId"] != group_id for g in owner_list.json())
+
+
+@pytest.mark.asyncio
+async def test_owner_leave_promotes_another_member_to_owner():
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        owner_headers, _ = _auth_headers(display_name="Owner")
+        create_res = await client.post(
+            "/api/groups",
+            json={"groupName": "Owner Transfer", "displayName": "Owner"},
+            headers=owner_headers,
+        )
+        assert create_res.status_code == 200
+        group_id = create_res.json()["groupId"]
+
+        member_headers, _ = _auth_headers(display_name="Member")
+        join_res = await client.post(f"/api/groups/{group_id}/join", headers=member_headers)
+        assert join_res.status_code == 200
+
+        owner_leave = await client.post(f"/api/groups/{group_id}/leave", headers=owner_headers)
+        assert owner_leave.status_code == 204
+
+        member_list = await client.get("/api/groups", headers=member_headers)
+        assert member_list.status_code == 200
+        promoted = next((g for g in member_list.json() if g["groupId"] == group_id), None)
+        assert promoted is not None
+        assert promoted["role"] == "owner"
+
+        member_delete = await client.delete(f"/api/groups/{group_id}", headers=member_headers)
+        assert member_delete.status_code == 204
 
 
 @pytest.mark.asyncio
