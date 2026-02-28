@@ -46,6 +46,7 @@ type GroupStore = {
   groups: GroupMembership[];
   groupsLoading: boolean;
   groupsError: string | null;
+  groupsHydrated: boolean;
   lastGroupsFetch: number;
   summaries: Record<string, CacheEntry<GroupAvailabilityInterval[]>>;
   stats: Record<string, CacheEntry<GroupAvailabilityStats>>;
@@ -178,8 +179,9 @@ function applySelfDelete(
 
 export const useGroupStore = create<GroupStore>((set, get) => ({
   groups: [],
-  groupsLoading: false,
+  groupsLoading: true,
   groupsError: null,
+  groupsHydrated: false,
   lastGroupsFetch: 0,
   summaries: {},
   stats: {},
@@ -189,8 +191,9 @@ export const useGroupStore = create<GroupStore>((set, get) => ({
   resetForIdentity: () =>
     set({
       groups: [],
-      groupsLoading: false,
+      groupsLoading: true,
       groupsError: null,
+      groupsHydrated: false,
       lastGroupsFetch: 0,
       summaries: {},
       stats: {},
@@ -240,12 +243,14 @@ export const useGroupStore = create<GroupStore>((set, get) => ({
         groups: data,
         groupsLoading: false,
         groupsError: null,
+        groupsHydrated: true,
         lastGroupsFetch: Date.now(),
       });
     } catch (err) {
       set({
         groupsError:
           err instanceof Error ? err.message : "Laden fehlgeschlagen",
+        groupsHydrated: true,
       });
     } finally {
       if (showLoading) {

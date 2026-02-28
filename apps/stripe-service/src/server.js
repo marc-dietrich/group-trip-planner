@@ -22,6 +22,40 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const app = express();
 const port = Number(process.env.PORT || 3000);
 const allowedOrigin = process.env.ALLOWED_ORIGIN || "*";
+const supporterApiBase = (
+  process.env.SUPPORTER_API_BASE_URL || "http://localhost:8000"
+).trim();
+const supporterWebhookSecret = (
+  process.env.SUPPORTER_WEBHOOK_SECRET || "dev-supporter-secret"
+).trim();
+
+async function grantSupporterBadge({ actorId, completedAt }) {
+  if (!supporterApiBase || !supporterWebhookSecret || !actorId) {
+    return;
+  }
+
+  const base = supporterApiBase.endsWith("/")
+    ? supporterApiBase.slice(0, -1)
+    : supporterApiBase;
+  const endpoint = `${base}/api/actors/${encodeURIComponent(actorId)}/supporter/grant`;
+
+  const response = await fetch(endpoint, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      "X-Supporter-Secret": supporterWebhookSecret,
+    },
+    body: JSON.stringify({
+      donatedAt: completedAt,
+      durationDays: 183,
+    }),
+  });
+
+  if (!response.ok) {
+    const body = await response.text();
+    throw new Error(`Supporter grant failed (${response.status}): ${body}`);
+  }
+}
 
 app.use((req, res, next) => {
   res.setHeader("Access-Control-Allow-Origin", allowedOrigin);
@@ -52,7 +86,7 @@ app.use((req, res, next) => {
 app.post(
   "/webhook",
   express.raw({ type: "application/json" }),
-  (req, res, next) => {
+  async (req, res, next) => {
     try {
       const signature = req.headers["stripe-signature"];
       if (!signature) {
@@ -72,6 +106,23 @@ app.post(
         console.log(
           `Payment successful: session=${session.id} amount_total=${session.amount_total} currency=${session.currency}`,
         );
+
+        const actorId = session.metadata?.actor_id;
+        const completedAt =
+          typeof session.created === "number"
+            ? new Date(session.created * 1000).toISOString()
+            : new Date().toISOString();
+
+        if (actorId && supporterApiBase && supporterWebhookSecret) {
+          try {
+            await grantSupporterBadge({ actorId, completedAt });
+            console.log(
+              `Supporter badge granted: actor=${actorId} until +183d`,
+            );
+          } catch (grantError) {
+            console.error("Supporter grant call failed:", grantError);
+          }
+        }
       }
 
       return res.status(200).json({ received: true });
@@ -85,12 +136,18 @@ app.use(express.json());
 
 app.post("/create-checkout-session", async (req, res, next) => {
   try {
-    const { amount } = req.body;
+    const { amount, actorId, userId } = req.body;
 
     if (typeof amount !== "number" || !Number.isFinite(amount) || amount <= 0) {
       return res
         .status(400)
         .json({ error: "amount must be a number greater than 0" });
+    }
+
+    if (typeof actorId !== "string" || actorId.trim().length === 0) {
+      return res
+        .status(400)
+        .json({ error: "actorId must be a non-empty string" });
     }
 
     const unitAmount = Math.round(amount * 100);
@@ -113,6 +170,10 @@ app.post("/create-checkout-session", async (req, res, next) => {
           },
         },
       ],
+      metadata: {
+        actor_id: actorId.trim(),
+        user_id: typeof userId === "string" ? userId : "",
+      },
       success_url: process.env.CHECKOUT_SUCCESS_URL,
       cancel_url: process.env.CHECKOUT_CANCEL_URL,
     });

@@ -1,6 +1,7 @@
 import { Link, NavLink } from "react-router-dom";
 import { Identity } from "../types";
 import { GroupMembership } from "../types";
+import { GroupsFetchStatus } from "../hooks/useGroups";
 import { buttonGhostTiny } from "../ui";
 
 const navItems = [
@@ -13,6 +14,7 @@ type DesktopShellProps = {
   identity: Identity;
   groups: GroupMembership[];
   groupsLoading: boolean;
+  groupsStatus: GroupsFetchStatus;
   groupsError: string | null;
   deletingId: string | null;
   onCopyInvite: (group: GroupMembership) => void;
@@ -27,6 +29,7 @@ export function DesktopShell({
   identity,
   groups,
   groupsLoading,
+  groupsStatus,
   groupsError,
   deletingId,
   onCopyInvite,
@@ -36,13 +39,15 @@ export function DesktopShell({
   rightRail,
   children,
 }: DesktopShellProps) {
+  const isInitialLoading = groupsStatus === "loading";
+  const isErrorState = groupsStatus === "error";
   const initials = (identity.displayName || "?").slice(0, 2).toUpperCase();
   const identityHint =
     identity.kind === "user" ? "Eingeloggt" : "Gastmodus (ohne Login)";
 
   return (
-    <div className="grid min-h-screen grid-cols-[260px,1fr,340px] bg-gradient-to-b from-cream via-white to-sage-50 text-sage-900">
-      <aside className="flex min-h-screen flex-col border-r border-sage-100 bg-white/95 px-4 py-6 shadow-sm">
+    <div className="grid min-h-screen grid-cols-[260px,1fr,340px] bg-gradient-to-b from-clay via-cream to-sage-50 text-sage-900">
+      <aside className="flex min-h-screen flex-col border-r border-sage-100 bg-cream/95 px-4 py-6 shadow-sm">
         <div className="mb-6 flex items-center justify-between px-1">
           <Link to="/groups" className="text-lg font-bold tracking-tight">
             Trip Planner
@@ -92,7 +97,16 @@ export function DesktopShell({
             </button>
           </div>
           <div className="overflow-y-auto pr-1">
-            {groups.length > 0 ? (
+            {isInitialLoading ? (
+              <div className="space-y-2" aria-busy="true" aria-live="polite">
+                {Array.from({ length: 4 }).map((_, idx) => (
+                  <div
+                    key={idx}
+                    className="h-12 rounded-2xl bg-sage-100 animate-pulse"
+                  />
+                ))}
+              </div>
+            ) : groups.length > 0 ? (
               <ul className="space-y-2">
                 {groups.map((group) => (
                   <li
@@ -131,17 +145,21 @@ export function DesktopShell({
                   </li>
                 ))}
               </ul>
+            ) : isErrorState ? (
+              <p className="mt-2 px-1 text-sm font-semibold text-rose-600">
+                {groupsError}
+              </p>
             ) : (
               <div className="rounded-2xl border border-dashed border-sage-200 bg-sage-50 px-3 py-3 text-sm text-sage-600">
                 Noch keine Gruppen angelegt.
               </div>
             )}
-            {groupsLoading && (
+            {groupsLoading && !isInitialLoading && (
               <p className="mt-2 px-1 text-sm text-sage-500">
                 Gruppen werden geladen…
               </p>
             )}
-            {groupsError && (
+            {groupsError && !isErrorState && (
               <p className="mt-2 px-1 text-sm font-semibold text-rose-600">
                 {groupsError}
               </p>
@@ -172,11 +190,11 @@ export function DesktopShell({
         </div>
       </aside>
 
-      <main className="border-r border-sage-100 bg-white/90">
+      <main className="border-r border-sage-100 bg-cream/90">
         <div className="mx-auto max-w-5xl px-10 py-10">{children}</div>
       </main>
 
-      <aside className="hidden border-l border-sage-100 bg-gradient-to-b from-white via-cream to-sage-50 px-6 py-8 lg:block">
+      <aside className="hidden border-l border-sage-100 bg-gradient-to-b from-clay via-cream to-sage-50 px-6 py-8 lg:block">
         <div className="sticky top-8 space-y-4">{rightRail}</div>
       </aside>
     </div>

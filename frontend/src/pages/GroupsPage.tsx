@@ -4,13 +4,9 @@ import { GroupAvailabilityInterval, GroupMembership, Identity } from "../types";
 import { AvailabilityFlow } from "../components/AvailabilityFlow";
 import { input, muted, pillDanger } from "../ui";
 import { useGroupStats } from "../hooks/useGroupStats";
+import { GroupsFetchStatus } from "../hooks/useGroups";
 import { useGroupStore } from "../state/groupStore";
-
-const heroImages = [
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuA0WLJ-ohPsV1HZBi0hwQj3NaFDlfppm3lhFQ6XMofVH-52QBfRo2pDKozFyMYLvVpP8xfhkNcXwxSnvE9hSXtgWnGCSTJU2iPLMjAItxzvwsyNrW53qoRAyQi5xW9_i2LrpnOpp3yGdabdiTncukOEuj1Fc0SC3HiHMMt-s3g_E7raVQ1tMBHw0Ex8WCYCb-OQfvw-al3vZR0iL2gX2wRs0zMAQuLGlzsiZLMlNleDHhaZMpIqHf-g8AfVCF1PvQwSEaB49vgXG7M",
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuAXpU5TtPqijFW4TWB5u6Pyk-v_-ReKBKk3q0Mbi9mhWdEr4XGkueeaLcD7u0rgAqdYLzoySGSce1mbOWD86b1Pa-qwv_6SAcfuQW793slCXu79Exngij3zE8rryIolHPUSwyvWkkAXVlDMxYbxoDMF132cGSqn569txGSdHWJGm7kTtIXolg7-1yXERyaC1n2cqVBbba-ObZsrzq7FIMhfAD2B2UvWNd45lGf80c-CFj309a1KymFY0Q1Ffn8ti_OdXPjiszN3LYA",
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuD3i28Elw_Feunq2K3GfAGi-SNBmuJFRw46SjkuVJxn1SV_e3ecsDrL6YnmIyQSWf2cfzld5CMTox5AfIpWuR8hGDT9qQrICDXbRE1Ir2yWi66Armm-FolWtypSAiZOj5wyfOjUxf3IEeraftLM3paFFSFyTTPRcVORQJQa4zK_LKbLbwhLhqRAPW3PYy9Hgr1gTXdlAmR7j-9ulu_PlKypxJshdKhhDyplp6ZEJIwty-RC_AqZNlufncHY5p_uBrpdL9xaDhBivH4",
-];
+import genericSurface from "../../assets/generic.webp";
 
 const monthLabels = [
   "Jan",
@@ -33,8 +29,19 @@ const FALLBACK_TEST_HOURS = 1;
 type GroupCardProps = {
   group: GroupMembership;
   identity: Identity;
-  image: string;
 };
+
+function getGroupInitials(name: string) {
+  const cleaned = (name || "").trim();
+  if (!cleaned) return "GR";
+  const parts = cleaned
+    .split(/\s+/)
+    .map((part) => part[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("");
+  return parts.toUpperCase() || cleaned.slice(0, 2).toUpperCase();
+}
 
 type GroupSlot = {
   group: GroupMembership;
@@ -62,9 +69,10 @@ function pickBestInterval(intervals: GroupAvailabilityInterval[]) {
   }, intervals[0]);
 }
 
-function GroupCard({ group, identity, image }: GroupCardProps) {
+function GroupCard({ group, identity }: GroupCardProps) {
   const navigate = useNavigate();
   const { data: stats, loading } = useGroupStats(group.groupId, identity);
+  const initials = getGroupInitials(group.name);
 
   const submitted = stats.usersWithAvailability ?? 0;
   const total = stats.totalUsers ?? 0;
@@ -83,12 +91,19 @@ function GroupCard({ group, identity, image }: GroupCardProps) {
       onClick={() => navigate(`/groups/${group.groupId}`)}
     >
       <div className="relative flex-shrink-0 mt-0.5">
-        <div className="size-20 rounded-[24px] overflow-hidden border-2 border-white shadow-soft">
+        <div className="relative size-20 rounded-[24px] overflow-hidden border-2 border-white shadow-soft bg-sage-100">
           <img
-            src={image}
-            alt={group.name}
-            className="w-full h-full object-cover"
+            src={genericSurface}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-cover"
           />
+          <div className="absolute inset-0 bg-gradient-to-br from-white/35 via-transparent to-sage-900/15" />
+          <div className="relative z-10 flex h-full w-full items-center justify-center">
+            <span className="text-lg font-extrabold tracking-[0.04em] text-sage-900 drop-shadow-[0_1px_1px_rgba(255,255,255,0.75)]">
+              {initials}
+            </span>
+          </div>
         </div>
         <div className="absolute -top-1 -right-1 bg-brand-primary text-white size-6 rounded-full flex items-center justify-center ring-4 ring-white">
           <span className="material-symbols-outlined text-[14px]">check</span>
@@ -124,7 +139,7 @@ function GroupCard({ group, identity, image }: GroupCardProps) {
 
 type GroupsPageProps = {
   groups: GroupMembership[];
-  groupsLoading: boolean;
+  groupsStatus: GroupsFetchStatus;
   groupsError: string | null;
   deletingId: string | null;
   identity: Identity;
@@ -134,9 +149,52 @@ type GroupsPageProps = {
   onOpenMenu?: () => void;
 };
 
+function GroupsLoadingSkeleton() {
+  return (
+    <>
+      <section className="relative left-1/2 w-screen -translate-x-1/2">
+        <div className="bg-sage-50/60 px-3 py-8 sm:px-4 sm:py-10">
+          <div className="h-3 w-24 rounded-full bg-sage-200 animate-pulse" />
+          <div className="mt-3 h-8 w-52 rounded-full bg-sage-200 animate-pulse" />
+          <div className="mt-6 grid grid-cols-12 gap-1.5">
+            {Array.from({ length: 12 }).map((_, idx) => (
+              <div
+                key={idx}
+                className="h-6 rounded-md bg-sage-200 animate-pulse"
+              />
+            ))}
+          </div>
+          <div className="mt-7 h-2 w-full rounded-full bg-sage-200 animate-pulse" />
+        </div>
+      </section>
+
+      <section className="space-y-8 px-1" aria-busy="true" aria-live="polite">
+        <div className="flex items-center justify-between">
+          <h3 className="text-[11px] font-bold text-sage-400 uppercase tracking-[0.2em]">
+            Aktive Gruppen
+          </h3>
+          <div className="h-px flex-1 ml-4 bg-sage-100"></div>
+        </div>
+        <ul className="flex flex-col gap-6">
+          {Array.from({ length: 3 }).map((_, idx) => (
+            <li key={idx} className="flex gap-4">
+              <div className="size-20 rounded-[24px] bg-sage-200 animate-pulse" />
+              <div className="flex-1 pt-1 space-y-3">
+                <div className="h-5 w-40 rounded-full bg-sage-200 animate-pulse" />
+                <div className="h-2 w-full rounded-full bg-sage-200 animate-pulse" />
+                <div className="h-2 w-2/3 rounded-full bg-sage-200 animate-pulse" />
+              </div>
+            </li>
+          ))}
+        </ul>
+      </section>
+    </>
+  );
+}
+
 export function GroupsPage({
   groups,
-  groupsLoading,
+  groupsStatus,
   groupsError,
   deletingId: _deletingId,
   identity,
@@ -231,8 +289,9 @@ export function GroupsPage({
 
   const totalCount = groups.length;
   const filteredCount = filteredGroups.length;
-  const isEmptyState =
-    !groupsLoading && !groupsError && groups.length === 0 && !isFiltered;
+  const isInitialLoading = groupsStatus === "loading";
+  const isErrorState = groupsStatus === "error";
+  const isEmptyState = groupsStatus === "empty" && !isFiltered;
 
   const groupSlots = useMemo<GroupSlot[]>(() => {
     const now = Date.now();
@@ -296,10 +355,11 @@ export function GroupsPage({
   const listBody = useMemo(() => {
     const transientNetworkIssue = isTransientNetworkError(groupsError);
 
-    if (groupsLoading) return <p className={muted}>Gruppen werden geladen…</p>;
-    if (groupsError && !transientNetworkIssue)
+    if (isInitialLoading)
+      return <p className={muted}>Gruppen werden geladen…</p>;
+    if (isErrorState && groupsError && !transientNetworkIssue)
       return <div className={pillDanger}>{groupsError}</div>;
-    if (groupsError && transientNetworkIssue)
+    if (isErrorState && groupsError && transientNetworkIssue)
       return <p className={muted}>Verbindung wird hergestellt…</p>;
     if (!activeGroups.length)
       return (
@@ -331,13 +391,8 @@ export function GroupsPage({
 
     return (
       <ul className="flex flex-col gap-6">
-        {activeGroups.map((group, idx) => (
-          <GroupCard
-            key={group.groupId}
-            group={group}
-            identity={identity}
-            image={heroImages[idx % heroImages.length]}
-          />
+        {activeGroups.map((group) => (
+          <GroupCard key={group.groupId} group={group} identity={identity} />
         ))}
       </ul>
     );
@@ -345,7 +400,8 @@ export function GroupsPage({
     activeGroups,
     filterQuery,
     groupsError,
-    groupsLoading,
+    isErrorState,
+    isInitialLoading,
     historyGroups.length,
     identity,
     isFiltered,
@@ -353,7 +409,7 @@ export function GroupsPage({
 
   return (
     <div className="relative min-h-[80vh] pb-24">
-      <header className="sticky top-0 z-10 bg-white/80 backdrop-blur-md px-1 py-4 flex items-center justify-between">
+      <header className="sticky top-0 z-10 bg-cream/90 backdrop-blur-md px-1 py-4 flex items-center justify-between">
         <div className="flex items-center">
           <button
             type="button"
@@ -395,7 +451,7 @@ export function GroupsPage({
             <span className="material-symbols-outlined !text-[20px]">tune</span>
           </button>
           {filterOpen ? (
-            <div className="absolute right-0 top-12 z-30 w-72 rounded-2xl border border-sage-200 bg-white p-4 shadow-card">
+            <div className="absolute right-0 top-12 z-30 w-72 rounded-2xl border border-sage-200 bg-cream p-4 shadow-card">
               <div className="flex items-center justify-between gap-2 text-[11px] font-bold uppercase tracking-[0.16em] text-sage-500">
                 <span>Gruppen filtern</span>
                 <span className="text-sage-400">
@@ -471,132 +527,133 @@ export function GroupsPage({
           </section>
         ) : (
           <>
-            <section className="relative left-1/2 w-screen -translate-x-1/2">
-              {hasBannerSlot && highlightSlot?.interval ? (
-                <div className="bg-sage-50/60 px-3 py-8 sm:px-4 sm:py-10">
-                  <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-sage-500">
-                    Nächste Reise
-                  </p>
-                  <p className="mt-2 text-[30px] leading-tight font-semibold tracking-tight text-slate-900">
-                    {highlightSlot.group.name}
-                  </p>
-                  <div className="mt-5 grid grid-cols-12 gap-1.5">
-                    {monthLabels.map((month, index) => {
-                      const active = highlightedTripMonths.has(index);
-                      return (
-                        <div
-                          key={month}
-                          className={`rounded-md px-0.5 py-1 text-center text-[10px] font-semibold ${
-                            active
-                              ? "bg-sage-300 text-sage-900"
-                              : "bg-sage-100 text-sage-500"
-                          }`}
-                        >
-                          {month}
-                        </div>
-                      );
-                    })}
-                  </div>
-                  <div className="mt-7 flex items-center justify-between gap-3 text-sm font-semibold text-slate-500">
-                    <span>
-                      {highlightSlot.interval.availableCount}/
-                      {highlightSlot.interval.totalMembers} dabei
-                    </span>
-                    <span className="text-sage-700">{highlightFill}%</span>
-                  </div>
-                  <div className="mt-2 h-1 rounded-full bg-sage-200">
-                    <div
-                      className="h-1 rounded-full bg-sage-500 transition-all"
-                      style={{ width: `${highlightFill}%` }}
-                    />
-                  </div>
-                </div>
-              ) : (
-                <div className="bg-sage-50/40 px-3 py-10 sm:px-4">
-                  {anySummaryLoading ? (
-                    <p className="text-sm text-sage-600">
-                      Lade Gruppen-Zeiträume ...
-                    </p>
-                  ) : (
-                    <div className="mx-auto flex max-w-[330px] flex-col items-center text-center">
-                      <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-sage-200 bg-white shadow-soft">
-                        <span className="material-symbols-outlined text-[28px] text-sage-500">
-                          calendar_month
-                        </span>
-                      </div>
-                      <h3 className="mt-1 whitespace-nowrap text-[28px] font-semibold leading-tight tracking-tight text-slate-800">
-                        Wo geht die Reise hin?
-                      </h3>
-                      <p className="mt-3 max-w-[280px] text-sm leading-relaxed text-slate-500">
-                        Sobald ihr euch auf einen Zeitraum einigt, erscheint er
-                        hier.
+            {isInitialLoading ? (
+              <GroupsLoadingSkeleton />
+            ) : (
+              <>
+                <section className="relative left-1/2 w-screen -translate-x-1/2">
+                  {hasBannerSlot && highlightSlot?.interval ? (
+                    <div className="bg-sage-50/60 px-3 py-8 sm:px-4 sm:py-10">
+                      <p className="text-[11px] font-bold uppercase tracking-[0.2em] text-sage-500">
+                        Nächste Reise
                       </p>
+                      <p className="mt-2 text-[30px] leading-tight font-semibold tracking-tight text-slate-900">
+                        {highlightSlot.group.name}
+                      </p>
+                      <div className="mt-5 grid grid-cols-12 gap-1.5">
+                        {monthLabels.map((month, index) => {
+                          const active = highlightedTripMonths.has(index);
+                          return (
+                            <div
+                              key={month}
+                              className={`rounded-md px-0.5 py-1 text-center text-[10px] font-semibold ${
+                                active
+                                  ? "bg-sage-300 text-sage-900"
+                                  : "bg-sage-100 text-sage-500"
+                              }`}
+                            >
+                              {month}
+                            </div>
+                          );
+                        })}
+                      </div>
+                      <div className="mt-7 flex items-center justify-between gap-3 text-sm font-semibold text-slate-500">
+                        <span>
+                          {highlightSlot.interval.availableCount}/
+                          {highlightSlot.interval.totalMembers} dabei
+                        </span>
+                        <span className="text-sage-700">{highlightFill}%</span>
+                      </div>
+                      <div className="mt-2 h-1 rounded-full bg-sage-200">
+                        <div
+                          className="h-1 rounded-full bg-sage-500 transition-all"
+                          style={{ width: `${highlightFill}%` }}
+                        />
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="bg-sage-50/40 px-3 py-10 sm:px-4">
+                      {anySummaryLoading ? (
+                        <p className="text-sm text-sage-600">
+                          Lade Gruppen-Zeiträume ...
+                        </p>
+                      ) : (
+                        <div className="mx-auto flex max-w-[330px] flex-col items-center text-center">
+                          <div className="mb-5 flex h-14 w-14 items-center justify-center rounded-2xl border border-sage-200 bg-white shadow-soft">
+                            <span className="material-symbols-outlined text-[28px] text-sage-500">
+                              calendar_month
+                            </span>
+                          </div>
+                          <h3 className="mt-1 whitespace-nowrap text-[28px] font-semibold leading-tight tracking-tight text-slate-800">
+                            Wo geht die Reise hin?
+                          </h3>
+                          <p className="mt-3 max-w-[280px] text-sm leading-relaxed text-slate-500">
+                            Sobald ihr euch auf einen Zeitraum einigt, erscheint
+                            er hier.
+                          </p>
+                        </div>
+                      )}
                     </div>
                   )}
-                </div>
-              )}
-            </section>
+                </section>
 
-            <section className="space-y-8 px-1">
-              <div className="flex items-center justify-between">
-                <h3 className="text-[11px] font-bold text-sage-400 uppercase tracking-[0.2em]">
-                  Aktive Gruppen
-                </h3>
-                <div className="h-px flex-1 ml-4 bg-sage-100"></div>
-              </div>
-              {listBody}
-              {!showHistory && historyGroups.length > 0 && (
-                <div className="mt-4">
-                  <button
-                    className="w-full py-6 text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-3 transition-colors rounded-2xl border bg-sage-100 text-sage-900 border-sage-200 hover:bg-sage-200 hover:border-sage-300 active:scale-[0.99] shadow-soft"
-                    type="button"
-                    aria-label="Historie anzeigen"
-                    onClick={() => setShowHistory(true)}
-                  >
-                    Historie anzeigen · {historyLabel}
-                    <span className="material-symbols-outlined !text-[18px] text-sage-700">
-                      history
-                    </span>
-                  </button>
-                </div>
-              )}
-            </section>
-
-            {showHistory && historyGroups.length > 0 ? (
-              <section className="space-y-6 px-1 pb-2">
-                <div
-                  className="flex items-center gap-3 cursor-pointer select-none"
-                  role="button"
-                  tabIndex={0}
-                  aria-label="Historien-Filter deaktivieren"
-                  onClick={() => setShowHistory(false)}
-                  onKeyDown={(e) => {
-                    if (e.key === "Enter" || e.key === " ")
-                      setShowHistory(false);
-                  }}
-                >
-                  <div className="h-px flex-1 bg-sage-100"></div>
-                  <div className="px-3 py-1 rounded-full bg-sage-900 text-white text-[11px] font-bold uppercase tracking-[0.16em] border border-sage-800">
-                    Ältere Gruppen · {historyLabel}
+                <section className="space-y-8 px-1">
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-[11px] font-bold text-sage-400 uppercase tracking-[0.2em]">
+                      Aktive Gruppen
+                    </h3>
+                    <div className="h-px flex-1 ml-4 bg-sage-100"></div>
                   </div>
-                  <div className="h-px flex-1 bg-sage-100"></div>
-                </div>
-                <ul className="flex flex-col gap-6">
-                  {historyGroups.map((group, idx) => (
-                    <GroupCard
-                      key={group.groupId}
-                      group={group}
-                      identity={identity}
-                      image={
-                        heroImages[
-                          (idx + activeGroups.length) % heroImages.length
-                        ]
-                      }
-                    />
-                  ))}
-                </ul>
-              </section>
-            ) : null}
+                  {listBody}
+                  {!showHistory && historyGroups.length > 0 && (
+                    <div className="mt-4">
+                      <button
+                        className="w-full py-6 text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-3 transition-colors rounded-2xl border bg-sage-100 text-sage-900 border-sage-200 hover:bg-sage-200 hover:border-sage-300 active:scale-[0.99] shadow-soft"
+                        type="button"
+                        aria-label="Historie anzeigen"
+                        onClick={() => setShowHistory(true)}
+                      >
+                        Historie anzeigen · {historyLabel}
+                        <span className="material-symbols-outlined !text-[18px] text-sage-700">
+                          history
+                        </span>
+                      </button>
+                    </div>
+                  )}
+                </section>
+
+                {showHistory && historyGroups.length > 0 ? (
+                  <section className="space-y-6 px-1 pb-2">
+                    <div
+                      className="flex items-center gap-3 cursor-pointer select-none"
+                      role="button"
+                      tabIndex={0}
+                      aria-label="Historien-Filter deaktivieren"
+                      onClick={() => setShowHistory(false)}
+                      onKeyDown={(e) => {
+                        if (e.key === "Enter" || e.key === " ")
+                          setShowHistory(false);
+                      }}
+                    >
+                      <div className="h-px flex-1 bg-sage-100"></div>
+                      <div className="px-3 py-1 rounded-full bg-sage-900 text-white text-[11px] font-bold uppercase tracking-[0.16em] border border-sage-800">
+                        Ältere Gruppen · {historyLabel}
+                      </div>
+                      <div className="h-px flex-1 bg-sage-100"></div>
+                    </div>
+                    <ul className="flex flex-col gap-6">
+                      {historyGroups.map((group) => (
+                        <GroupCard
+                          key={group.groupId}
+                          group={group}
+                          identity={identity}
+                        />
+                      ))}
+                    </ul>
+                  </section>
+                ) : null}
+              </>
+            )}
           </>
         )}
       </main>

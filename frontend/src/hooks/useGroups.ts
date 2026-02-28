@@ -10,10 +10,13 @@ function isTransientNetworkError(error: string | null): boolean {
   return /failed to fetch|networkerror|load failed/i.test(error);
 }
 
+export type GroupsFetchStatus = "loading" | "success" | "empty" | "error";
+
 export function useGroups(identity: Identity) {
   const groups = useGroupStore((state) => state.groups);
   const groupsLoading = useGroupStore((state) => state.groupsLoading);
   const groupsError = useGroupStore((state) => state.groupsError);
+  const groupsHydrated = useGroupStore((state) => state.groupsHydrated);
   const fetchGroups = useGroupStore((state) => state.fetchGroups);
   const resetForIdentity = useGroupStore((state) => state.resetForIdentity);
 
@@ -56,10 +59,18 @@ export function useGroups(identity: Identity) {
     };
   }, [fetchGroups, groupsError, identity.actorId, identity.kind]);
 
+  const groupsStatus: GroupsFetchStatus = (() => {
+    if (!groupsHydrated || groupsLoading) return "loading";
+    if (groups.length > 0) return "success";
+    if (groupsError) return "error";
+    return "empty";
+  })();
+
   return {
     groups,
     groupsLoading,
     groupsError,
+    groupsStatus,
     refetch: () => fetchGroups(identity, { force: true }),
   };
 }

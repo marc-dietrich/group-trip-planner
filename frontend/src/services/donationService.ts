@@ -15,13 +15,15 @@ type CreateCheckoutResponse = {
 
 export async function createDonationCheckoutSession(
   amountInEur: number,
+  actorId: string,
+  userId?: string,
 ): Promise<string> {
   const res = await fetch(stripePath("/create-checkout-session"), {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
     },
-    body: JSON.stringify({ amount: amountInEur }),
+    body: JSON.stringify({ amount: amountInEur, actorId, userId }),
   });
 
   if (!res.ok) {
