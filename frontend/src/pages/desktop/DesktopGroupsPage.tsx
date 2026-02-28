@@ -3,24 +3,31 @@ import { useNavigate } from "react-router-dom";
 import { AvailabilityFlow } from "../../components/AvailabilityFlow";
 import { Topbar } from "../../components/Topbar";
 import { GroupMembership, HealthCheck, Identity } from "../../types";
-import { muted } from "../../ui";
 import { useGroupStats } from "../../hooks/useGroupStats";
-
-const heroImages = [
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuA0WLJ-ohPsV1HZBi0hwQj3NaFDlfppm3lhFQ6XMofVH-52QBfRo2pDKozFyMYLvVpP8xfhkNcXwxSnvE9hSXtgWnGCSTJU2iPLMjAItxzvwsyNrW53qoRAyQi5xW9_i2LrpnOpp3yGdabdiTncukOEuj1Fc0SC3HiHMMt-s3g_E7raVQ1tMBHw0Ex8WCYCb-OQfvw-al3vZR0iL2gX2wRs0zMAQuLGlzsiZLMlNleDHhaZMpIqHf-g8AfVCF1PvQwSEaB49vgXG7M",
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuAXpU5TtPqijFW4TWB5u6Pyk-v_-ReKBKk3q0Mbi9mhWdEr4XGkueeaLcD7u0rgAqdYLzoySGSce1mbOWD86b1Pa-qwv_6SAcfuQW793slCXu79Exngij3zE8rryIolHPUSwyvWkkAXVlDMxYbxoDMF132cGSqn569txGSdHWJGm7kTtIXolg7-1yXERyaC1n2cqVBbba-ObZsrzq7FIMhfAD2B2UvWNd45lGf80c-CFj309a1KymFY0Q1Ffn8ti_OdXPjiszN3LYA",
-  "https://lh3.googleusercontent.com/aida-public/AB6AXuD3i28Elw_Feunq2K3GfAGi-SNBmuJFRw46SjkuVJxn1SV_e3ecsDrL6YnmIyQSWf2cfzld5CMTox5AfIpWuR8hGDT9qQrICDXbRE1Ir2yWi66Armm-FolWtypSAiZOj5wyfOjUxf3IEeraftLM3paFFSFyTTPRcVORQJQa4zK_LKbLbwhLhqRAPW3PYy9Hgr1gTXdlAmR7j-9ulu_PlKypxJshdKhhDyplp6ZEJIwty-RC_AqZNlufncHY5p_uBrpdL9xaDhBivH4",
-];
+import { GroupsFetchStatus } from "../../hooks/useGroups";
+import genericSurface from "../../../assets/generic.webp";
 
 type DesktopGroupRowProps = {
   group: GroupMembership;
   identity: Identity;
-  image: string;
 };
 
-function DesktopGroupRow({ group, identity, image }: DesktopGroupRowProps) {
+function getGroupInitials(name: string) {
+  const cleaned = (name || "").trim();
+  if (!cleaned) return "GR";
+  const parts = cleaned
+    .split(/\s+/)
+    .map((part) => part[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("");
+  return parts.toUpperCase() || cleaned.slice(0, 2).toUpperCase();
+}
+
+function DesktopGroupRow({ group, identity }: DesktopGroupRowProps) {
   const navigate = useNavigate();
   const { data: stats, loading } = useGroupStats(group.groupId, identity);
+  const initials = getGroupInitials(group.name);
 
   const submitted = stats.usersWithAvailability ?? 0;
   const total = stats.totalUsers ?? 0;
@@ -37,12 +44,22 @@ function DesktopGroupRow({ group, identity, image }: DesktopGroupRowProps) {
       className="flex items-center gap-5 py-5 transition hover:bg-sage-50"
     >
       <div className="relative flex-shrink-0">
-        <div className="size-16 overflow-hidden rounded-2xl border border-white shadow-soft">
-          <img
-            src={image}
-            alt={group.name}
-            className="h-full w-full object-cover"
+        <div className="relative size-16 overflow-hidden rounded-2xl border border-white shadow-soft bg-sage-100">
+          <div
+            className="absolute inset-0 bg-cover bg-center opacity-25"
+            style={{ backgroundImage: `url(${genericSurface})` }}
           />
+          <div className="absolute inset-0 bg-gradient-to-br from-white/95 via-sage-50/90 to-sage-200/70" />
+          <div className="relative z-10 flex h-full w-full items-center justify-center">
+            <span className="text-sm font-extrabold tracking-wide text-sage-800">
+              {initials}
+            </span>
+          </div>
+          <div className="absolute bottom-1 left-1 z-10 rounded-full bg-white/85 p-0.5 text-sage-500 shadow-sm">
+            <span className="material-symbols-outlined !text-[10px]">
+              groups
+            </span>
+          </div>
         </div>
       </div>
       <div className="flex flex-1 flex-col gap-2">
@@ -73,7 +90,7 @@ function DesktopGroupRow({ group, identity, image }: DesktopGroupRowProps) {
 
 type DesktopGroupsPageProps = {
   groups: GroupMembership[];
-  groupsLoading: boolean;
+  groupsStatus: GroupsFetchStatus;
   groupsError: string | null;
   identity: Identity;
   health: HealthCheck | null;
@@ -82,15 +99,31 @@ type DesktopGroupsPageProps = {
 
 export function DesktopGroupsPage({
   groups,
-  groupsLoading,
+  groupsStatus,
   groupsError,
   identity,
   health,
   onCreate,
 }: DesktopGroupsPageProps) {
+  const isInitialLoading = groupsStatus === "loading";
+  const isErrorState = groupsStatus === "error";
+
   const groupRows = useMemo(() => {
-    if (groupsLoading) return <p className={muted}>Gruppen werden geladen…</p>;
-    if (groupsError)
+    if (isInitialLoading)
+      return (
+        <div className="space-y-4" aria-busy="true" aria-live="polite">
+          {Array.from({ length: 4 }).map((_, idx) => (
+            <div key={idx} className="flex items-center gap-5 py-5">
+              <div className="size-16 rounded-2xl bg-sage-200 animate-pulse" />
+              <div className="flex-1 space-y-3">
+                <div className="h-5 w-40 rounded-full bg-sage-200 animate-pulse" />
+                <div className="h-2 w-full rounded-full bg-sage-200 animate-pulse" />
+              </div>
+            </div>
+          ))}
+        </div>
+      );
+    if (isErrorState && groupsError)
       return (
         <p className="text-sm font-semibold text-rose-600">{groupsError}</p>
       );
@@ -103,17 +136,16 @@ export function DesktopGroupsPage({
 
     return (
       <ul className="divide-y divide-sage-100">
-        {groups.map((group, idx) => (
+        {groups.map((group) => (
           <DesktopGroupRow
             key={group.groupId}
             group={group}
             identity={identity}
-            image={heroImages[idx % heroImages.length]}
           />
         ))}
       </ul>
     );
-  }, [groups, groupsError, groupsLoading, identity]);
+  }, [groups, groupsError, identity, isErrorState, isInitialLoading]);
 
   return (
     <div className="space-y-8">

@@ -10,6 +10,9 @@ const app = express();
 const port = Number(process.env.PORT || 3002);
 const allowedOrigin = process.env.ALLOWED_ORIGIN || "*";
 const serviceDir = dirname(fileURLToPath(import.meta.url));
+const supportEmail =
+  (process.env.CONTACT_SUPPORT_EMAIL || "").trim() ||
+  "kontakt@group-trip-planner.local";
 const logFilePath = resolve(
   process.env.CONTACT_LOG_FILE || resolve(serviceDir, "../data/requests.log"),
 );
@@ -87,16 +90,29 @@ app.use((req, res, next) => {
 
 app.post("/mail/feedback", async (req, res, next) => {
   try {
-    const { rating, actorId, displayName } = req.body ?? {};
+    const { rating, message, actorId, displayName } = req.body ?? {};
 
     if (!Number.isInteger(rating) || rating < 1 || rating > 5) {
       return res.status(400).json({ error: "rating must be an integer 1..5" });
+    }
+
+    if (
+      message !== undefined &&
+      (typeof message !== "string" || message.trim().length > 5000)
+    ) {
+      return res.status(400).json({
+        error: "message must be a string up to 5000 chars when provided",
+      });
     }
 
     await appendLog({
       type: "feedback",
       createdAt: new Date().toISOString(),
       rating,
+      message:
+        typeof message === "string" && message.trim().length > 0
+          ? message.trim()
+          : null,
       actorId: actorId ? String(actorId) : null,
       displayName: displayName ? String(displayName) : null,
       sourceIp: req.ip,
@@ -134,6 +150,14 @@ app.post("/mail/contact", async (req, res, next) => {
   } catch (error) {
     return next(error);
   }
+});
+
+app.get("/mail/contact", (req, res) => {
+  res.status(200).json({ email: supportEmail });
+});
+
+app.get("/contact", (req, res) => {
+  res.status(200).json({ email: supportEmail });
 });
 
 app.get("/health", (req, res) => {

@@ -5,10 +5,6 @@ const contactServiceBase = rawContactServiceBase.endsWith("/")
   ? rawContactServiceBase.slice(0, -1)
   : rawContactServiceBase;
 
-const supportEmail =
-  (import.meta.env.VITE_CONTACT_SUPPORT_EMAIL ?? "").trim() ||
-  "kontakt@group-trip-planner.local";
-
 function contactPath(path: string): string {
   const normalized = path.startsWith("/") ? path : `/${path}`;
   return `${contactServiceBase}${normalized}`;
@@ -21,6 +17,7 @@ type ApiResponse = {
 
 type FeedbackPayload = {
   rating: number;
+  message?: string;
   actorId?: string;
   displayName?: string;
 };
@@ -30,6 +27,10 @@ type ContactPayload = {
   actorId?: string;
   displayName?: string;
   replyTo?: string;
+};
+
+type SupportEmailResponse = {
+  email?: string;
 };
 
 async function postJson(path: string, payload: object): Promise<void> {
@@ -65,6 +66,34 @@ export async function sendContactMessage(
   await postJson("/mail/contact", payload);
 }
 
-export function getSupportEmail(): string {
-  return supportEmail;
+export async function getSupportEmail(): Promise<string> {
+  const candidates = ["/mail/contact", "/contact"];
+
+  for (const path of candidates) {
+    const response = await fetch(contactPath(path), {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 404) {
+        continue;
+      }
+      throw new Error(
+        `Kontakt konnte nicht geladen werden: ${response.status}`,
+      );
+    }
+
+    const body = (await response.json()) as SupportEmailResponse;
+    const email = (body?.email ?? "").trim();
+    if (email) {
+      return email;
+    }
+
+    throw new Error("Keine Kontakt-E-Mail verfügbar");
+  }
+
+  throw new Error("Kontakt-Endpunkt nicht gefunden (404)");
 }

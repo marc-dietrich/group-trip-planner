@@ -1,12 +1,14 @@
 """Actor repository abstractions."""
 
+from datetime import datetime, timedelta
 from typing import Optional, Protocol
 from uuid import uuid4
 
+from sqlalchemy import text
+from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlmodel import select
 
-from app.user_core.models import Actor
+from app.user_core.models import Actor, SupporterBadge
 
 
 class ActorRepository(Protocol):
@@ -14,6 +16,17 @@ class ActorRepository(Protocol):
         ...
 
     async def create(self, actor_id: Optional[str] = None) -> Actor:
+        ...
+
+    async def get_supporter_badge(self, actor_id: str) -> SupporterBadge | None:
+        ...
+
+    async def grant_supporter_badge(
+        self,
+        actor_id: str,
+        duration_days: int = 183,
+        donated_at: datetime | None = None,
+    ) -> SupporterBadge:
         ...
 
     async def commit(self) -> None:
@@ -27,6 +40,20 @@ class SQLModelActorRepository(ActorRepository):
     async def get(self, actor_id: str) -> Actor | None:
         return await self.session.get(Actor, actor_id)
 
+    async def _ensure_supporter_schema(self) -> None:
+        await self.session.execute(
+            text(
+                """
+                CREATE TABLE IF NOT EXISTS supporter_badges (
+                    actor_id VARCHAR(255) PRIMARY KEY,
+                    supporter_until TIMESTAMP WITHOUT TIME ZONE NOT NULL,
+                    last_donated_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW()
+                )
+                """
+            )
+        )
+        await self.session.flush()
+
     async def create(self, actor_id: Optional[str] = None) -> Actor:
         candidate = actor_id or str(uuid4())
         existing = await self.get(candidate)
@@ -39,6 +66,38 @@ class SQLModelActorRepository(ActorRepository):
         await self.session.refresh(actor)
         return actor
 
+    async def get_supporter_badge(self, actor_id: str) -> SupporterBadge | None:
+        try:
+            return await self.session.get(SupporterBadge, actor_id)
+        except SQLAlchemyError:
+            await self.session.rollback()
+            await self._ensure_supporter_schema()
+            return await self.session.get(SupporterBadge, actor_id)
+
+    async def grant_supporter_badge(
+        self,
+        actor_id: str,
+        duration_days: int = 183,
+        donated_at: datetime | None = None,
+    ) -> SupporterBadge:
+        now = donated_at or datetime.utcnow()
+        badge = await self.get_supporter_badge(actor_id)
+
+        if badge:
+            base = badge.supporter_until if badge.supporter_until > now else now
+            badge.supporter_until = base + timedelta(days=duration_days)
+            badge.last_donated_at = now
+        else:
+            badge = SupporterBadge(
+                actor_id=actor_id,
+                supporter_until=now + timedelta(days=duration_days),
+                last_donated_at=now,
+            )
+            self.session.add(badge)
+
+        await self.session.flush()
+        return badge
+
     async def commit(self) -> None:
         await self.session.commit()
 
@@ -46,6 +105,7 @@ class SQLModelActorRepository(ActorRepository):
 class InMemoryActorRepository(ActorRepository):
     def __init__(self) -> None:
         self._actors: dict[str, Actor] = {}
+        self._supporters: dict[str, SupporterBadge] = {}
 
     async def get(self, actor_id: str) -> Actor | None:
         return self._actors.get(actor_id)
@@ -58,6 +118,30 @@ class InMemoryActorRepository(ActorRepository):
         actor = Actor(id=candidate)
         self._actors[candidate] = actor
         return actor
+
+    async def get_supporter_badge(self, actor_id: str) -> SupporterBadge | None:
+        return self._supporters.get(actor_id)
+
+    async def grant_supporter_badge(
+        self,
+        actor_id: str,
+        duration_days: int = 183,
+        donated_at: datetime | None = None,
+    ) -> SupporterBadge:
+        now = donated_at or datetime.utcnow()
+        badge = self._supporters.get(actor_id)
+        if badge:
+            base = badge.supporter_until if badge.supporter_until > now else now
+            badge.supporter_until = base + timedelta(days=duration_days)
+            badge.last_donated_at = now
+        else:
+            badge = SupporterBadge(
+                actor_id=actor_id,
+                supporter_until=now + timedelta(days=duration_days),
+                last_donated_at=now,
+            )
+            self._supporters[actor_id] = badge
+        return badge
 
     async def commit(self) -> None:  # pragma: no cover - no-op for in-memory
         return None

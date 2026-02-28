@@ -8,6 +8,7 @@ from .user import User
 from .user_actor import UserActor
 from .availability import Availability
 from .group_availability_summary import GroupAvailabilitySummary
+from .supporter_badge import SupporterBadge
 
 __all__ = [
 	"Actor",
@@ -18,4 +19,5 @@ __all__ = [
 	"UserActor",
 	"Availability",
 	"GroupAvailabilitySummary",
+	"SupporterBadge",
 ]

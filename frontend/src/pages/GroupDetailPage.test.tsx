@@ -139,12 +139,12 @@ describe("GroupDetailPage availability summary", () => {
       ).toBeInTheDocument();
     });
 
-    expect(screen.getByText(/TOP MATCH/i)).toBeInTheDocument();
+    expect(screen.getAllByText(/Bester Zeitraum/i).length).toBeGreaterThan(0);
 
     const expandButton = screen.getByRole("button", { expanded: false });
     fireEvent.click(expandButton);
 
-    expect(screen.getByText(/2 von 5 Personen verfügbar/i)).toBeInTheDocument();
+    expect(screen.getByText(/2\/5 verfügbar/i)).toBeInTheDocument();
   });
 
   it("renders member list and new availability action", async () => {

@@ -8,8 +8,10 @@ Die Log-Datei nutzt Single-File-Rotation: sobald die Datei größer als 10MB wir
 
 ## Endpoints
 
-- `POST /mail/feedback` mit Body `{ "rating": 1..5, "actorId"?: string, "displayName"?: string }`
-- `POST /mail/contact` mit Body `{ "message": string, "actorId"?: string, "displayName"?: string, "replyTo"?: string }`
+- `POST /mail/feedback` mit Body `{ "rating": 1..5, "message"?: string, "actorId"?: string, "displayName"?: string }`
+- `GET /mail/contact` liefert `{ "email": string }` (Kontakt-E-Mail wird erst bei Anfrage ausgeliefert)
+- `GET /contact` Alias zu `GET /mail/contact` für Proxy-Kompatibilität
+- `POST /mail/contact` mit Body `{ "message": string, "actorId"?: string, "displayName"?: string, "replyTo"?: string }` (Legacy)
 - `GET /health`
 
 ## Environment-Variablen
@@ -17,6 +19,7 @@ Die Log-Datei nutzt Single-File-Rotation: sobald die Datei größer als 10MB wir
 - Optional: `ALLOWED_ORIGIN` (Fallback: `*`)
 - Optional: `CONTACT_LOG_FILE` (Fallback: `apps/contact-service/data/requests.log`)
 - Optional: `CONTACT_LOG_MAX_BYTES` (Fallback: `10485760` = 10MB)
+- Optional: `CONTACT_SUPPORT_EMAIL` (Fallback: `kontakt@group-trip-planner.local`)
 - Optional: `PORT` (Fallback: `3002`)
 
 ## Lokal starten

@@ -45,6 +45,9 @@ class Settings(BaseSettings):
     # JWT (used for Bearer token auth via OAuth2-Proxy or similar)
     jwt_secret: str = ""
 
+    # Internal webhook secret used by stripe-service to grant supporter badges
+    supporter_webhook_secret: str = "dev-supporter-secret"
+
 @lru_cache()
 def get_settings() -> Settings:
     """Get cached settings instance"""

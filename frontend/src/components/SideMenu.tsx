@@ -4,27 +4,41 @@ import { Identity } from "../types";
 import { createDonationCheckoutSession } from "../services/donationService";
 import {
   getSupportEmail,
-  sendContactMessage,
   sendFeedback,
 } from "../services/contactFeedbackService";
 import {
   startOAuthLogin,
   authEnabled as defaultAuthEnabled,
 } from "../lib/auth";
+import genericSurface from "../../assets/generic.webp";
 
 export type SideMenuProps = {
   open: boolean;
   onClose: () => void;
   identity: Identity;
+  hasSupporterCrown?: boolean;
   onLogout?: () => void;
   onLogin?: () => void;
   authEnabled?: boolean;
 };
 
+function getInitials(value: string) {
+  const cleaned = (value || "").trim();
+  if (!cleaned) return "GA";
+  const parts = cleaned
+    .split(/\s+/)
+    .map((part) => part[0])
+    .filter(Boolean)
+    .slice(0, 2)
+    .join("");
+  return parts.toUpperCase() || cleaned.slice(0, 2).toUpperCase();
+}
+
 export function SideMenu({
   open,
   onClose,
   identity,
+  hasSupporterCrown = false,
   onLogout,
   onLogin,
   authEnabled,
@@ -38,13 +52,13 @@ export function SideMenu({
   const [donationExpanded, setDonationExpanded] = useState(false);
   const [feedbackExpanded, setFeedbackExpanded] = useState(false);
   const [feedbackRating, setFeedbackRating] = useState<number | null>(null);
+  const [feedbackMessage, setFeedbackMessage] = useState("");
   const [feedbackLoading, setFeedbackLoading] = useState(false);
   const [contactExpanded, setContactExpanded] = useState(false);
-  const [contactMessage, setContactMessage] = useState("");
+  const [contactEmail, setContactEmail] = useState<string | null>(null);
   const [contactLoading, setContactLoading] = useState(false);
   const oauthReady = authEnabled ?? defaultAuthEnabled;
   const donationAmounts = [5, 10, 20];
-  const supportEmail = getSupportEmail();
 
   const donationMotionClass = (index: number) => {
     if (donationExpanded) {
@@ -86,7 +100,10 @@ export function SideMenu({
     () => identity.displayName || ("Gast" as string),
     [identity.displayName],
   );
-  const email = useMemo(() => (isUser ? "angemeldet" : "gastnutzer"), [isUser]);
+  const identityLabel = useMemo(
+    () => (isUser ? "Angemeldet" : "Gastmodus"),
+    [isUser],
+  );
 
   useEffect(() => {
     if (open) {
@@ -131,7 +148,11 @@ export function SideMenu({
 
     try {
       setDonationLoading(true);
-      const sessionUrl = await createDonationCheckoutSession(amountInEur);
+      const sessionUrl = await createDonationCheckoutSession(
+        amountInEur,
+        identity.actorId,
+        identity.kind === "user" ? identity.userId : undefined,
+      );
 
       if (!sessionUrl) {
         throw new Error("Keine Checkout-URL erhalten");
@@ -155,13 +176,16 @@ export function SideMenu({
 
     try {
       setFeedbackLoading(true);
+      const trimmedMessage = feedbackMessage.trim();
       await sendFeedback({
         rating: feedbackRating,
+        message: trimmedMessage ? trimmedMessage : undefined,
         actorId: identity.actorId,
         displayName,
       });
       toast.success("Danke für dein Feedback!");
       setFeedbackRating(null);
+      setFeedbackMessage("");
       setFeedbackExpanded(false);
     } catch (error) {
       const message =
@@ -174,33 +198,31 @@ export function SideMenu({
     }
   };
 
-  const handleContactSubmit = async () => {
+  const handleRevealContact = async () => {
     if (contactLoading) return;
-
-    const trimmedMessage = contactMessage.trim();
-    if (!trimmedMessage) {
-      toast.error("Bitte gib eine Nachricht ein.");
-      return;
-    }
 
     try {
       setContactLoading(true);
-      await sendContactMessage({
-        message: trimmedMessage,
-        actorId: identity.actorId,
-        displayName,
-      });
-      toast.success("Nachricht wurde gesendet.");
-      setContactMessage("");
-      setContactExpanded(false);
+      const emailAddress = await getSupportEmail();
+      setContactEmail(emailAddress);
     } catch (error) {
       const message =
         error instanceof Error
           ? error.message
-          : "Nachricht konnte nicht gesendet werden.";
+          : "Kontakt konnte nicht geladen werden.";
       toast.error(message);
     } finally {
       setContactLoading(false);
+    }
+  };
+
+  const handleContactToggle = () => {
+    const nextExpanded = !contactExpanded;
+    setContactExpanded(nextExpanded);
+    setFeedbackExpanded(false);
+
+    if (nextExpanded && !contactEmail && !contactLoading) {
+      void handleRevealContact();
     }
   };
 
@@ -221,7 +243,7 @@ export function SideMenu({
           aria-hidden="true"
         />
         <div
-          className={`relative left-0 top-0 z-50 h-full w-[82%] bg-white dark:bg-zinc-950 shadow-xl flex flex-col overflow-hidden rounded-r-[32px] border-r border-zinc-900/5 transition-all duration-200 ease-out ${visible ? "translate-x-0 opacity-100" : "-translate-x-6 opacity-0"}`}
+          className={`relative left-0 top-0 z-50 h-full w-[82%] bg-cream dark:bg-zinc-950 shadow-xl flex flex-col overflow-hidden rounded-r-[32px] border-r border-zinc-900/5 transition-all duration-200 ease-out ${visible ? "translate-x-0 opacity-100" : "-translate-x-6 opacity-0"}`}
         >
           <div className="absolute right-3 top-3 z-10">
             <button
@@ -233,18 +255,29 @@ export function SideMenu({
               <span className="material-symbols-outlined">arrow_back</span>
             </button>
           </div>
-          <div className="flex-1 overflow-y-auto overflow-x-hidden">
+          <div className="flex h-full flex-1 flex-col overflow-y-auto overflow-x-hidden">
             <div className="p-5 pt-10 flex flex-col gap-3">
               <div className="flex items-center gap-3.5">
                 <div className="relative">
-                  <div className="size-12 rounded-full bg-sage-100 flex items-center justify-center text-sage-800 font-semibold border border-sage-200">
-                    {displayName.slice(0, 2).toUpperCase()}
-                  </div>
-                  <div className="absolute -top-1 -right-1 bg-white rounded-full p-0.5 shadow-sm border border-sage-100 flex items-center justify-center">
-                    <span className="material-symbols-outlined text-[12px] text-amber-400">
-                      crown
+                  <div className="relative size-12 rounded-full overflow-hidden border border-sage-200 bg-sage-100 flex items-center justify-center">
+                    <img
+                      src={genericSurface}
+                      alt=""
+                      aria-hidden="true"
+                      className="absolute inset-0 h-full w-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-transparent to-sage-900/15" />
+                    <span className="relative z-10 text-sage-900 font-semibold drop-shadow-[0_1px_1px_rgba(255,255,255,0.75)]">
+                      {getInitials(displayName)}
                     </span>
                   </div>
+                  {hasSupporterCrown ? (
+                    <div className="absolute -top-1 -right-1 bg-white rounded-full p-0.5 shadow-sm border border-sage-100 flex items-center justify-center">
+                      <span className="material-symbols-outlined text-[12px] text-amber-400">
+                        crown
+                      </span>
+                    </div>
+                  ) : null}
                   {isActor && (
                     <div className="absolute -bottom-1 -right-1 flex items-center justify-center">
                       <div
@@ -275,7 +308,7 @@ export function SideMenu({
                     {displayName}
                   </p>
                   <p className="text-zinc-500 dark:text-zinc-400 text-[11px] font-normal">
-                    {email}
+                    {identityLabel}
                   </p>
                 </div>
                 <div className="ml-auto flex flex-col items-center gap-1">
@@ -286,11 +319,7 @@ export function SideMenu({
                       </span>
                       Google
                     </div>
-                  ) : (
-                    <p className="text-[11px] font-semibold text-sage-800">
-                      Gastmodus
-                    </p>
-                  )}
+                  ) : null}
                   <span
                     className={`text-[10px] uppercase tracking-wide ${oauthReady ? "text-sage-600" : "text-amber-600"}`}
                   >
@@ -449,7 +478,7 @@ export function SideMenu({
                 </span>
               </button>
               <div
-                className={`overflow-hidden transition-all duration-200 ${feedbackExpanded ? "max-h-40 opacity-100 pb-2" : "max-h-0 opacity-0"}`}
+                className={`overflow-hidden transition-all duration-200 ${feedbackExpanded ? "max-h-96 opacity-100 pb-2" : "max-h-0 opacity-0"}`}
               >
                 <div className="rounded-xl border border-sage-100 bg-sage-50 p-3">
                   <p className="text-[11px] text-zinc-600">
@@ -472,6 +501,13 @@ export function SideMenu({
                       </button>
                     ))}
                   </div>
+                  <textarea
+                    rows={3}
+                    value={feedbackMessage}
+                    onChange={(event) => setFeedbackMessage(event.target.value)}
+                    placeholder="Hast du Anmerkungen oder Verbesserungsvorschläge?"
+                    className="mt-2 w-full rounded-lg border border-sage-200 bg-white px-3 py-2 text-sm text-zinc-800 outline-none transition focus:border-sage-400"
+                  />
                   <button
                     type="button"
                     className="mt-3 w-full rounded-lg bg-sage-700 px-3 py-2 text-[12px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
@@ -487,10 +523,7 @@ export function SideMenu({
               <button
                 className="flex items-center gap-3 py-3 group"
                 type="button"
-                onClick={() => {
-                  setContactExpanded((prev) => !prev);
-                  setFeedbackExpanded(false);
-                }}
+                onClick={handleContactToggle}
                 aria-expanded={contactExpanded}
               >
                 <div className="text-zinc-400 group-hover:text-sage-300 transition-colors flex items-center justify-center">
@@ -506,55 +539,45 @@ export function SideMenu({
                 </span>
               </button>
               <div
-                className={`overflow-hidden transition-all duration-200 ${contactExpanded ? "max-h-80 opacity-100 pb-2" : "max-h-0 opacity-0"}`}
+                className={`overflow-hidden transition-all duration-200 ${contactExpanded ? "max-h-56 opacity-100 pb-2" : "max-h-0 opacity-0"}`}
               >
                 <div className="rounded-xl border border-sage-100 bg-sage-50 p-3">
-                  <p className="text-[11px] text-zinc-600">
-                    E-Mail:{" "}
-                    <span className="font-semibold text-zinc-800">
-                      {supportEmail}
-                    </span>
-                  </p>
-                  <textarea
-                    rows={4}
-                    value={contactMessage}
-                    onChange={(event) => setContactMessage(event.target.value)}
-                    placeholder="Deine Nachricht..."
-                    className="mt-2 w-full rounded-lg border border-sage-200 bg-white px-3 py-2 text-sm text-zinc-800 outline-none transition focus:border-sage-400"
-                  />
-                  <button
-                    type="button"
-                    className="mt-3 w-full rounded-lg bg-sage-700 px-3 py-2 text-[12px] font-semibold text-white disabled:cursor-not-allowed disabled:opacity-60"
-                    disabled={
-                      contactLoading || contactMessage.trim().length === 0
-                    }
-                    onClick={() => {
-                      void handleContactSubmit();
-                    }}
-                  >
-                    {contactLoading ? "Sende..." : "Nachricht senden"}
-                  </button>
+                  {contactLoading ? (
+                    <p className="text-center text-[12px] text-zinc-600">
+                      Lade Kontakt…
+                    </p>
+                  ) : null}
+                  {!contactLoading && contactEmail ? (
+                    <a
+                      className="block text-center text-[13px] font-semibold text-sage-800 underline underline-offset-2"
+                      href={`mailto:${contactEmail}`}
+                    >
+                      {contactEmail}
+                    </a>
+                  ) : null}
                 </div>
               </div>
-              <button
-                className="flex items-center gap-3 py-3 group"
-                type="button"
-                onClick={() => {
-                  if (onLogout) onLogout();
-                  onClose();
-                }}
-              >
-                <div className="text-zinc-400 group-hover:text-sage-300 transition-colors flex items-center justify-center">
-                  <span className="material-symbols-outlined text-[20px]">
-                    logout
-                  </span>
-                </div>
-                <p className="text-zinc-600 dark:text-zinc-400 text-[14px] font-medium group-hover:text-sage-700 transition-colors">
-                  Abmelden
-                </p>
-              </button>
+              {isUser ? (
+                <button
+                  className="flex items-center gap-3 py-3 group"
+                  type="button"
+                  onClick={() => {
+                    if (onLogout) onLogout();
+                    onClose();
+                  }}
+                >
+                  <div className="text-zinc-400 group-hover:text-sage-300 transition-colors flex items-center justify-center">
+                    <span className="material-symbols-outlined text-[20px]">
+                      logout
+                    </span>
+                  </div>
+                  <p className="text-zinc-600 dark:text-zinc-400 text-[14px] font-medium group-hover:text-sage-700 transition-colors">
+                    Abmelden
+                  </p>
+                </button>
+              ) : null}
             </div>
-            <div className={`mt-3 p-6 border-t ${pendingSurface}`}>
+            <div className={`mt-auto p-6 border-t ${pendingSurface}`}>
               <div className="flex flex-col gap-1.5">
                 <div className="flex items-center justify-between">
                   <p

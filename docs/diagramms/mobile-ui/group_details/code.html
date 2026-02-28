@@ -1,204 +1,400 @@
-<!DOCTYPE html>
-<html class="light" lang="de"><head>
-<meta charset="utf-8"/>
-<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
-<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
-<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
-<script id="tailwind-config">
-        tailwind.config = {
-            darkMode: "class",
-            theme: {
-                extend: {
-                    colors: {
-                        "sage-primary": "#849f84",
-                        "sage-dark": "#6b836b",
-                        "sage-muted": "#a2b5a2",
-                        "sage-light": "#f4f6f4",
-                        "background-light": "#fafaf9",
-                        "background-dark": "#0f140c",
-                        "border-light": "#e4e4e7",
-                    },
-                    fontFamily: {
-                        "display": ["Inter", "sans-serif"]
-                    },
-                    borderRadius: {
-                        "DEFAULT": "0.375rem",
-                        "lg": "0.5rem",
-                        "xl": "0.75rem",
-                        "2xl": "1rem",
-                        "full": "9999px"
-                    },
-                },
+<!doctype html>
+<html class="light" lang="de">
+  <head>
+    <meta charset="utf-8" />
+    <meta content="width=device-width, initial-scale=1.0" name="viewport" />
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&amp;display=swap"
+      rel="stylesheet"
+    />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap"
+      rel="stylesheet"
+    />
+    <script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "sage-primary": "#849f84",
+              "sage-dark": "#6b836b",
+              "sage-muted": "#a2b5a2",
+              "sage-light": "#f4f6f4",
+              "background-light": "#fafaf9",
+              "background-dark": "#0f140c",
+              "border-light": "#e4e4e7",
             },
-        }
+            fontFamily: {
+              display: ["Inter", "sans-serif"],
+            },
+            borderRadius: {
+              DEFAULT: "0.375rem",
+              lg: "0.5rem",
+              xl: "0.75rem",
+              "2xl": "1rem",
+              full: "9999px",
+            },
+          },
+        },
+      };
     </script>
-<style type="text/tailwindcss">
-        .no-scrollbar::-webkit-scrollbar { display: none; }
-        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-        .fade-right {
-            mask-image: linear-gradient(to right, black 80%, transparent 100%);
-            -webkit-mask-image: linear-gradient(to right, black 80%, transparent 100%);
-        }
-        body {
-            min-height: 100dvh;
-            background-color: #fafaf9;
-        }
-        .ios-shadow {
-            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
-        }
+    <style type="text/tailwindcss">
+      .no-scrollbar::-webkit-scrollbar {
+        display: none;
+      }
+      .no-scrollbar {
+        -ms-overflow-style: none;
+        scrollbar-width: none;
+      }
+      .fade-right {
+        mask-image: linear-gradient(to right, black 80%, transparent 100%);
+        -webkit-mask-image: linear-gradient(
+          to right,
+          black 80%,
+          transparent 100%
+        );
+      }
+      body {
+        min-height: 100dvh;
+        background-color: #fafaf9;
+      }
+      .ios-shadow {
+        box-shadow:
+          0 4px 6px -1px rgba(0, 0, 0, 0.05),
+          0 2px 4px -1px rgba(0, 0, 0, 0.03);
+      }
     </style>
-<style>
-    body {
-      min-height: max(884px, 100dvh);
-    }
-  </style>
+    <style>
+      body {
+        min-height: max(884px, 100dvh);
+      }
+    </style>
   </head>
-<body class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-200">
-<div class="max-w-[480px] mx-auto min-h-screen relative pb-24 bg-white dark:bg-background-dark shadow-sm">
-<div class="relative h-[32vh] w-full overflow-hidden">
-<div class="absolute inset-0 bg-cover bg-center" style='background-image: linear-gradient(to bottom, rgba(0,0,0,0.2), rgba(0,0,0,0.5)), url("https://lh3.googleusercontent.com/aida-public/AB6AXuD3i28Elw_Feunq2K3GfAGi-SNBmuJFRw46SjkuVJxn1SV_e3ecsDrL6YnmIyQSWf2cfzld5CMTox5AfIpWuR8hGDT9qQrICDXbRE1Ir2yWi66Armm-FolWtypSAiZOj5wyfOjUxf3IEeraftLM3paFFSFyTTPRcVORQJQa4zK_LKbLbwhLhqRAPW3PYy9Hgr1gTXdlAmR7j-9ulu_PlKypxJshdKhhDyplp6ZEJIwty-RC_AqZNlufncHY5p_uBrpdL9xaDhBivH4");'></div>
-<div class="absolute top-6 left-6 right-4 flex justify-between items-start">
-<h1 class="text-3xl font-bold text-white tracking-tight drop-shadow-md max-w-[70%]">Hiking Crew 2024</h1>
-<button class="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 text-white hover:bg-white/30 transition-colors">
-<span class="material-symbols-outlined text-[24px]">settings</span>
-</button>
-</div>
-<div class="absolute bottom-6 left-6 right-6 flex items-end justify-between">
-<div class="bg-white/95 dark:bg-slate-900/90 backdrop-blur-md px-4 py-2 rounded-xl border border-white/40 shadow-sm flex items-center gap-2">
-<span class="material-symbols-outlined text-sage-primary text-[18px]">group</span>
-<span class="text-xs font-bold text-slate-800 dark:text-white">13 Personen</span>
-</div>
-<button class="bg-white/95 dark:bg-slate-900/90 backdrop-blur-md px-4 py-2 rounded-xl border border-white/40 shadow-sm flex items-center gap-2 hover:bg-white transition-colors">
-<span class="material-symbols-outlined text-sage-primary text-[18px]">event_busy</span>
-<span class="text-xs font-bold text-slate-800 dark:text-white">Deadline setzen</span>
-</button>
-</div>
-</div>
-<div class="px-4 py-6">
-<h3 class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-4 px-1">Mitglieder</h3>
-<div class="flex overflow-x-auto no-scrollbar fade-right gap-5 items-start">
-<div class="flex flex-col items-center gap-2 min-w-[64px]">
-<div class="w-14 h-14 rounded-full border-[2px] border-sage-primary p-0.5 shadow-sm">
-<div class="w-full h-full rounded-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAPz4YY1DgnFvpUOhKIWCf6VCf3FCEoDfRjwO0YvAXcegVydMjsekpo1eoe-2qMv81XmM9QyBCbR_ic1qWuIh7lIJ6Oif0Q2Y0gvlLXAxhkXBh-nQba634wUEmmkf9cKiyD4NnGXKcLxQIVvep67SKWABRox5q2v423pSVV_47HpQIgdHh5SdA883blcxGy5LnVru6oU1BOrm5_-PgTIFfNDi_2mdsYCg4JMwi9-hPuLNLYPeVRVR-P4HpAM-eAc79Y19fjuouevFU");'></div>
-</div>
-<p class="text-[11px] font-bold text-slate-900 dark:text-slate-300">Anna</p>
-</div>
-<div class="flex flex-col items-center gap-2 min-w-[64px]">
-<div class="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800">
-<div class="w-full h-full rounded-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAjlqlW-zGeYOTMecq9_iv9uNJs7elrLPZLr4rEFlGk3B1-LQfaoouDBE6H7FK3UywJwpvwH0aM-31415dP9hVmLm9NWi2RU_EJeyg1Ee4Nn_JpqncCD7qF7FMjJ7xrbneuFgHnMiFPw5V5u3olBbXui5OEPFGDDxHSnpxHrxi0S7AQZyCFE_4hfYU2lR6Vqgzw93WVXr81EVWJL-IrwjkjM-clDVRVxvH3hWUlR_aQOL5TecX5SJ9DKGQL7TqprgvgBssP_um7slI");'></div>
-</div>
-<p class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Lukas</p>
-</div>
-<div class="flex flex-col items-center gap-2 min-w-[64px]">
-<div class="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800">
-<div class="w-full h-full rounded-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuDeGOFlF8NHsFE8IEoaFgZuJte1XuEg5S0wgzlnRxFXf-ist0zBbz074QV9WsoC8PZlDJwPHNLLlaDUhegnchtamoYFaQr7e-qkJWIL3lhMD9Zo9qth2jnIhpuJl6JyiuujSDIFXpHRzazvzqB6IUHZ1g3xBhSHCuJqcuy37CQDOhCpTYQSKJscwCK6XOeQqPkFMuNEugk2vjSob6s-DtZR5y7f8zQKtWjQ5SlaUNhU2PUijZkp_0AM2-23RZa6Tuwzp5z_mNjuGeM");'></div>
-</div>
-<p class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Marie</p>
-</div>
-<div class="flex flex-col items-center gap-2 min-w-[64px]">
-<div class="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800">
-<div class="w-full h-full rounded-full bg-cover bg-center" style='background-image: url("https://lh3.googleusercontent.com/aida-public/AB6AXuAy3xOExxnIukA7ih-ff-zygRV015wHoLAPu1Svfs258yStMQ7Rgv8wSGSrA6C52tFyI_OTTHV5DR2fiF_ftIp5Nb4pLB5pmnW7s0VBnWU_r2PYuLxyh_7Y7ucSB4D2RoEgtgyM8x2pCIjoV1L166uOs3vsR5Cjw17k4p_0v3ZdfRlqvF-wMOx9prmieAIenRiTGl8X50Yg7A0cSw4lN9nd6XY4iIa7oQLev7qkiiiBXRPtmdmG3AwYe8_tzARbu47vzwmHfsjbbic");'></div>
-</div>
-<p class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Felix</p>
-</div>
-<div class="flex flex-col items-center gap-2 min-w-[64px]">
-<div class="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200">
-<span class="text-xs font-bold text-slate-500">+7</span>
-</div>
-<p class="text-[11px] font-medium text-slate-500 dark:text-slate-400">Andere</p>
-</div>
-</div>
-</div>
-<div class="px-4 space-y-4">
-<div class="bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-white/5 rounded-3xl p-6 ios-shadow">
-<div class="flex items-center gap-5 mb-6">
-<div class="w-16 h-16 rounded-2xl bg-sage-light dark:bg-sage-primary/10 flex items-center justify-center flex-shrink-0">
-<span class="material-symbols-outlined text-sage-primary dark:text-sage-muted text-[32px]">landscape</span>
-</div>
-<div class="flex-1">
-<h2 class="text-xl font-bold text-slate-900 dark:text-white leading-tight">Nächste Reise</h2>
-<p class="text-slate-500 dark:text-slate-400 text-sm font-medium mt-0.5">Alpen, Österreich • 10. - 17. Okt</p>
-</div>
-</div>
-<div class="space-y-4">
-<div class="flex justify-between items-end">
-<div class="space-y-1">
-<span class="text-[10px] uppercase tracking-widest font-bold text-slate-400 block">Status</span>
-<span class="text-sm font-semibold text-slate-700 dark:text-slate-200">Fast bereit zur Buchung</span>
-</div>
-<div class="text-right">
-<span class="text-sage-dark dark:text-sage-muted font-bold text-sm">8/12 Personen</span>
-</div>
-</div>
-<div class="w-full bg-slate-100 dark:bg-white/5 h-2.5 rounded-full overflow-hidden">
-<div class="bg-sage-dark h-full rounded-full transition-all duration-500" style="width: 66%"></div>
-</div>
-</div>
-<button class="w-full mt-6 py-4 text-[12px] font-bold bg-slate-50 dark:bg-sage-primary/5 text-sage-dark dark:text-sage-muted rounded-2xl hover:bg-sage-primary hover:text-white transition-all duration-200 uppercase tracking-widest border border-slate-100 dark:border-white/5">
-                    Planung öffnen
-                </button>
-</div>
-<div class="bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-white/5 rounded-2xl p-5 ios-shadow">
-<div class="flex items-center justify-between mb-4">
-<div class="flex items-center gap-3">
-<div class="w-9 h-9 rounded-full bg-sage-light dark:bg-sage-primary/20 flex items-center justify-center">
-<span class="material-symbols-outlined text-sage-primary dark:text-white text-[22px]">person</span>
-</div>
-<h2 class="text-base font-bold text-slate-900 dark:text-white">Meine Verfügbarkeit</h2>
-</div>
-<span class="material-symbols-outlined text-slate-300">expand_more</span>
-</div>
-<div class="bg-sage-primary text-white rounded-xl p-4 shadow-sm border border-white/10">
-<div class="flex items-center justify-between">
-<div>
-<p class="text-[10px] uppercase font-bold text-white/80 mb-1 tracking-widest">Bester Zeitraum</p>
-<p class="text-sm font-semibold">12. Okt — 15. Okt</p>
-</div>
-<span class="material-symbols-outlined text-white fill-1">check_circle</span>
-</div>
-</div>
-</div>
-<div class="bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-white/5 rounded-2xl p-5 ios-shadow">
-<div class="flex items-center justify-between mb-4">
-<div class="flex items-center gap-3">
-<div class="w-9 h-9 rounded-full bg-sage-light dark:bg-sage-primary/20 flex items-center justify-center">
-<span class="material-symbols-outlined text-sage-primary dark:text-white text-[22px]">groups</span>
-</div>
-<h2 class="text-base font-bold text-slate-900 dark:text-white">Beste Gruppen-Zeiträume</h2>
-</div>
-<span class="material-symbols-outlined text-slate-300">expand_more</span>
-</div>
-<div class="space-y-3">
-<div class="flex items-center gap-4">
-<div class="flex-1 bg-slate-50 dark:bg-white/5 p-4 rounded-xl border border-slate-100 dark:border-white/10">
-<div class="flex justify-between items-center mb-1">
-<p class="text-sm font-bold text-slate-900 dark:text-white">10. - 14. Oktober</p>
-<span class="bg-sage-primary/10 text-sage-primary dark:bg-sage-primary/40 dark:text-white text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider">TOP MATCH</span>
-</div>
-<p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">10 von 12 Personen verfügbar</p>
-</div>
-</div>
-<div class="flex items-center gap-4">
-<div class="flex-1 bg-slate-50 dark:bg-white/5 p-4 rounded-xl border border-slate-100 dark:border-white/10">
-<div class="flex justify-between items-center mb-1">
-<p class="text-sm font-bold text-slate-900 dark:text-white">05. - 10. August</p>
-</div>
-<p class="text-[11px] text-slate-500 dark:text-slate-400 font-medium">8 von 12 Personen verfügbar</p>
-</div>
-</div>
-</div>
-</div>
-</div>
-<div class="fixed bottom-0 left-0 right-0 max-w-[480px] mx-auto p-6 flex items-center justify-end gap-3 pointer-events-none z-50">
-<button class="pointer-events-auto w-14 h-14 bg-white dark:bg-slate-800 rounded-full shadow-2xl border border-slate-100 dark:border-white/10 flex items-center justify-center hover:scale-95 transition-transform active:scale-90">
-<span class="material-symbols-outlined text-sage-primary dark:text-white text-2xl">calendar_add_on</span>
-</button>
-<button class="pointer-events-auto h-14 px-6 bg-sage-primary text-white rounded-full shadow-2xl flex items-center gap-2 hover:scale-95 transition-transform active:scale-90 border border-white/10">
-<span class="material-symbols-outlined font-bold text-xl">add</span>
-<span class="text-[13px] font-bold tracking-tight">Neue Verfügbarkeit</span>
-</button>
-</div>
-</div>
-
-</body></html>
+  <body
+    class="bg-background-light dark:bg-background-dark font-display text-slate-900 dark:text-slate-200"
+  >
+    <div
+      class="max-w-[480px] mx-auto min-h-screen relative pb-24 bg-white dark:bg-background-dark shadow-sm"
+    >
+      <div class="relative h-[32vh] w-full overflow-hidden">
+        <div
+          class="absolute inset-0 bg-cover bg-center"
+          style="
+            background-image:
+              linear-gradient(
+                to bottom,
+                rgba(0, 0, 0, 0.2),
+                rgba(0, 0, 0, 0.5)
+              ),
+              url(&quot;https://lh3.googleusercontent.com/aida-public/AB6AXuD3i28Elw_Feunq2K3GfAGi-SNBmuJFRw46SjkuVJxn1SV_e3ecsDrL6YnmIyQSWf2cfzld5CMTox5AfIpWuR8hGDT9qQrICDXbRE1Ir2yWi66Armm-FolWtypSAiZOj5wyfOjUxf3IEeraftLM3paFFSFyTTPRcVORQJQa4zK_LKbLbwhLhqRAPW3PYy9Hgr1gTXdlAmR7j-9ulu_PlKypxJshdKhhDyplp6ZEJIwty-RC_AqZNlufncHY5p_uBrpdL9xaDhBivH4&quot;);
+          "
+        ></div>
+        <div
+          class="absolute top-6 left-6 right-4 flex justify-between items-start"
+        >
+          <h1
+            class="text-3xl font-bold text-white tracking-tight drop-shadow-md max-w-[70%]"
+          >
+            Hiking Crew 2024
+          </h1>
+          <button
+            class="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 text-white hover:bg-white/30 transition-colors"
+          >
+            <span class="material-symbols-outlined text-[24px]">settings</span>
+          </button>
+        </div>
+        <div
+          class="absolute bottom-6 left-6 right-6 flex items-end justify-between"
+        >
+          <div
+            class="bg-white/95 dark:bg-slate-900/90 backdrop-blur-md px-4 py-2 rounded-xl border border-white/40 shadow-sm flex items-center gap-2"
+          >
+            <span
+              class="material-symbols-outlined text-sage-primary text-[18px]"
+              >group</span
+            >
+            <span class="text-xs font-bold text-slate-800 dark:text-white"
+              >13 Personen</span
+            >
+          </div>
+          <button
+            class="bg-white/95 dark:bg-slate-900/90 backdrop-blur-md px-4 py-2 rounded-xl border border-white/40 shadow-sm flex items-center gap-2 hover:bg-white transition-colors"
+          >
+            <span
+              class="material-symbols-outlined text-sage-primary text-[18px]"
+              >event_busy</span
+            >
+            <span class="text-xs font-bold text-slate-800 dark:text-white"
+              >Deadline setzen</span
+            >
+          </button>
+        </div>
+      </div>
+      <div class="px-4 py-6">
+        <h3
+          class="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mb-4 px-1"
+        >
+          Mitglieder
+        </h3>
+        <div
+          class="flex overflow-x-auto no-scrollbar fade-right gap-5 items-start"
+        >
+          <div class="flex flex-col items-center gap-2 min-w-[64px]">
+            <div
+              class="w-14 h-14 rounded-full border-[2px] border-sage-primary p-0.5 shadow-sm"
+            >
+              <div
+                class="w-full h-full rounded-full bg-cover bg-center"
+                style="
+                  background-image: url(&quot;https://lh3.googleusercontent.com/aida-public/AB6AXuAPz4YY1DgnFvpUOhKIWCf6VCf3FCEoDfRjwO0YvAXcegVydMjsekpo1eoe-2qMv81XmM9QyBCbR_ic1qWuIh7lIJ6Oif0Q2Y0gvlLXAxhkXBh-nQba634wUEmmkf9cKiyD4NnGXKcLxQIVvep67SKWABRox5q2v423pSVV_47HpQIgdHh5SdA883blcxGy5LnVru6oU1BOrm5_-PgTIFfNDi_2mdsYCg4JMwi9-hPuLNLYPeVRVR-P4HpAM-eAc79Y19fjuouevFU&quot;);
+                "
+              ></div>
+            </div>
+            <p class="text-[11px] font-bold text-slate-900 dark:text-slate-300">
+              Anna
+            </p>
+          </div>
+          <div class="flex flex-col items-center gap-2 min-w-[64px]">
+            <div class="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800">
+              <div
+                class="w-full h-full rounded-full bg-cover bg-center"
+                style="
+                  background-image: url(&quot;https://lh3.googleusercontent.com/aida-public/AB6AXuAjlqlW-zGeYOTMecq9_iv9uNJs7elrLPZLr4rEFlGk3B1-LQfaoouDBE6H7FK3UywJwpvwH0aM-31415dP9hVmLm9NWi2RU_EJeyg1Ee4Nn_JpqncCD7qF7FMjJ7xrbneuFgHnMiFPw5V5u3olBbXui5OEPFGDDxHSnpxHrxi0S7AQZyCFE_4hfYU2lR6Vqgzw93WVXr81EVWJL-IrwjkjM-clDVRVxvH3hWUlR_aQOL5TecX5SJ9DKGQL7TqprgvgBssP_um7slI&quot;);
+                "
+              ></div>
+            </div>
+            <p
+              class="text-[11px] font-medium text-slate-500 dark:text-slate-400"
+            >
+              Lukas
+            </p>
+          </div>
+          <div class="flex flex-col items-center gap-2 min-w-[64px]">
+            <div class="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800">
+              <div
+                class="w-full h-full rounded-full bg-cover bg-center"
+                style="
+                  background-image: url(&quot;https://lh3.googleusercontent.com/aida-public/AB6AXuDeGOFlF8NHsFE8IEoaFgZuJte1XuEg5S0wgzlnRxFXf-ist0zBbz074QV9WsoC8PZlDJwPHNLLlaDUhegnchtamoYFaQr7e-qkJWIL3lhMD9Zo9qth2jnIhpuJl6JyiuujSDIFXpHRzazvzqB6IUHZ1g3xBhSHCuJqcuy37CQDOhCpTYQSKJscwCK6XOeQqPkFMuNEugk2vjSob6s-DtZR5y7f8zQKtWjQ5SlaUNhU2PUijZkp_0AM2-23RZa6Tuwzp5z_mNjuGeM&quot;);
+                "
+              ></div>
+            </div>
+            <p
+              class="text-[11px] font-medium text-slate-500 dark:text-slate-400"
+            >
+              Marie
+            </p>
+          </div>
+          <div class="flex flex-col items-center gap-2 min-w-[64px]">
+            <div class="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800">
+              <div
+                class="w-full h-full rounded-full bg-cover bg-center"
+                style="
+                  background-image: url(&quot;https://lh3.googleusercontent.com/aida-public/AB6AXuAy3xOExxnIukA7ih-ff-zygRV015wHoLAPu1Svfs258yStMQ7Rgv8wSGSrA6C52tFyI_OTTHV5DR2fiF_ftIp5Nb4pLB5pmnW7s0VBnWU_r2PYuLxyh_7Y7ucSB4D2RoEgtgyM8x2pCIjoV1L166uOs3vsR5Cjw17k4p_0v3ZdfRlqvF-wMOx9prmieAIenRiTGl8X50Yg7A0cSw4lN9nd6XY4iIa7oQLev7qkiiiBXRPtmdmG3AwYe8_tzARbu47vzwmHfsjbbic&quot;);
+                "
+              ></div>
+            </div>
+            <p
+              class="text-[11px] font-medium text-slate-500 dark:text-slate-400"
+            >
+              Felix
+            </p>
+          </div>
+          <div class="flex flex-col items-center gap-2 min-w-[64px]">
+            <div
+              class="w-14 h-14 rounded-full bg-slate-100 dark:bg-slate-800 flex items-center justify-center border border-slate-200"
+            >
+              <span class="text-xs font-bold text-slate-500">+7</span>
+            </div>
+            <p
+              class="text-[11px] font-medium text-slate-500 dark:text-slate-400"
+            >
+              Andere
+            </p>
+          </div>
+        </div>
+      </div>
+      <div class="px-4 space-y-4">
+        <div
+          class="bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-white/5 rounded-3xl p-6 ios-shadow"
+        >
+          <div class="flex items-center gap-5 mb-6">
+            <div
+              class="w-16 h-16 rounded-2xl bg-sage-light dark:bg-sage-primary/10 flex items-center justify-center flex-shrink-0"
+            >
+              <span
+                class="material-symbols-outlined text-sage-primary dark:text-sage-muted text-[32px]"
+                >landscape</span
+              >
+            </div>
+            <div class="flex-1">
+              <h2
+                class="text-xl font-bold text-slate-900 dark:text-white leading-tight"
+              >
+                Nächste Reise
+              </h2>
+              <p
+                class="text-slate-500 dark:text-slate-400 text-sm font-medium mt-0.5"
+              >
+                Alpen, Österreich • 10. - 17. Okt
+              </p>
+            </div>
+          </div>
+          <div class="space-y-4">
+            <div class="flex justify-between items-end">
+              <div class="space-y-1">
+                <span
+                  class="text-[10px] uppercase tracking-widest font-bold text-slate-400 block"
+                  >Status</span
+                >
+                <span
+                  class="text-sm font-semibold text-slate-700 dark:text-slate-200"
+                  >Fast bereit zur Buchung</span
+                >
+              </div>
+              <div class="text-right">
+                <span
+                  class="text-sage-dark dark:text-sage-muted font-bold text-sm"
+                  >8/12 Personen</span
+                >
+              </div>
+            </div>
+            <div
+              class="w-full bg-slate-100 dark:bg-white/5 h-2.5 rounded-full overflow-hidden"
+            >
+              <div
+                class="bg-sage-dark h-full rounded-full transition-all duration-500"
+                style="width: 66%"
+              ></div>
+            </div>
+          </div>
+          <button
+            class="w-full mt-6 py-4 text-[12px] font-bold bg-slate-50 dark:bg-sage-primary/5 text-sage-dark dark:text-sage-muted rounded-2xl hover:bg-sage-primary hover:text-white transition-all duration-200 uppercase tracking-widest border border-slate-100 dark:border-white/5"
+          >
+            Planung öffnen
+          </button>
+        </div>
+        <div
+          class="bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-white/5 rounded-2xl p-5 ios-shadow"
+        >
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <div
+                class="w-9 h-9 rounded-full bg-sage-light dark:bg-sage-primary/20 flex items-center justify-center"
+              >
+                <span
+                  class="material-symbols-outlined text-sage-primary dark:text-white text-[22px]"
+                  >person</span
+                >
+              </div>
+              <h2 class="text-base font-bold text-slate-900 dark:text-white">
+                Meine Verfügbarkeiten
+              </h2>
+            </div>
+            <span class="material-symbols-outlined text-slate-300"
+              >expand_more</span
+            >
+          </div>
+          <div
+            class="bg-sage-primary text-white rounded-xl p-4 shadow-sm border border-white/10"
+          >
+            <div class="flex items-center justify-between">
+              <div>
+                <p
+                  class="text-[10px] uppercase font-bold text-white/80 mb-1 tracking-widest"
+                >
+                  Bester Zeitraum
+                </p>
+                <p class="text-sm font-semibold">12. Okt — 15. Okt</p>
+              </div>
+              <span class="material-symbols-outlined text-white fill-1"
+                >check_circle</span
+              >
+            </div>
+          </div>
+        </div>
+        <div
+          class="bg-white dark:bg-slate-900/40 border border-slate-100 dark:border-white/5 rounded-2xl p-5 ios-shadow"
+        >
+          <div class="flex items-center justify-between mb-4">
+            <div class="flex items-center gap-3">
+              <div
+                class="w-9 h-9 rounded-full bg-sage-light dark:bg-sage-primary/20 flex items-center justify-center"
+              >
+                <span
+                  class="material-symbols-outlined text-sage-primary dark:text-white text-[22px]"
+                  >groups</span
+                >
+              </div>
+              <h2 class="text-base font-bold text-slate-900 dark:text-white">
+                Beste Gruppen-Zeiträume
+              </h2>
+            </div>
+            <span class="material-symbols-outlined text-slate-300"
+              >expand_more</span
+            >
+          </div>
+          <div class="space-y-3">
+            <div class="flex items-center gap-4">
+              <div
+                class="flex-1 bg-slate-50 dark:bg-white/5 p-4 rounded-xl border border-slate-100 dark:border-white/10"
+              >
+                <div class="flex justify-between items-center mb-1">
+                  <p class="text-sm font-bold text-slate-900 dark:text-white">
+                    10. - 14. Oktober
+                  </p>
+                  <span
+                    class="bg-sage-primary/10 text-sage-primary dark:bg-sage-primary/40 dark:text-white text-[9px] px-2 py-0.5 rounded-full font-bold uppercase tracking-wider"
+                    >TOP MATCH</span
+                  >
+                </div>
+                <p
+                  class="text-[11px] text-slate-500 dark:text-slate-400 font-medium"
+                >
+                  10 von 12 Personen verfügbar
+                </p>
+              </div>
+            </div>
+            <div class="flex items-center gap-4">
+              <div
+                class="flex-1 bg-slate-50 dark:bg-white/5 p-4 rounded-xl border border-slate-100 dark:border-white/10"
+              >
+                <div class="flex justify-between items-center mb-1">
+                  <p class="text-sm font-bold text-slate-900 dark:text-white">
+                    05. - 10. August
+                  </p>
+                </div>
+                <p
+                  class="text-[11px] text-slate-500 dark:text-slate-400 font-medium"
+                >
+                  8 von 12 Personen verfügbar
+                </p>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div
+        class="fixed bottom-0 left-0 right-0 max-w-[480px] mx-auto p-6 flex items-center justify-end gap-3 pointer-events-none z-50"
+      >
+        <button
+          class="pointer-events-auto w-14 h-14 bg-white dark:bg-slate-800 rounded-full shadow-2xl border border-slate-100 dark:border-white/10 flex items-center justify-center hover:scale-95 transition-transform active:scale-90"
+        >
+          <span
+            class="material-symbols-outlined text-sage-primary dark:text-white text-2xl"
+            >calendar_add_on</span
+          >
+        </button>
+        <button
+          class="pointer-events-auto h-14 px-6 bg-sage-primary text-white rounded-full shadow-2xl flex items-center gap-2 hover:scale-95 transition-transform active:scale-90 border border-white/10"
+        >
+          <span class="material-symbols-outlined font-bold text-xl">add</span>
+          <span class="text-[13px] font-bold tracking-tight"
+            >Neue Verfügbarkeit</span
+          >
+        </button>
+      </div>
+    </div>
+  </body>
+</html>

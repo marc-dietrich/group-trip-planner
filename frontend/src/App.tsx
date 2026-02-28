@@ -50,6 +50,7 @@ import { DesktopShell } from "./layout/DesktopShell";
 import { MobileShell } from "./layout/MobileShell";
 import { useGroups } from "./hooks/useGroups";
 import { useGroupStore } from "./state/groupStore";
+import { fetchSupporterStatus } from "./services/supporterService";
 
 const basename = import.meta.env.BASE_URL || "/";
 
@@ -166,6 +167,7 @@ function AppShell() {
   const [joining, setJoining] = useState(false);
   const [alreadyMember, setAlreadyMember] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
+  const [hasSupporterCrown, setHasSupporterCrown] = useState(false);
   const oauthReady = authEnabled;
 
   const identity = useMemo<Identity>(() => {
@@ -190,6 +192,7 @@ function AppShell() {
     groups,
     groupsLoading,
     groupsError,
+    groupsStatus,
     refetch: refetchGroups,
   } = useGroups(identity);
   const upsertGroup = useGroupStore((state) => state.upsertGroup);
@@ -220,6 +223,28 @@ function AppShell() {
 
     return () => controller.abort();
   }, [identity]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchSupporterStatus(identity)
+      .then((result) => {
+        if (cancelled) return;
+        setHasSupporterCrown(Boolean(result?.hasCrown));
+      })
+      .catch(() => {
+        if (cancelled) return;
+        setHasSupporterCrown(false);
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [
+    identity.actorId,
+    identity.kind,
+    identity.kind === "user" ? identity.accessToken : undefined,
+  ]);
 
   useEffect(() => {
     let isActive = true;
@@ -496,7 +521,7 @@ function AppShell() {
           isDesktop ? (
             <DesktopGroupsPage
               groups={groups}
-              groupsLoading={groupsLoading}
+              groupsStatus={groupsStatus}
               groupsError={combinedGroupsError}
               identity={identity}
               health={health}
@@ -505,7 +530,7 @@ function AppShell() {
           ) : (
             <GroupsPage
               groups={groups}
-              groupsLoading={groupsLoading}
+              groupsStatus={groupsStatus}
               groupsError={combinedGroupsError}
               deletingId={deletingId}
               identity={identity}
@@ -591,6 +616,7 @@ function AppShell() {
           open={menuOpen}
           onClose={() => setMenuOpen(false)}
           identity={identity}
+          hasSupporterCrown={hasSupporterCrown}
           onLogout={handleLogout}
           onLogin={() => setAuthPanelOpen(true)}
           authEnabled={oauthReady}
@@ -602,6 +628,7 @@ function AppShell() {
           identity={identity}
           groups={groups}
           groupsLoading={groupsLoading}
+          groupsStatus={groupsStatus}
           groupsError={combinedGroupsError}
           deletingId={deletingId}
           onCopyInvite={handleCopyInvite}
