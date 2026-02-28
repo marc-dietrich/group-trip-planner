@@ -6,6 +6,7 @@ import { input, muted, pillDanger } from "../ui";
 import { useGroupStats } from "../hooks/useGroupStats";
 import { GroupsFetchStatus } from "../hooks/useGroups";
 import { useGroupStore } from "../state/groupStore";
+import { groupImageUrl } from "../services/imageService";
 import genericSurface from "../../assets/generic.webp";
 
 const monthLabels = [
@@ -73,6 +74,8 @@ function GroupCard({ group, identity }: GroupCardProps) {
   const navigate = useNavigate();
   const { data: stats, loading } = useGroupStats(group.groupId, identity);
   const initials = getGroupInitials(group.name);
+  const [imageFailed, setImageFailed] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   const submitted = stats.usersWithAvailability ?? 0;
   const total = stats.totalUsers ?? 0;
@@ -83,6 +86,7 @@ function GroupCard({ group, identity }: GroupCardProps) {
   );
   const progressWidth = `${progressPercent}%`;
   const label = loading ? "Lädt…" : `${submitted} von ${total}`;
+  const imageSrc = imageFailed ? genericSurface : groupImageUrl(group.groupId);
 
   return (
     <li
@@ -93,17 +97,23 @@ function GroupCard({ group, identity }: GroupCardProps) {
       <div className="relative flex-shrink-0 mt-0.5">
         <div className="relative size-20 rounded-[24px] overflow-hidden border-2 border-white shadow-soft bg-sage-100">
           <img
-            src={genericSurface}
+            src={imageSrc}
             alt=""
             aria-hidden="true"
             className="absolute inset-0 h-full w-full object-cover"
+            onLoad={() => setImageLoaded(true)}
+            onError={() => {
+              if (!imageFailed) setImageFailed(true);
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-br from-white/35 via-transparent to-sage-900/15" />
-          <div className="relative z-10 flex h-full w-full items-center justify-center">
-            <span className="text-lg font-extrabold tracking-[0.04em] text-sage-900 drop-shadow-[0_1px_1px_rgba(255,255,255,0.75)]">
-              {initials}
-            </span>
-          </div>
+          {!imageLoaded || imageFailed ? (
+            <div className="relative z-10 flex h-full w-full items-center justify-center">
+              <span className="text-lg font-extrabold tracking-[0.04em] text-sage-900 drop-shadow-[0_1px_1px_rgba(255,255,255,0.75)]">
+                {initials}
+              </span>
+            </div>
+          ) : null}
         </div>
         <div className="absolute -top-1 -right-1 bg-brand-primary text-white size-6 rounded-full flex items-center justify-center ring-4 ring-white">
           <span className="material-symbols-outlined text-[14px]">check</span>

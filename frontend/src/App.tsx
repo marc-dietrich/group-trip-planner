@@ -42,6 +42,7 @@ import { GroupsPage } from "./pages/GroupsPage";
 import { GroupDetailPage } from "./pages/GroupDetailPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { MorePage } from "./pages/MorePage";
+import { SupporterThanksPage } from "./pages/SupporterThanksPage";
 import { DialogSandbox } from "./pages/DialogSandbox";
 import { DesktopGroupsPage } from "./pages/desktop/DesktopGroupsPage";
 import { DesktopGroupDetailPage } from "./pages/desktop/DesktopGroupDetailPage";
@@ -572,6 +573,11 @@ function AppShell() {
       <Route
         path="/more"
         element={<MorePage onTestVoice={handleMockVoice} />}
+      />
+      <Route path="/supporter/thanks" element={<SupporterThanksPage />} />
+      <Route
+        path="/success"
+        element={<Navigate to="/supporter/thanks" replace />}
       />
       <Route
         path="/invite/:inviteId"

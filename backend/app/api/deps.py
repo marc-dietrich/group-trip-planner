@@ -4,6 +4,7 @@ from fastapi import Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_session
+from app.core.config import get_settings
 from app.user_core.repositories import (
     GroupRepository,
     IdentityRepository,
@@ -15,6 +16,7 @@ from app.user_core.repositories import (
     SQLModelActorRepository,
 )
 from app.user_core.services import AuthService, GroupService, AvailabilityService, ActorService
+from app.services.image_storage_service import ImageStorageService
 
 
 async def get_group_repository(session: AsyncSession = Depends(get_session)) -> GroupRepository:
@@ -53,3 +55,7 @@ async def get_availability_service(
     group_repo: GroupRepository = Depends(get_group_repository),
 ) -> AvailabilityService:
     return AvailabilityService(availability_repo=availability_repo, group_repo=group_repo)
+
+
+def get_image_storage_service() -> ImageStorageService:
+    return ImageStorageService(get_settings())
