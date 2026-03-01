@@ -26,5 +26,49 @@ services:
       timeout: 5s
       retries: 5
 
+  postgres-backup:
+    build:
+      context: ./backup
+    container_name: gtp-postgres-backup
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    env_file:
+      - ../.env
+    environment:
+      - TZ=${TZ:-Europe/Berlin}
+      - POSTGRES_HOST=postgres
+      - POSTGRES_PORT=5432
+      - POSTGRES_USER=${POSTGRES_USER:-gtp}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-gtp_pw}
+      - POSTGRES_DB=${POSTGRES_DB:-gtp}
+      - BACKUP_ENCRYPTION_PASSPHRASE=${BACKUP_ENCRYPTION_PASSPHRASE}
+      - BACKUP_DAILY_CRON=${BACKUP_DAILY_CRON:-0 2 * * *}
+      - BACKUP_WEEKLY_CRON=${BACKUP_WEEKLY_CRON:-0 3 * * 0}
+      - BACKUP_MONTHLY_CRON=${BACKUP_MONTHLY_CRON:-0 4 1 * *}
+      - BACKUP_RETENTION_DAILY=${BACKUP_RETENTION_DAILY:-14}
+      - BACKUP_RETENTION_WEEKLY=${BACKUP_RETENTION_WEEKLY:-8}
+      - BACKUP_RETENTION_MONTHLY=${BACKUP_RETENTION_MONTHLY:-12}
+      - BACKUP_RUN_ON_STARTUP=${BACKUP_RUN_ON_STARTUP:-false}
+      - BACKUP_REMOTE_MODE=${BACKUP_REMOTE_MODE:-disabled}
+      - BACKUP_REMOTE_TIMEOUT_SECONDS=${BACKUP_REMOTE_TIMEOUT_SECONDS:-120}
+      - REMOTE_RSYNC_HOST=${REMOTE_RSYNC_HOST:-}
+      - REMOTE_RSYNC_USER=${REMOTE_RSYNC_USER:-}
+      - REMOTE_RSYNC_PATH=${REMOTE_RSYNC_PATH:-}
+      - REMOTE_RSYNC_PORT=${REMOTE_RSYNC_PORT:-22}
+      - REMOTE_SSH_KEY_PATH=${REMOTE_SSH_KEY_PATH:-/run/backup-ssh-key}
+      - REMOTE_SSH_STRICT_HOST_KEY_CHECKING=${REMOTE_SSH_STRICT_HOST_KEY_CHECKING:-yes}
+      - REMOTE_FTP_HOST=${REMOTE_FTP_HOST:-}
+      - REMOTE_FTP_PORT=${REMOTE_FTP_PORT:-21}
+      - REMOTE_FTP_USER=${REMOTE_FTP_USER:-}
+      - REMOTE_FTP_PASSWORD=${REMOTE_FTP_PASSWORD:-}
+      - REMOTE_FTP_PATH=${REMOTE_FTP_PATH:-/gtp-backups}
+      - REMOTE_FTP_SSL=${REMOTE_FTP_SSL:-true}
+      - REMOTE_FTP_VERIFY_CERT=${REMOTE_FTP_VERIFY_CERT:-true}
+    volumes:
+      - ./backups:/backups
+      - ${REMOTE_SSH_KEY_MOUNT:-/dev/null}:/run/backup-ssh-key:ro
+
 volumes:
   db_data:

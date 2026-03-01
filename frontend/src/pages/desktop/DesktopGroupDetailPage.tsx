@@ -1,12 +1,22 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
+import { toast } from "sonner";
 import { useParams } from "react-router-dom";
 import { AvailabilityFlow } from "../../components/AvailabilityFlow";
+import {
+  ImagePickSource,
+  ImageSourceDialog,
+} from "../../components/ImageSourceDialog";
 import { Topbar } from "../../components/Topbar";
 import { buildIdentityHeaders } from "../../lib/identity";
 import { apiPath } from "../../lib/api";
 import { useGroupAvailability } from "../../hooks/useGroupAvailability";
 import { useGroupMemberAvailabilities } from "../../hooks/useGroupMemberAvailabilities";
 import { useGroupStats } from "../../hooks/useGroupStats";
+import {
+  deleteGroupImage,
+  groupImageUrl,
+  uploadGroupImage,
+} from "../../services/imageService";
 import { GroupMembership, HealthCheck, Identity } from "../../types";
 import { muted } from "../../ui";
 
@@ -29,6 +39,12 @@ export function DesktopGroupDetailPage({
 }: DesktopGroupDetailPageProps) {
   const { groupId } = useParams();
   const [groupName, setGroupName] = useState<string>("Gruppe");
+  const [groupImageDialogOpen, setGroupImageDialogOpen] = useState(false);
+  const [groupImageUploading, setGroupImageUploading] = useState(false);
+  const [groupImageVersion, setGroupImageVersion] = useState<number>(
+    Date.now(),
+  );
+  const groupImageInputRef = useRef<HTMLInputElement | null>(null);
   const { data: summary, refetch: refetchSummary } = useGroupAvailability(
     groupId ?? null,
     identity,
@@ -106,6 +122,9 @@ export function DesktopGroupDetailPage({
   const compactMembers = memberAvailabilities.slice(0, 6);
   const remainingMembers = Math.max(0, memberCount - compactMembers.length);
   const highlightInterval = bestInterval || summary[0] || null;
+  const groupImagePreview = groupId
+    ? groupImageUrl(groupId, groupImageVersion)
+    : null;
   const highlightFill = highlightInterval
     ? Math.round(
         (highlightInterval.availableCount /
@@ -125,8 +144,85 @@ export function DesktopGroupDetailPage({
     return trimmed;
   };
 
+  const openGroupImagePicker = (source: ImagePickSource) => {
+    const input = groupImageInputRef.current;
+    if (!input) return;
+    input.value = "";
+    input.accept = "image/*";
+    if (source === "camera") {
+      input.setAttribute("capture", "environment");
+    } else {
+      input.removeAttribute("capture");
+    }
+    input.click();
+  };
+
+  const handleImageSourceSelect = (source: ImagePickSource) => {
+    setGroupImageDialogOpen(false);
+    openGroupImagePicker(source);
+  };
+
+  const handleGroupImageFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file || !groupId) return;
+
+    try {
+      setGroupImageUploading(true);
+      await uploadGroupImage(groupId, file, identity);
+      setGroupImageVersion(Date.now());
+      toast.success("Gruppenbild aktualisiert");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Gruppenbild konnte nicht hochgeladen werden";
+      toast.error(message);
+    } finally {
+      setGroupImageUploading(false);
+    }
+  };
+
+  const handleGroupImageDelete = async () => {
+    if (!groupId) return;
+
+    try {
+      setGroupImageUploading(true);
+      await deleteGroupImage(groupId, identity);
+      setGroupImageVersion(Date.now());
+      toast.success("Gruppenbild gelöscht");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Gruppenbild konnte nicht gelöscht werden";
+      toast.error(message);
+    } finally {
+      setGroupImageUploading(false);
+      setGroupImageDialogOpen(false);
+    }
+  };
+
   return (
     <div className="space-y-8">
+      <input
+        ref={groupImageInputRef}
+        type="file"
+        className="hidden"
+        onChange={handleGroupImageFileChange}
+      />
+      <ImageSourceDialog
+        open={groupImageDialogOpen}
+        title="Gruppenbild ändern"
+        description="Foto aufnehmen oder ein Bild aus Galerie/Dokumenten wählen."
+        onClose={() => setGroupImageDialogOpen(false)}
+        onSelect={handleImageSourceSelect}
+        onDelete={handleGroupImageDelete}
+        deleteLabel="Gruppenbild löschen"
+        deleteDisabled={groupImageUploading}
+      />
+
       <Topbar
         title={groupName}
         subtitle="Gruppendetails"
@@ -210,6 +306,34 @@ export function DesktopGroupDetailPage({
         </section>
 
         <aside className="space-y-4 rounded-3xl border border-sage-100 bg-white/95 p-5 shadow-soft">
+          <div className="rounded-2xl border border-sage-100 bg-white p-4 shadow-sm">
+            <div className="mb-3 flex items-center justify-between gap-3">
+              <div>
+                <p className="text-[11px] font-bold uppercase tracking-[0.18em] text-sage-600">
+                  Einstellungen
+                </p>
+                <p className="text-sm font-semibold text-sage-700">
+                  Gruppenbild
+                </p>
+              </div>
+              <button
+                type="button"
+                className="rounded-xl border border-sage-200 bg-white px-3 py-2 text-sm font-semibold text-sage-700 transition hover:bg-sage-50 disabled:opacity-60"
+                onClick={() => setGroupImageDialogOpen(true)}
+                disabled={groupImageUploading}
+              >
+                {groupImageUploading ? "Lädt…" : "Ändern"}
+              </button>
+            </div>
+            {groupImagePreview ? (
+              <img
+                src={groupImagePreview}
+                alt="Gruppenbild"
+                className="h-24 w-full rounded-xl object-cover"
+              />
+            ) : null}
+          </div>
+
           <div className="rounded-2xl border border-sage-100 bg-white p-4 shadow-sm">
             <div className="mb-3 flex items-center justify-between">
               <div>

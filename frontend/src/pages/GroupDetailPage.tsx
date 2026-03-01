@@ -5,11 +5,20 @@ import { GroupMembership, Identity } from "../types";
 import { buildIdentityHeaders } from "../lib/identity";
 import { apiPath } from "../lib/api";
 import { AvailabilityFlow } from "../components/AvailabilityFlow";
+import {
+  ImagePickSource,
+  ImageSourceDialog,
+} from "../components/ImageSourceDialog";
 import { muted } from "../ui";
 import { useGroupAvailability } from "../hooks/useGroupAvailability";
 import { useGroupMemberAvailabilities } from "../hooks/useGroupMemberAvailabilities";
 import { useGroupStats } from "../hooks/useGroupStats";
 import { useGroupStore } from "../state/groupStore";
+import {
+  deleteGroupImage,
+  groupImageUrl,
+  uploadGroupImage,
+} from "../services/imageService";
 import genericSurface from "../../assets/generic.webp";
 import bannerSurface from "../../assets/banner.svg";
 
@@ -31,6 +40,12 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
   const [selfListOpen, setSelfListOpen] = useState(false);
   const [groupListOpen, setGroupListOpen] = useState(false);
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
+  const [groupImageDialogOpen, setGroupImageDialogOpen] = useState(false);
+  const [groupImageUploading, setGroupImageUploading] = useState(false);
+  const [groupImageVersion, setGroupImageVersion] = useState<number>(
+    Date.now(),
+  );
+  const [groupImageFallback, setGroupImageFallback] = useState(false);
   const [memberListFade, setMemberListFade] = useState({
     left: false,
     right: false,
@@ -38,6 +53,7 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
   const actionMenuRef = useRef<HTMLDivElement | null>(null);
   const memberListRef = useRef<HTMLDivElement | null>(null);
   const titleRef = useRef<HTMLHeadingElement | null>(null);
+  const groupImageInputRef = useRef<HTMLInputElement | null>(null);
   const removeGroup = useGroupStore((state) => state.removeGroup);
 
   const { data: summary, refetch: refetchSummary } = useGroupAvailability(
@@ -152,6 +168,9 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
   }, [currentGroup]);
   const isOwner = currentGroup?.role === "owner";
   const canLeaveGroup = Boolean(currentGroup);
+  const currentGroupImage = groupId
+    ? groupImageUrl(groupId, groupImageVersion)
+    : bannerSurface;
 
   const selfEntries = useMemo(
     () =>
@@ -177,6 +196,12 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
   const showComingSoon = (feature: string) => {
     toast.info("Coming soon", {
       description: `${feature} ist bald verfügbar.`,
+    });
+  };
+
+  const showVoiceInputComingSoon = () => {
+    toast.info("Coming soon", {
+      description: "Speech input is coming soon.",
     });
   };
 
@@ -256,6 +281,68 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
       );
     } finally {
       setActionMenuOpen(false);
+    }
+  };
+
+  const openGroupImagePicker = (source: ImagePickSource) => {
+    const input = groupImageInputRef.current;
+    if (!input) return;
+    input.value = "";
+    input.accept = "image/*";
+    if (source === "camera") {
+      input.setAttribute("capture", "environment");
+    } else {
+      input.removeAttribute("capture");
+    }
+    input.click();
+  };
+
+  const handleGroupImageSource = (source: ImagePickSource) => {
+    setGroupImageDialogOpen(false);
+    if (!groupId) return;
+    openGroupImagePicker(source);
+  };
+
+  const handleGroupImageFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file || !groupId) return;
+
+    try {
+      setGroupImageUploading(true);
+      await uploadGroupImage(groupId, file, identity);
+      setGroupImageFallback(false);
+      setGroupImageVersion(Date.now());
+      toast.success("Gruppenbild aktualisiert");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Gruppenbild konnte nicht hochgeladen werden";
+      toast.error(message);
+    } finally {
+      setGroupImageUploading(false);
+    }
+  };
+
+  const handleGroupImageDelete = async () => {
+    if (!groupId) return;
+
+    try {
+      setGroupImageUploading(true);
+      await deleteGroupImage(groupId, identity);
+      setGroupImageFallback(true);
+      toast.success("Gruppenbild gelöscht");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Gruppenbild konnte nicht gelöscht werden";
+      toast.error(message);
+    } finally {
+      setGroupImageUploading(false);
+      setGroupImageDialogOpen(false);
     }
   };
 
@@ -382,13 +469,36 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
     };
   }, [groupName]);
   return (
-    <div className="relative pb-28 space-y-6">
-      <div className="relative h-[32vh] w-full overflow-hidden rounded-3xl shadow-soft">
+    <div className="relative pb-28">
+      {groupImageUploading ? (
+        <div className="pointer-events-none fixed left-1/2 top-4 z-50 -translate-x-1/2 rounded-full border border-white/40 bg-slate-900/45 px-4 py-1.5 text-xs font-semibold text-white backdrop-blur-sm">
+          Bild wird hochgeladen…
+        </div>
+      ) : null}
+      <input
+        ref={groupImageInputRef}
+        type="file"
+        className="hidden"
+        onChange={handleGroupImageFileChange}
+      />
+      <ImageSourceDialog
+        open={groupImageDialogOpen}
+        title="Gruppenbild ändern"
+        description="Foto aufnehmen oder ein Bild aus Galerie/Dokumenten wählen."
+        onClose={() => setGroupImageDialogOpen(false)}
+        onSelect={handleGroupImageSource}
+        onDelete={handleGroupImageDelete}
+        deleteLabel="Gruppenbild löschen"
+        deleteDisabled={groupImageUploading}
+      />
+
+      <div className="relative -mx-5 -mt-6 h-[32vh] w-[calc(100%+2.5rem)] overflow-hidden">
         <img
-          src={bannerSurface}
+          src={groupImageFallback ? bannerSurface : currentGroupImage}
           alt=""
           aria-hidden="true"
           className="absolute inset-0 h-full w-full object-cover"
+          onError={() => setGroupImageFallback(true)}
         />
         <div className="absolute inset-0 bg-gradient-to-br from-white/35 via-transparent to-sage-900/20" />
         <div className="absolute top-6 left-6 right-4 flex justify-between items-start">
@@ -432,6 +542,19 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
 
             {actionMenuOpen ? (
               <div className="absolute right-0 top-11 z-30 w-48 rounded-2xl border border-sage-200 bg-white p-1.5 shadow-card">
+                <button
+                  type="button"
+                  className="w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-sage-900 transition hover:bg-sage-50"
+                  disabled={groupImageUploading}
+                  onClick={() => {
+                    setActionMenuOpen(false);
+                    setGroupImageDialogOpen(true);
+                  }}
+                >
+                  {groupImageUploading
+                    ? "Gruppenbild wird hochgeladen…"
+                    : "Gruppenbild anpassen"}
+                </button>
                 {isOwner ? (
                   <button
                     type="button"
@@ -481,7 +604,7 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
         </div>
       </div>
 
-      <div className="px-1 space-y-6">
+      <div className="mt-6 px-1 space-y-6">
         <div>
           <h3 className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 mb-4 px-1">
             Mitglieder
@@ -723,6 +846,21 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
       </div>
 
       <div className="fixed bottom-6 left-0 right-0 max-w-[520px] mx-auto p-4 flex items-center justify-end gap-3 pointer-events-none">
+        <button
+          type="button"
+          className="pointer-events-auto w-14 h-14 rounded-full shadow-2xl flex items-center justify-center hover:scale-95 transition-transform active:scale-90 bg-brand-primary border border-white/10 text-white"
+          onClick={showVoiceInputComingSoon}
+          aria-label="Speech input coming soon"
+        >
+          <span className="relative inline-flex items-center justify-center">
+            <span className="material-symbols-outlined text-white text-2xl">
+              mic
+            </span>
+            <span className="absolute -right-0 top-5 inline-flex items-center justify-center bg-transparent text-[12px] font-bold leading-none text-white">
+              +
+            </span>
+          </span>
+        </button>
         <button
           type="button"
           className="pointer-events-auto w-14 h-14 rounded-full shadow-2xl flex items-center justify-center hover:scale-95 transition-transform active:scale-90 bg-brand-primary border border-white/10 text-white"

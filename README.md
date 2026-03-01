@@ -14,6 +14,10 @@ Monorepo für die Gruppen-Reiseplanung (Phase 1: Gruppen anlegen, Zeitfenster de
 
 ## Development Setup
 
+### Image Storage (Garage)
+
+Für self-hosted Objekt-Storage (S3-kompatibel, lokal) siehe: `docs/storage_garage.md`.
+
 ### Database (optional)
 
 Die App und Tests laufen standardmäßig ohne laufende Datenbank. Eine echte Postgres-Instanz ist nur für manuelle Smoke-Tests nötig.
@@ -22,6 +26,8 @@ Die App und Tests laufen standardmäßig ohne laufende Datenbank. Eine echte Pos
 cd backend
 ./setup_postgres.sh     # Erstellt DB und User automatisch (nur falls benötigt)
 ```
+
+Für automatisierte, verschlüsselte Backups (daily/weekly/monthly, lokal + optional NAS) siehe `database/README.md`.
 
 ### Backend (Python + FastAPI)
 

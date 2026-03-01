@@ -4,11 +4,20 @@ import os
 from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
+from fastapi.middleware.httpsredirect import HTTPSRedirectMiddleware
 from fastapi.middleware.cors import CORSMiddleware
 
 from .core.config import get_settings
 from .core.database import create_db_and_tables
-from .api.routes import auth_router, groups_router, health_router, voice_mock_router, availability_router, actor_router
+from .api.routes import (
+    auth_router,
+    groups_router,
+    health_router,
+    voice_mock_router,
+    availability_router,
+    actor_router,
+    image_router,
+)
 from .user_core.services import AvailabilityService
 
 settings = get_settings()
@@ -40,6 +49,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+if settings.enforce_https:
+    app.add_middleware(HTTPSRedirectMiddleware)
+
 # Include routers
 app.include_router(health_router)
 app.include_router(groups_router)
@@ -47,6 +59,7 @@ app.include_router(auth_router)
 app.include_router(voice_mock_router)
 app.include_router(availability_router)
 app.include_router(actor_router)
+app.include_router(image_router)
 
 # For module execution
 def run_server():

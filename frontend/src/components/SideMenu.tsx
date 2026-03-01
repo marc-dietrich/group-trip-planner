@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { ChangeEvent, useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
 import { Identity } from "../types";
 import { createDonationCheckoutSession } from "../services/donationService";
@@ -10,6 +10,8 @@ import {
   startOAuthLogin,
   authEnabled as defaultAuthEnabled,
 } from "../lib/auth";
+import { ImagePickSource, ImageSourceDialog } from "./ImageSourceDialog";
+import { profileImageUrl, uploadProfileImage } from "../services/imageService";
 import genericSurface from "../../assets/generic.webp";
 
 export type SideMenuProps = {
@@ -57,8 +59,13 @@ export function SideMenu({
   const [contactExpanded, setContactExpanded] = useState(false);
   const [contactEmail, setContactEmail] = useState<string | null>(null);
   const [contactLoading, setContactLoading] = useState(false);
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [imageUploading, setImageUploading] = useState(false);
+  const [imageVersion, setImageVersion] = useState<number>(Date.now());
+  const [imageFallback, setImageFallback] = useState(false);
   const oauthReady = authEnabled ?? defaultAuthEnabled;
   const donationAmounts = [5, 10, 20];
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   const donationMotionClass = (index: number) => {
     if (donationExpanded) {
@@ -104,6 +111,55 @@ export function SideMenu({
     () => (isUser ? "Angemeldet" : "Gastmodus"),
     [isUser],
   );
+
+  const currentImageSrc =
+    identity.kind === "user"
+      ? profileImageUrl(identity.userId, imageVersion)
+      : genericSurface;
+
+  const openFilePicker = (source: ImagePickSource) => {
+    const input = fileInputRef.current;
+    if (!input) return;
+    input.value = "";
+    input.accept = "image/*";
+    if (source === "camera") {
+      input.setAttribute("capture", "environment");
+    } else {
+      input.removeAttribute("capture");
+    }
+    input.click();
+  };
+
+  const handleSelectImageSource = (source: ImagePickSource) => {
+    setPickerOpen(false);
+    if (identity.kind !== "user") {
+      toast.info("Bitte zuerst einloggen, um ein Profilbild hochzuladen.");
+      return;
+    }
+    openFilePicker(source);
+  };
+
+  const handleProfileFileChange = async (
+    event: ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file || identity.kind !== "user") return;
+    try {
+      setImageUploading(true);
+      await uploadProfileImage(file, identity);
+      setImageFallback(false);
+      setImageVersion(Date.now());
+      toast.success("Profilbild aktualisiert");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Profilbild konnte nicht hochgeladen werden";
+      toast.error(message);
+    } finally {
+      setImageUploading(false);
+    }
+  };
 
   useEffect(() => {
     if (open) {
@@ -230,6 +286,19 @@ export function SideMenu({
 
   return (
     <div className="fixed inset-0 z-40 flex items-center justify-center">
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        onChange={handleProfileFileChange}
+      />
+      <ImageSourceDialog
+        open={pickerOpen}
+        title="Profilbild ändern"
+        description="Foto aufnehmen oder ein Bild aus Galerie/Dokumenten wählen."
+        onClose={() => setPickerOpen(false)}
+        onSelect={handleSelectImageSource}
+      />
       <button
         type="button"
         className={`absolute inset-0 bg-black/40 transition-opacity duration-200 ease-out ${visible ? "opacity-100" : "opacity-0"}`}
@@ -259,18 +328,25 @@ export function SideMenu({
             <div className="p-5 pt-10 flex flex-col gap-3">
               <div className="flex items-center gap-3.5">
                 <div className="relative">
-                  <div className="relative size-12 rounded-full overflow-hidden border border-sage-200 bg-sage-100 flex items-center justify-center">
+                  <button
+                    type="button"
+                    className="relative size-12 rounded-full overflow-hidden border border-sage-200 bg-sage-100 flex items-center justify-center"
+                    onClick={() => setPickerOpen(true)}
+                    aria-label="Profilbild ändern"
+                    disabled={imageUploading}
+                  >
                     <img
-                      src={genericSurface}
+                      src={imageFallback ? genericSurface : currentImageSrc}
                       alt=""
                       aria-hidden="true"
                       className="absolute inset-0 h-full w-full object-cover"
+                      onError={() => setImageFallback(true)}
                     />
                     <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-transparent to-sage-900/15" />
                     <span className="relative z-10 text-sage-900 font-semibold drop-shadow-[0_1px_1px_rgba(255,255,255,0.75)]">
                       {getInitials(displayName)}
                     </span>
-                  </div>
+                  </button>
                   {hasSupporterCrown ? (
                     <div className="absolute -top-1 -right-1 bg-white rounded-full p-0.5 shadow-sm border border-sage-100 flex items-center justify-center">
                       <span className="material-symbols-outlined text-[12px] text-amber-400">

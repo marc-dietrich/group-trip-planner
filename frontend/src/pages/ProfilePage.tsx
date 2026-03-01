@@ -1,4 +1,12 @@
+import { useRef, useState } from "react";
+import { toast } from "sonner";
 import { HealthCheck, Identity } from "../types";
+import genericSurface from "../../assets/generic.webp";
+import {
+  ImagePickSource,
+  ImageSourceDialog,
+} from "../components/ImageSourceDialog";
+import { profileImageUrl, uploadProfileImage } from "../services/imageService";
 import {
   buttonGhost,
   buttonPrimary,
@@ -29,9 +37,79 @@ export function ProfilePage({
   onLogout,
 }: ProfilePageProps) {
   const isOnline = health?.status === "ok";
+  const [pickerOpen, setPickerOpen] = useState(false);
+  const [uploading, setUploading] = useState(false);
+  const [imageVersion, setImageVersion] = useState<number>(Date.now());
+  const [imageFallback, setImageFallback] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
+
+  const currentImageUrl =
+    identity.kind === "user"
+      ? profileImageUrl(identity.userId, imageVersion)
+      : genericSurface;
+
+  const openFilePicker = (source: ImagePickSource) => {
+    const input = fileInputRef.current;
+    if (!input) return;
+    input.value = "";
+    input.accept = "image/*";
+    if (source === "camera") {
+      input.setAttribute("capture", "environment");
+    } else {
+      input.removeAttribute("capture");
+    }
+    input.click();
+  };
+
+  const onSelectSource = (source: ImagePickSource) => {
+    setPickerOpen(false);
+    if (identity.kind !== "user") {
+      toast.info("Bitte zuerst einloggen, um ein Profilbild hochzuladen.");
+      return;
+    }
+    openFilePicker(source);
+  };
+
+  const handleFileChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    if (identity.kind !== "user") return;
+
+    try {
+      setUploading(true);
+      await uploadProfileImage(file, identity);
+      setImageFallback(false);
+      setImageVersion(Date.now());
+      toast.success("Profilbild aktualisiert");
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Profilbild konnte nicht hochgeladen werden";
+      toast.error(message);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   return (
     <div className={stack}>
+      <input
+        ref={fileInputRef}
+        type="file"
+        className="hidden"
+        onChange={handleFileChange}
+      />
+      <ImageSourceDialog
+        open={pickerOpen}
+        title="Profilbild ändern"
+        description="Wähle, ob du ein Foto aufnehmen oder ein Bild auswählen möchtest."
+        onClose={() => setPickerOpen(false)}
+        onSelect={onSelectSource}
+      />
+
       {!authEnabled && (
         <section className={cardMinimal}>
           <p className={eyebrow}>Login</p>
@@ -43,7 +121,17 @@ export function ProfilePage({
       )}
 
       <section className={cardMinimal}>
-        <p className={eyebrow}>Profil</p>
+        <div className="mb-2 flex items-start justify-between gap-3">
+          <p className={eyebrow}>Profil</p>
+          <button
+            type="button"
+            className="text-xs font-semibold text-sage-600 transition hover:text-sage-900 disabled:opacity-60"
+            onClick={() => setPickerOpen(true)}
+            disabled={uploading}
+          >
+            Profilbild ändern
+          </button>
+        </div>
         <div className="flex flex-col gap-2">
           <h2 className="text-xl font-semibold text-slate-900">
             {identity.displayName}
@@ -53,6 +141,12 @@ export function ProfilePage({
               ? "Angemeldet via OAuth"
               : "Lokaler Modus ohne Login"}
           </p>
+          <img
+            src={imageFallback ? genericSurface : currentImageUrl}
+            alt="Profilbild"
+            className="hidden"
+            onError={() => setImageFallback(true)}
+          />
           <div className="flex flex-wrap gap-2">
             {identity.kind === "user" ? (
               <button

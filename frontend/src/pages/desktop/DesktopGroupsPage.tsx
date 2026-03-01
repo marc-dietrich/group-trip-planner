@@ -1,10 +1,11 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { AvailabilityFlow } from "../../components/AvailabilityFlow";
 import { Topbar } from "../../components/Topbar";
 import { GroupMembership, HealthCheck, Identity } from "../../types";
 import { useGroupStats } from "../../hooks/useGroupStats";
 import { GroupsFetchStatus } from "../../hooks/useGroups";
+import { groupImageUrl } from "../../services/imageService";
 import genericSurface from "../../../assets/generic.webp";
 
 type DesktopGroupRowProps = {
@@ -28,6 +29,8 @@ function DesktopGroupRow({ group, identity }: DesktopGroupRowProps) {
   const navigate = useNavigate();
   const { data: stats, loading } = useGroupStats(group.groupId, identity);
   const initials = getGroupInitials(group.name);
+  const [imageFailed, setImageFailed] = useState(false);
+  const [imageLoaded, setImageLoaded] = useState(false);
 
   const submitted = stats.usersWithAvailability ?? 0;
   const total = stats.totalUsers ?? 0;
@@ -37,6 +40,7 @@ function DesktopGroupRow({ group, identity }: DesktopGroupRowProps) {
     Math.max(0, Math.round(progressRatio * 100)),
   );
   const label = loading ? "Lädt…" : `${submitted} von ${total}`;
+  const imageSrc = imageFailed ? genericSurface : groupImageUrl(group.groupId);
 
   return (
     <li
@@ -45,16 +49,24 @@ function DesktopGroupRow({ group, identity }: DesktopGroupRowProps) {
     >
       <div className="relative flex-shrink-0">
         <div className="relative size-16 overflow-hidden rounded-2xl border border-white shadow-soft bg-sage-100">
-          <div
-            className="absolute inset-0 bg-cover bg-center opacity-25"
-            style={{ backgroundImage: `url(${genericSurface})` }}
+          <img
+            src={imageSrc}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-cover"
+            onLoad={() => setImageLoaded(true)}
+            onError={() => {
+              if (!imageFailed) setImageFailed(true);
+            }}
           />
           <div className="absolute inset-0 bg-gradient-to-br from-white/95 via-sage-50/90 to-sage-200/70" />
-          <div className="relative z-10 flex h-full w-full items-center justify-center">
-            <span className="text-sm font-extrabold tracking-wide text-sage-800">
-              {initials}
-            </span>
-          </div>
+          {!imageLoaded || imageFailed ? (
+            <div className="relative z-10 flex h-full w-full items-center justify-center">
+              <span className="text-sm font-extrabold tracking-wide text-sage-800">
+                {initials}
+              </span>
+            </div>
+          ) : null}
           <div className="absolute bottom-1 left-1 z-10 rounded-full bg-white/85 p-0.5 text-sage-500 shadow-sm">
             <span className="material-symbols-outlined !text-[10px]">
               groups
