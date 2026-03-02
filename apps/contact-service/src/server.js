@@ -1,15 +1,13 @@
-import dotenv from "dotenv";
 import express from "express";
 import { appendFile, mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-dotenv.config();
+const serviceDir = dirname(fileURLToPath(import.meta.url));
 
 const app = express();
 const port = Number(process.env.PORT || 3002);
 const allowedOrigin = process.env.ALLOWED_ORIGIN || "*";
-const serviceDir = dirname(fileURLToPath(import.meta.url));
 const supportEmail =
   (process.env.CONTACT_SUPPORT_EMAIL || "").trim() ||
   "kontakt@group-trip-planner.local";

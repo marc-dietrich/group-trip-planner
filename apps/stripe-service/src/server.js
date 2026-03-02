@@ -1,8 +1,5 @@
-import dotenv from "dotenv";
 import express from "express";
 import Stripe from "stripe";
-
-dotenv.config();
 
 const requiredEnvVars = [
   "STRIPE_SECRET_KEY",

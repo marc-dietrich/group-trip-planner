@@ -34,12 +34,12 @@ After successful payment, Stripe redirects the user there and the page shows a s
 
 ```bash
 npm install
-npm start
+doppler run -- npm start
 ```
 
 ## Docker
 
 ```bash
 docker build -t stripe-service .
-docker run --rm -p 3000:3000 --env-file .env stripe-service
+doppler run -- docker run --rm -p 3000:3000 stripe-service
 ```

@@ -34,6 +34,7 @@ if (!process.env.VITE_BUILD_LABEL && shortCommit) {
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  envDir: "..",
   base,
   plugins: [react()],
   server: {
