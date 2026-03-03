@@ -28,23 +28,29 @@ echo "✅ PostgreSQL ist installiert und läuft"
 # Create database and user
 echo "📊 Erstelle Datenbank und User..."
 
+DB_USER="${POSTGRES_USER:-gtp}"
+DB_PASSWORD="${POSTGRES_PASSWORD:-gtp_pw}"
+DB_NAME="${POSTGRES_DB:-gtp}"
+DB_HOST="${POSTGRES_HOST:-localhost}"
+DB_PORT="${POSTGRES_PORT:-5433}"
+
 sudo -u postgres psql << EOF
-CREATE USER trip_planner WITH PASSWORD 'trip_password';
-CREATE DATABASE group_trip_planner_db OWNER trip_planner;
-GRANT ALL PRIVILEGES ON DATABASE group_trip_planner_db TO trip_planner;
+CREATE USER ${DB_USER} WITH PASSWORD '${DB_PASSWORD}';
+CREATE DATABASE ${DB_NAME} OWNER ${DB_USER};
+GRANT ALL PRIVILEGES ON DATABASE ${DB_NAME} TO ${DB_USER};
 \q
 EOF
 
-echo "✅ Datenbank 'group_trip_planner_db' und User 'trip_planner' erstellt"
+echo "✅ Datenbank '${DB_NAME}' und User '${DB_USER}' erstellt"
 
 # Update .env file with correct credentials
 echo "⚙️ Aktualisiere .env Datei..."
 cat > .env << EOF
 # Database
-DATABASE_URL=postgresql+asyncpg://trip_planner:trip_password@localhost/group_trip_planner_db
+DATABASE_URL=postgresql+asyncpg://${DB_USER}:${DB_PASSWORD}@${DB_HOST}:${DB_PORT}/${DB_NAME}
 
 # Development
-DEBUG=True
+DEBUG=true
 EOF
 
 echo "✅ .env Datei aktualisiert"

@@ -3,7 +3,7 @@ services:
     image: postgres:15-alpine
     container_name: gtp-postgres
     restart: unless-stopped
-    pull_policy: always
+    pull_policy: ${COMPOSE_PULL_POLICY:-always}
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-gtp}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-gtp_pw}
@@ -12,6 +12,8 @@ services:
     volumes:
       - db_data:/var/lib/postgresql/data
       - ./database/migrations:/docker-entrypoint-initdb.d:ro
+    ports:
+      - "${POSTGRES_HOST_PORT:-5433}:5432"
     healthcheck:
       test:
         [
@@ -69,18 +71,49 @@ services:
       - com.centurylinklabs.watchtower.enable=true
 
   backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
     image: ghcr.io/${GHCR_OWNER:-marc-dietrich}/group-trip-planner-backend:${IMAGE_TAG:-latest}
     container_name: gtp-backend
     restart: unless-stopped
-    pull_policy: always
+    pull_policy: ${COMPOSE_PULL_POLICY:-always}
     depends_on:
       postgres:
         condition: service_healthy
     environment:
       - DATABASE_URL=postgresql+asyncpg://${POSTGRES_USER:-gtp}:${POSTGRES_PASSWORD:-gtp_pw}@postgres:5432/${POSTGRES_DB:-gtp}
+      - DATABASE_SSL_REQUIRE=${DATABASE_SSL_REQUIRE:-false}
       - JWT_SECRET=${JWT_SECRET:-change-me}
+      - JWT_ALGORITHM=${JWT_ALGORITHM:-HS256}
       - DEBUG=${DEBUG:-false}
+      - HOST=0.0.0.0
       - PORT=8000
+      - APP_NAME=${APP_NAME:-Gruppen-Urlaubsplaner API}
+      - APP_VERSION=${APP_VERSION:-0.1.0}
+      - CORS_ORIGINS=${CORS_ORIGINS:-}
+      - FRONTEND_BASE_URL=${FRONTEND_BASE_URL:-http://localhost:3000}
+      - FRONTEND_PATH_PREFIX=${FRONTEND_PATH_PREFIX:-}
+      - ENFORCE_HTTPS=${ENFORCE_HTTPS:-false}
+      - INVITE_TOKEN_TTL_DAYS=${INVITE_TOKEN_TTL_DAYS:-7}
+      - VOICE_MOCK_ENABLED=${VOICE_MOCK_ENABLED:-true}
+      - SUPPORTER_WEBHOOK_SECRET=${SUPPORTER_WEBHOOK_SECRET:-}
+      - SUPPORTER_BADGE_DURATION_DAYS=${SUPPORTER_BADGE_DURATION_DAYS:-183}
+      - STORAGE_ENABLED=${STORAGE_ENABLED:-true}
+      - STORAGE_S3_ENDPOINT=${STORAGE_S3_ENDPOINT:-http://garage:3900}
+      - STORAGE_S3_REGION=${STORAGE_S3_REGION:-garage}
+      - STORAGE_S3_ACCESS_KEY=${STORAGE_S3_ACCESS_KEY:-}
+      - STORAGE_S3_SECRET_KEY=${STORAGE_S3_SECRET_KEY:-}
+      - STORAGE_S3_BUCKET=${STORAGE_S3_BUCKET:-group-trip-images}
+      - STORAGE_S3_USE_SSL=${STORAGE_S3_USE_SSL:-false}
+      - IMAGE_UPLOAD_MAX_INPUT_BYTES=${IMAGE_UPLOAD_MAX_INPUT_BYTES:-5242880}
+      - PROFILE_IMAGE_TARGET_BYTES=${PROFILE_IMAGE_TARGET_BYTES:-102400}
+      - GROUP_IMAGE_TARGET_BYTES=${GROUP_IMAGE_TARGET_BYTES:-204800}
+      - PROFILE_IMAGE_WIDTH=${PROFILE_IMAGE_WIDTH:-512}
+      - PROFILE_IMAGE_HEIGHT=${PROFILE_IMAGE_HEIGHT:-512}
+      - GROUP_IMAGE_WIDTH=${GROUP_IMAGE_WIDTH:-1024}
+      - GROUP_IMAGE_HEIGHT=${GROUP_IMAGE_HEIGHT:-512}
+      - PRESIGNED_URL_TTL_SECONDS=${PRESIGNED_URL_TTL_SECONDS:-300}
     expose:
       - "8000"
     labels:
@@ -100,6 +133,9 @@ services:
       - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
       - CHECKOUT_SUCCESS_URL=${CHECKOUT_SUCCESS_URL}
       - CHECKOUT_CANCEL_URL=${CHECKOUT_CANCEL_URL}
+      - APP_BASE_URL=${APP_BASE_URL:-}
+      - SUPPORTER_API_BASE_URL=${SUPPORTER_API_BASE_URL:-http://backend:8000}
+      - SUPPORTER_WEBHOOK_SECRET=${SUPPORTER_WEBHOOK_SECRET:-}
     expose:
       - "3000"
 
@@ -113,16 +149,20 @@ services:
     environment:
       - PORT=3002
       - ALLOWED_ORIGIN=${CONTACT_ALLOWED_ORIGIN:-http://localhost:5173}
+      - CONTACT_SUPPORT_EMAIL=${CONTACT_SUPPORT_EMAIL:-kontakt@group-trip-planner.local}
       - CONTACT_LOG_FILE=${CONTACT_LOG_FILE}
       - CONTACT_LOG_MAX_BYTES=${CONTACT_LOG_MAX_BYTES:-10485760}
     expose:
       - "3002"
 
   frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
     image: ghcr.io/${GHCR_OWNER:-marc-dietrich}/group-trip-planner-frontend:${IMAGE_TAG:-latest}
     container_name: gtp-frontend
     restart: unless-stopped
-    pull_policy: always
+    pull_policy: ${COMPOSE_PULL_POLICY:-always}
     depends_on:
       - backend
     expose:
@@ -134,7 +174,7 @@ services:
     image: prom/node-exporter:v1.8.2
     container_name: gtp-node-exporter
     restart: unless-stopped
-    pull_policy: always
+    pull_policy: ${COMPOSE_PULL_POLICY:-always}
     expose:
       - "9100"
     command:
@@ -152,7 +192,7 @@ services:
     image: prometheuscommunity/postgres-exporter:v0.15.0
     container_name: gtp-postgres-exporter
     restart: unless-stopped
-    pull_policy: always
+    pull_policy: ${COMPOSE_PULL_POLICY:-always}
     depends_on:
       postgres:
         condition: service_healthy
@@ -167,7 +207,7 @@ services:
     image: prom/prometheus:v2.54.1
     container_name: gtp-prometheus
     restart: unless-stopped
-    pull_policy: always
+    pull_policy: ${COMPOSE_PULL_POLICY:-always}
     depends_on:
       - backend
       - node-exporter
@@ -184,7 +224,7 @@ services:
     image: grafana/grafana-oss:11.2.0
     container_name: gtp-grafana
     restart: unless-stopped
-    pull_policy: always
+    pull_policy: ${COMPOSE_PULL_POLICY:-always}
     depends_on:
       - prometheus
     volumes:
@@ -198,7 +238,7 @@ services:
     image: quay.io/oauth2-proxy/oauth2-proxy:v7.6.0
     container_name: gtp-oauth-proxy
     restart: unless-stopped
-    pull_policy: always
+    pull_policy: ${COMPOSE_PULL_POLICY:-always}
     depends_on:
       - backend
     command:
@@ -224,7 +264,7 @@ services:
     image: caddy:2.8.4-alpine
     container_name: gtp-caddy
     restart: unless-stopped
-    pull_policy: always
+    pull_policy: ${COMPOSE_PULL_POLICY:-always}
     ports:
       - "80:80"
       - "443:443"
@@ -250,7 +290,7 @@ services:
     image: containrrr/watchtower:1.7.1
     container_name: gtp-watchtower
     restart: unless-stopped
-    pull_policy: always
+    pull_policy: ${COMPOSE_PULL_POLICY:-always}
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock
     environment:

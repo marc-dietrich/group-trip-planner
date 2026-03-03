@@ -65,7 +65,12 @@ app.include_router(image_router)
 def run_server():
     """Run the server when called as module"""
     import uvicorn
-    uvicorn.run(app, host="0.0.0.0", port=8000, reload=True)
+    uvicorn.run(
+        app,
+        host=settings.host,
+        port=settings.port,
+        reload=settings.debug,
+    )
 
 if __name__ == "__main__":
     run_server()

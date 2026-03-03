@@ -24,7 +24,7 @@ const supporterApiBase = (
   process.env.SUPPORTER_API_BASE_URL || "http://localhost:8000"
 ).trim();
 const supporterWebhookSecret = (
-  process.env.SUPPORTER_WEBHOOK_SECRET || "dev-supporter-secret"
+  process.env.SUPPORTER_WEBHOOK_SECRET || ""
 ).trim();
 
 async function grantSupporterBadge({ actorId, completedAt }) {

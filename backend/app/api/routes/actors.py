@@ -31,7 +31,7 @@ class SupporterStatusResponse(BaseModel):
 
 class SupporterGrantRequest(BaseModel):
     donatedAt: datetime | None = None
-    durationDays: int = 183
+    durationDays: int | None = None
 
 
 @router.post("", response_model=ActorResponse)
@@ -73,7 +73,7 @@ async def grant_supporter_status(
     if not webhook_secret or webhook_secret != expected_secret:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="invalid supporter webhook secret")
 
-    duration_days = payload.durationDays if payload.durationDays > 0 else 183
+    duration_days = payload.durationDays if payload.durationDays and payload.durationDays > 0 else settings.supporter_badge_duration_days
     status_payload = await service.grant_supporter_badge(
         actor_id=actor_id,
         duration_days=duration_days,

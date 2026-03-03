@@ -122,8 +122,8 @@ async def upload_profile_image(
         upload_file=file,
         storage=storage,
         owner_type="user_profile",
-        target_width=512,
-        target_height=512,
+        target_width=settings.profile_image_width,
+        target_height=settings.profile_image_height,
         max_output_bytes=settings.profile_image_target_bytes,
     )
     existing_assets = await _load_user_assets(session, user_id)
@@ -171,8 +171,8 @@ async def upload_group_image(
         upload_file=file,
         storage=storage,
         owner_type="group_image",
-        target_width=1024,
-        target_height=512,
+        target_width=settings.group_image_width,
+        target_height=settings.group_image_height,
         max_output_bytes=settings.group_image_target_bytes,
     )
     existing_assets = await _load_group_assets(session, group_id)
@@ -374,11 +374,11 @@ async def get_presigned_download_url(
         url = await asyncio.to_thread(
             storage.generate_presigned_get_url,
             key=asset.s3_key,
-            expires_seconds=300,
+            expires_seconds=settings.presigned_url_ttl_seconds,
         )
     except ImageStorageBackendError as exc:
         raise HTTPException(
             status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
             detail="Image storage temporarily unavailable",
         ) from exc
-    return {"assetId": asset.id, "url": url, "expiresIn": 300}
+    return {"assetId": asset.id, "url": url, "expiresIn": settings.presigned_url_ttl_seconds}
