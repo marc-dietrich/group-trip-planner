@@ -11,7 +11,9 @@ const normalizeBase = (prefix: string) => {
 };
 
 const base =
-  process.env.CUSTOM_DOMAIN === "true" ? "/" : "/group-trip-planner/";
+  process.env.CUSTOM_DOMAIN === "true"
+    ? "/"
+    : normalizeBase(process.env.VITE_BASE_PATH || "/group-trip-planner/");
 
 const resolveCommit = () => {
   if (process.env.VITE_BUILD_COMMIT) return process.env.VITE_BUILD_COMMIT;
@@ -34,17 +36,19 @@ if (!process.env.VITE_BUILD_LABEL && shortCommit) {
 
 // https://vitejs.dev/config/
 export default defineConfig({
+  envDir: "..",
   base,
   plugins: [react()],
   server: {
-    port: 3000,
+    port: Number(process.env.VITE_DEV_PORT || 3000),
     proxy: {
       "/api": {
-        target: "http://localhost:8000",
+        target: process.env.VITE_API_PROXY_TARGET || "http://localhost:8000",
         changeOrigin: true,
       },
       "/mail": {
-        target: "http://localhost:3002",
+        target:
+          process.env.VITE_CONTACT_PROXY_TARGET || "http://localhost:3002",
         changeOrigin: true,
       },
     },

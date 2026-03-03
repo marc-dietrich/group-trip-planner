@@ -63,7 +63,7 @@ docker run --rm -p 8000:8000 \
   gtp-backend
 ```
 
-Wichtige Variablen (siehe `backend/.env` Vorlage):
+Wichtige Variablen (über Doppler, Config `group-trip-planner/dev`):
 
 - `DATABASE_URL` (asyncpg PostgreSQL URL)
 - `DATABASE_SSL_REQUIRE=False` (lokal) / `True` (Remote mit TLS)
@@ -94,7 +94,7 @@ Letzte lokale Läufe:
 
 ## Auth Setup
 
-Backend (.env):
+Backend (Doppler Secrets):
 
 ```
 JWT_SECRET=<your-jwt-secret>

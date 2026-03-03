@@ -5,9 +5,13 @@
 echo "🗄️  PostgreSQL Database Browser"
 echo "============================="
 
+DB_URL="${DATABASE_URL:-postgresql://gtp:gtp_pw@localhost:5433/gtp}"
+# Strip async driver prefix if present (e.g. postgresql+asyncpg://)
+DB_URL="${DB_URL/+asyncpg/}"
+
 echo "Verbinde zur Database..."
 
-psql postgresql://trip_planner:trip_password@localhost/group_trip_planner_db << EOF
+psql "$DB_URL" << EOF
 \echo ''
 \echo '📋 TABELLEN ÜBERSICHT:'
 \dt

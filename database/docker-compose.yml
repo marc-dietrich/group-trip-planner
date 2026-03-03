@@ -3,8 +3,6 @@ services:
     image: postgres:15-alpine
     container_name: gtp-postgres
     restart: unless-stopped
-    env_file:
-      - ../.env
     environment:
       - POSTGRES_USER=${POSTGRES_USER:-gtp}
       - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-gtp_pw}
@@ -34,8 +32,6 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    env_file:
-      - ../.env
     environment:
       - TZ=${TZ:-Europe/Berlin}
       - POSTGRES_HOST=postgres

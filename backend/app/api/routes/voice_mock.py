@@ -1,13 +1,14 @@
 """Mocked voice-to-availability endpoint for frontend testing."""
 
-import os
 from datetime import date
 from typing import List
 
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 
-MOCK_ENABLED = os.getenv("VOICE_MOCK_ENABLED", "true").lower() == "true"
+from app.core.config import get_settings
+
+settings = get_settings()
 
 router = APIRouter(prefix="/api/voice", tags=["voice"])
 
@@ -25,7 +26,7 @@ class VoiceMockResponse(BaseModel):
 
 @router.post("/transcribe", response_model=VoiceMockResponse)
 async def mock_transcribe(userId: str = "mock-user") -> VoiceMockResponse:
-    if not MOCK_ENABLED:
+    if not settings.voice_mock_enabled:
         raise HTTPException(status_code=503, detail="Voice mock disabled")
 
     today = date.today()

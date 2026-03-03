@@ -4,8 +4,8 @@ This folder contains a docker-compose setup for a local PostgreSQL instance used
 
 ## Quick start
 
-1. Copy the env file: `cp .env.example .env`
-2. Start Postgres: `docker compose up -d`
+1. Configure Doppler in repo root: `doppler setup --project group-trip-planner --config dev`
+2. Start Postgres: `doppler run -- docker compose up -d`
 3. Connection string: `postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@localhost:5432/${POSTGRES_DB}` (defaults to `postgresql://gtp:gtp_pw@localhost:5432/gtp`).
 
 ## Notes
@@ -25,7 +25,7 @@ The stack includes a `postgres-backup` service that creates encrypted and compre
 
 ### Required env
 
-In root `.env`:
+In Doppler secrets (`group-trip-planner` / `dev`):
 
 - `BACKUP_ENCRYPTION_PASSPHRASE` (required)
 

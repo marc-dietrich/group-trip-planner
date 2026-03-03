@@ -30,7 +30,7 @@ def decode_token(token: str) -> dict:
         raise HTTPException(status_code=500, detail="JWT secret not configured")
 
     try:
-        return jwt.decode(token, secret, algorithms=["HS256"], options={"verify_aud": False})
+        return jwt.decode(token, secret, algorithms=[settings.jwt_algorithm], options={"verify_aud": False})
     except JWTError as exc:
         logger.warning("JWT decode failed: %s", exc)
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token") from exc
