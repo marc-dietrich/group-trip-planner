@@ -9,18 +9,11 @@ services:
       - GARAGE_ADMIN_TOKEN=${GARAGE_ADMIN_TOKEN:-2bb8a4e61b9d44e3a8e9f7d5c1a603af2d7e4b6c9f1083a5d4e7b1c2f6a9d8e0}
       - GARAGE_S3_REGION=${GARAGE_S3_REGION:-garage}
       - GARAGE_S3_ROOT_DOMAIN=${GARAGE_S3_ROOT_DOMAIN:-.s3.localhost}
-    entrypoint:
-      - /bin/sh
-      - -c
-      - |
-        apk add --no-cache gettext > /dev/null 2>&1 || true
-        envsubst < /etc/garage.toml.tpl > /etc/garage.toml
-        exec /garage server
     ports:
       - "3900:3900" # S3 API
       - "3901:3901" # Admin API
     volumes:
-      - ./garage.toml:/etc/garage.toml.tpl:ro
+      - ${GARAGE_TOML_PATH:-./storage/garage.toml}:/etc/garage.toml:ro
       - garage_meta:/var/lib/garage/meta
       - garage_data:/var/lib/garage/data
 
