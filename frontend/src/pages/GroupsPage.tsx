@@ -360,7 +360,10 @@ export function GroupsPage({
   }, [highlightSlot?.interval]);
   const anySummaryLoading =
     activeGroups.length > 0 &&
-    activeGroups.some((group) => summaries[group.groupId]?.loading);
+    activeGroups.some((group) => {
+      const summaryEntry = summaries[group.groupId];
+      return !summaryEntry || summaryEntry.loading;
+    });
 
   const listBody = useMemo(() => {
     const transientNetworkIssue = isTransientNetworkError(groupsError);

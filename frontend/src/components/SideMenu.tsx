@@ -387,21 +387,15 @@ export function SideMenu({
                     {identityLabel}
                   </p>
                 </div>
-                <div className="ml-auto flex flex-col items-center gap-1">
-                  {isUser ? (
-                    <div className="inline-flex items-center gap-1 rounded-full border border-sage-200 bg-sage-50 px-2 py-0.5 text-[11px] font-semibold text-sage-800">
-                      <span className="material-symbols-outlined text-[14px]">
-                        verified_user
-                      </span>
-                      Google
-                    </div>
-                  ) : null}
-                  <span
-                    className={`text-[10px] uppercase tracking-wide ${oauthReady ? "text-sage-600" : "text-amber-600"}`}
-                  >
-                    {oauthReady ? "OAuth bereit" : "Proxy offline"}
-                  </span>
-                </div>
+                {isActor && !oauthReady ? (
+                  <div className="ml-auto flex flex-col items-center gap-1">
+                    <span
+                      className="text-[10px] uppercase tracking-wide text-amber-600"
+                    >
+                      Proxy offline
+                    </span>
+                  </div>
+                ) : null}
               </div>
             </div>
             <div className="h-px bg-zinc-100 dark:bg-zinc-800/50 mx-6" />

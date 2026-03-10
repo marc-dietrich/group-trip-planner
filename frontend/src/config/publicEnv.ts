@@ -35,11 +35,10 @@ function shouldFallbackToWindowOrigin(base: string): boolean {
 const rawOAuthBase =
   import.meta.env.VITE_OAUTH_BASE_URL ?? DEFAULT_OAUTH_BASE_URL;
 const normalizedOAuthBase = normalizeBaseUrl(rawOAuthBase);
+const useWindowOrigin = shouldFallbackToWindowOrigin(normalizedOAuthBase);
 
 export const oauthEnv = {
-  baseUrl: shouldFallbackToWindowOrigin(normalizedOAuthBase)
-    ? ""
-    : normalizedOAuthBase,
+  baseUrl: useWindowOrigin ? "" : normalizedOAuthBase,
 };
 
-export const oauthConfigured = Boolean(import.meta.env.VITE_OAUTH_BASE_URL);
+export const oauthConfigured = useWindowOrigin || Boolean(normalizedOAuthBase);

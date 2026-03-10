@@ -32,7 +32,6 @@ import {
   JoinGroupResponse,
 } from "./types";
 import { apiPath } from "./lib/api";
-import { AuthModal } from "./components/AuthModal";
 import { ActorNameModal } from "./components/ActorNameModal";
 import { GroupCreateModal } from "./components/GroupCreateModal";
 import { InviteModal } from "./components/InviteModal";
@@ -143,11 +142,6 @@ function AppShell() {
   const [pendingName, setPendingName] = useState("");
   const [session, setSession] = useState<AuthSession | null>(null);
   const [authLoading, setAuthLoading] = useState(true);
-  const [authError, setAuthError] = useState<string | null>(null);
-  const [authNotice, setAuthNotice] = useState<string | null>(null);
-  const [authMode, setAuthMode] = useState<"signin" | "signup">("signin");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [groupName, setGroupName] = useState("");
   const [health, setHealth] = useState<HealthCheck | null>(null);
   const [creating, setCreating] = useState(false);
@@ -156,7 +150,6 @@ function AppShell() {
     null,
   );
   const [deletingId, setDeletingId] = useState<string | null>(null);
-  const [authPanelOpen, setAuthPanelOpen] = useState(false);
   const [createOpen, setCreateOpen] = useState(false);
   const [inviteOpen, setInviteOpen] = useState(false);
   const [inviteGroupId, setInviteGroupId] = useState<string | null>(null);
@@ -458,17 +451,11 @@ function AppShell() {
     }
   };
 
-  const handleEmailAuth = async (event: FormEvent) => {
-    event.preventDefault();
-    setAuthError(null);
-    setAuthNotice(null);
-
+  const handleStartOAuthLogin = () => {
     if (!authEnabled) {
-      setAuthError("OAuth Login ist nicht konfiguriert.");
+      toast.error("OAuth Login ist nicht konfiguriert.");
       return;
     }
-
-    setAuthNotice("Weiterleitung zum OAuth Login...");
     startOAuthLogin();
   };
 
@@ -507,7 +494,7 @@ function AppShell() {
         setActorDisplayName(value);
       }}
       onLogout={handleLogout}
-      onAuthClick={() => setAuthPanelOpen(true)}
+      onAuthClick={handleStartOAuthLogin}
       authLoading={authLoading}
       authEnabled={oauthReady}
     />
@@ -565,7 +552,7 @@ function AppShell() {
             authLoading={authLoading}
             authEnabled={oauthReady}
             health={health}
-            onLogin={() => setAuthPanelOpen(true)}
+            onLogin={handleStartOAuthLogin}
             onLogout={handleLogout}
           />
         }
@@ -612,7 +599,7 @@ function AppShell() {
         onJoin={handleAcceptInvite}
         onClose={handleCloseInvite}
         onLogin={() => {
-          setAuthPanelOpen(true);
+          handleStartOAuthLogin();
           setInviteError(null);
         }}
       />
@@ -624,7 +611,7 @@ function AppShell() {
           identity={identity}
           hasSupporterCrown={hasSupporterCrown}
           onLogout={handleLogout}
-          onLogin={() => setAuthPanelOpen(true)}
+          onLogin={handleStartOAuthLogin}
           authEnabled={oauthReady}
         />
       )}
@@ -662,25 +649,6 @@ function AppShell() {
         }}
       />
 
-      <AuthModal
-        open={authPanelOpen && identity.kind === "actor"}
-        authEnabled={oauthReady}
-        authMode={authMode}
-        email={email}
-        password={password}
-        authLoading={authLoading}
-        authError={authError}
-        authNotice={authNotice}
-        onSubmit={handleEmailAuth}
-        onEmailChange={setEmail}
-        onPasswordChange={setPassword}
-        onSwitchMode={(mode) => {
-          setAuthMode(mode);
-          setAuthError(null);
-          setAuthNotice(null);
-        }}
-        onClose={() => setAuthPanelOpen(false)}
-      />
     </>
   );
 }

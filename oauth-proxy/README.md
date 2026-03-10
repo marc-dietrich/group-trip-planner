@@ -13,7 +13,7 @@ Lightweight reverse proxy that handles Google OAuth and forwards authenticated r
 ## Key envs
 
 - `OAUTH_UPSTREAM`: backend target (default `http://backend:8000`)
-- `OAUTH_REDIRECT_URL`: must match the authorized redirect URI in your Google OAuth app, default `http://localhost:4180/oauth2/callback`
+- `OAUTH_REDIRECT_URL`: must match the authorized redirect URI in your Google OAuth app, default `http://localhost:4180/oauth/callback`
 - `OAUTH_COOKIE_SECRET`: 32-byte base64 string (rotation-friendly)
 
 ## Notes

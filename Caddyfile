@@ -33,7 +33,12 @@
     reverse_proxy backend:8000
   }
 
+  handle /oauth/* {
+    reverse_proxy oauth-proxy:4180
+  }
+
   handle /oauth2/* {
+    uri replace /oauth2/ /oauth/
     reverse_proxy oauth-proxy:4180
   }
 

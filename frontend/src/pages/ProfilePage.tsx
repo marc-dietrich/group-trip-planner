@@ -164,7 +164,7 @@ export function ProfilePage({
                 onClick={onLogin}
                 disabled={!authEnabled}
               >
-                Login / Signup
+                Mit Google anmelden
               </button>
             )}
           </div>
@@ -219,7 +219,7 @@ export function ProfilePage({
                         onClick={onLogin}
                         disabled={!authEnabled}
                       >
-                        Jetzt einloggen
+                        Mit Google anmelden
                       </button>
                     </div>
                   </div>
@@ -246,11 +246,9 @@ export function ProfilePage({
           </div>
         </div>
         <div className={stackSm}>
-          {authEnabled ? (
-            <div className={pillSuccess}>OAuth Proxy aktiv</div>
-          ) : (
+          {identity.kind !== "user" && !authEnabled ? (
             <p className={muted}>OAuth Proxy nicht konfiguriert</p>
-          )}
+          ) : null}
         </div>
       </section>
     </div>

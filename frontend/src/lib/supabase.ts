@@ -37,11 +37,11 @@ export async function getExistingSession(): Promise<AuthSession | null> {
 }
 
 export function startOAuthLogin() {
-  const target = `${oauthEnv.baseUrl}/oauth2/start`;
+  const target = `${oauthEnv.baseUrl}/oauth/start`;
   window.location.href = target;
 }
 
 export function startOAuthLogout() {
-  const target = `${oauthEnv.baseUrl}/oauth2/sign_out`;
+  const target = `${oauthEnv.baseUrl}/oauth/sign_out`;
   window.location.href = target;
 }

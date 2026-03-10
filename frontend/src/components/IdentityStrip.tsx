@@ -52,7 +52,7 @@ export function IdentityStrip({
               onClick={onLogin}
               disabled={!authEnabled}
             >
-              Log in / Sign up
+              Mit Google anmelden
             </button>
           )}
         </div>

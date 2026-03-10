@@ -274,7 +274,10 @@ export const useGroupStore = create<GroupStore>((set, get) => ({
           ...state.summaries,
           [groupId]: existing
             ? { ...existing, loading: true, error: null }
-            : emptyCache<GroupAvailabilityInterval[]>([]),
+            : {
+                ...emptyCache<GroupAvailabilityInterval[]>([]),
+                loading: true,
+              },
         },
       }));
     }
