@@ -133,7 +133,7 @@ export function SideMenu({
   const handleSelectImageSource = (source: ImagePickSource) => {
     setPickerOpen(false);
     if (identity.kind !== "user") {
-      toast.info("Bitte zuerst einloggen, um ein Profilbild hochzuladen.");
+      toast.info("Bitte melde dich zuerst an, um ein Profilbild hochzuladen.");
       return;
     }
     openFilePicker(source);
@@ -187,7 +187,7 @@ export function SideMenu({
   const handleLoginClick = () => {
     if (!oauthReady) {
       toast.error(
-        "OAuth Proxy Container nicht aktiv. Bitte oauth-proxy via Docker starten.",
+        "OAuth-Proxy-Container ist nicht aktiv. Bitte starte oauth-proxy per Docker.",
       );
       return;
     }
@@ -368,8 +368,8 @@ export function SideMenu({
                         disabled={!oauthReady}
                         title={
                           oauthReady
-                            ? "Login öffnet den Google OAuth Proxy"
-                            : "OAuth Proxy offline – starte oauth-proxy Container"
+                            ? "Anmeldung über Google OAuth"
+                            : "OAuth-Proxy offline – starte den oauth-proxy-Container"
                         }
                       >
                         <span className="material-symbols-outlined text-[10px]">
@@ -440,7 +440,7 @@ export function SideMenu({
                           void handleDonationClick(amount);
                         }}
                       >
-                        {donationLoading ? "..." : `${amount} €`}
+                        {donationLoading ? "…" : `${amount} €`}
                       </button>
                     ))}
                   </div>
@@ -478,7 +478,7 @@ export function SideMenu({
                     onChange={() => {
                       setNotifications(false);
                       toast.info(
-                        "Download App, um alle Features freizuschalten.",
+                        "Lade die App herunter, um alle Funktionen freizuschalten.",
                       );
                     }}
                     aria-label="Benachrichtigungen nur in mobiler App aktivierbar"
@@ -514,12 +514,12 @@ export function SideMenu({
                     onChange={() => {
                       setFaceId(false);
                       toast.info(
-                        "Download App, um alle Features freizuschalten.",
+                        "Lade die App herunter, um alle Funktionen freizuschalten.",
                       );
                     }}
                     aria-label="Biometrische Anmeldung nur in mobiler App verfügbar"
                   />
-                  <div className="h-full aspect-square rounded-full bg-white shadow-sm transition-all peer-checked:translate-x-[20px]" />
+                        {donationLoading ? "…" : `${amount} €`}
                   <div className="absolute inset-0 rounded-full pointer-events-none peer-checked:bg-zinc-300/70" />
                 </label>
               </div>
@@ -586,7 +586,7 @@ export function SideMenu({
                       void handleFeedbackSubmit();
                     }}
                   >
-                    {feedbackLoading ? "Sende..." : "Feedback senden"}
+                    {feedbackLoading ? "Wird gesendet…" : "Feedback senden"}
                   </button>
                 </div>
               </div>

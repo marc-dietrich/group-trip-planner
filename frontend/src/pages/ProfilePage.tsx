@@ -64,7 +64,7 @@ export function ProfilePage({
   const onSelectSource = (source: ImagePickSource) => {
     setPickerOpen(false);
     if (identity.kind !== "user") {
-      toast.info("Bitte zuerst einloggen, um ein Profilbild hochzuladen.");
+      toast.info("Bitte melde dich zuerst an, um ein Profilbild hochzuladen.");
       return;
     }
     openFilePicker(source);
@@ -112,7 +112,7 @@ export function ProfilePage({
 
       {!authEnabled && (
         <section className={cardMinimal}>
-          <p className={eyebrow}>Login</p>
+          <p className={eyebrow}>Anmeldung</p>
           <p className={muted}>
             OAuth Proxy ist nicht konfiguriert. Stelle die Umgebungsvariablen
             bereit, um die Anmeldung zu aktivieren.
@@ -139,7 +139,7 @@ export function ProfilePage({
           <p className={muted}>
             {identity.kind === "user"
               ? "Angemeldet via OAuth"
-              : "Lokaler Modus ohne Login"}
+              : "Lokaler Modus ohne Anmeldung"}
           </p>
           <img
             src={imageFallback ? genericSurface : currentImageUrl}
@@ -155,7 +155,7 @@ export function ProfilePage({
                 onClick={onLogout}
                 disabled={authLoading}
               >
-                Logout
+                Abmelden
               </button>
             ) : (
               <button
@@ -203,13 +203,13 @@ export function ProfilePage({
                       Du bist als Akteur unterwegs.
                     </p>
                     <p className="mt-1 text-sm">
-                      Daten liegen nur lokal im Browser. Cache leeren, Inkognito
-                      schließen oder Gerätewechsel kann deine Gruppen und
-                      Verfügbarkeiten löschen.
+                      Daten liegen nur lokal im Browser. Wenn du den Cache
+                      leerst, Inkognito-Tabs schließt oder das Gerät wechselst,
+                      können Gruppen und Verfügbarkeiten verloren gehen.
                     </p>
                     <ul className="mt-2 list-disc space-y-1 pl-4">
                       <li>Starte sofort ohne Registrierung.</li>
-                      <li>Login sichert alles geräteübergreifend.</li>
+                      <li>Eine Anmeldung sichert alles geräteübergreifend.</li>
                       <li>Empfohlen, wenn du auf mehreren Geräten planst.</li>
                     </ul>
                     <div className="mt-3">
@@ -242,7 +242,7 @@ export function ProfilePage({
                 isOnline ? "bg-emerald-500" : "bg-amber-500"
               }`}
             />
-            <span>{isOnline ? "Backend OK" : "Backend Fehler"}</span>
+            <span>{isOnline ? "Backend OK" : "Backend-Fehler"}</span>
           </div>
         </div>
         <div className={stackSm}>

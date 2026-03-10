@@ -446,14 +446,14 @@ function AppShell() {
       );
     } catch (err) {
       toast.error(
-        err instanceof Error ? err.message : "Mock-Transcribe fehlgeschlagen",
+        err instanceof Error ? err.message : "Mock-Transkript fehlgeschlagen",
       );
     }
   };
 
   const handleStartOAuthLogin = () => {
     if (!authEnabled) {
-      toast.error("OAuth Login ist nicht konfiguriert.");
+      toast.error("OAuth-Login ist nicht konfiguriert.");
       return;
     }
     startOAuthLogin();

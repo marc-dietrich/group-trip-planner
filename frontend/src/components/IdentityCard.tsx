@@ -39,7 +39,7 @@ export function IdentityCard({
             {isLoggedIn ? (
               <span>Angemeldet als {identity.displayName}</span>
             ) : (
-              <span>Lokaler Nutzer (nicht eingeloggt)</span>
+              <span>Lokaler Nutzer (nicht angemeldet)</span>
             )}
           </div>
         </div>
@@ -51,7 +51,7 @@ export function IdentityCard({
               onClick={onLogout}
               disabled={authLoading}
             >
-              Logout
+              Abmelden
             </button>
           ) : (
             <button

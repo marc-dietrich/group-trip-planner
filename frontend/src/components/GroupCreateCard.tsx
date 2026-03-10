@@ -56,7 +56,7 @@ export function GroupCreateCard({
         </label>
 
         <button type="submit" className={buttonPrimary} disabled={creating}>
-          {creating ? "Wird erstellt..." : "Gruppe anlegen"}
+          {creating ? "Wird erstellt…" : "Gruppe anlegen"}
         </button>
 
         {error && <div className={pillDanger}>{error}</div>}
@@ -64,11 +64,11 @@ export function GroupCreateCard({
           <div className={resultBox}>
             <div className={pillSuccess}>Gruppe erstellt</div>
             <div className={metaRow}>
-              <span className={muted}>Group ID</span>
+              <span className={muted}>Gruppen-ID</span>
               <code className={mono}>{result.groupId}</code>
             </div>
             <div className={metaRow}>
-              <span className={muted}>Invite Link</span>
+              <span className={muted}>Einladungslink</span>
               <a
                 className="text-blue-600 underline"
                 href={result.inviteLink}

@@ -31,7 +31,7 @@ async function readErrorMessage(res: Response): Promise<string> {
   if (status === 403 && detail === "Not a group member") {
     return "Nur Gruppenmitglieder können das Gruppenbild ändern";
   }
-  if (status === 401) return "Bitte zuerst einloggen";
+  if (status === 401) return "Bitte zuerst anmelden";
   if (status === 403) return "Keine Berechtigung für diesen Upload";
   if (status === 503) return "Bildspeicher aktuell nicht erreichbar";
   if (status === 413) return "Datei ist zu groß";

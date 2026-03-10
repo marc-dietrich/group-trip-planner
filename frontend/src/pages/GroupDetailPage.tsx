@@ -194,14 +194,14 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
   const hasExtraGroupIntervals = extraGroupCount > 0;
 
   const showComingSoon = (feature: string) => {
-    toast.info("Coming soon", {
+    toast.info("Bald verfügbar", {
       description: `${feature} ist bald verfügbar.`,
     });
   };
 
   const showVoiceInputComingSoon = () => {
-    toast.info("Coming soon", {
-      description: "Speech input is coming soon.",
+    toast.info("Bald verfügbar", {
+      description: "Spracheingabe ist bald verfügbar.",
     });
   };
 
@@ -850,7 +850,7 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
           type="button"
           className="pointer-events-auto w-14 h-14 rounded-full shadow-2xl flex items-center justify-center hover:scale-95 transition-transform active:scale-90 bg-brand-primary border border-white/10 text-white"
           onClick={showVoiceInputComingSoon}
-          aria-label="Speech input coming soon"
+          aria-label="Spracheingabe (bald verfügbar)"
         >
           <span className="relative inline-flex items-center justify-center">
             <span className="material-symbols-outlined text-white text-2xl">
@@ -865,7 +865,7 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
           type="button"
           className="pointer-events-auto w-14 h-14 rounded-full shadow-2xl flex items-center justify-center hover:scale-95 transition-transform active:scale-90 bg-brand-primary border border-white/10 text-white"
           onClick={() => showComingSoon("Kalender-Import")}
-          aria-label="Kalender Import (Platzhalter)"
+          aria-label="Kalenderimport (Platzhalter)"
         >
           <span className="material-symbols-outlined text-white text-2xl">
             calendar_add_on

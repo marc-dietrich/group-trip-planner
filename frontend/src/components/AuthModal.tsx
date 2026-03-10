@@ -56,7 +56,7 @@ export function AuthModal({
           <div>
             <p className={eyebrow}>Anmelden</p>
             <h3 className="text-lg font-semibold text-slate-900">
-              Login / Sign up
+              Anmelden / Registrieren
             </h3>
           </div>
           <button type="button" className={buttonGhostSmall} onClick={onClose}>
@@ -97,7 +97,7 @@ export function AuthModal({
               className={buttonPrimary}
               disabled={authLoading || !authEnabled}
             >
-              {authMode === "signin" ? "Login" : "Registrieren"}
+              {authMode === "signin" ? "Anmelden" : "Registrieren"}
             </button>
             <button
               type="button"
@@ -108,7 +108,7 @@ export function AuthModal({
             >
               {authMode === "signin"
                 ? "Neu? Registrieren"
-                : "Schon Account? Login"}
+                : "Schon ein Konto? Anmelden"}
             </button>
           </div>
 
