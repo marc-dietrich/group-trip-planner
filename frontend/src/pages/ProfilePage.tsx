@@ -14,6 +14,7 @@ import {
   eyebrow,
   muted,
   pill,
+  pillSuccess,
   stack,
   stackSm,
 } from "../ui";
