@@ -519,7 +519,6 @@ export function SideMenu({
                     }}
                     aria-label="Biometrische Anmeldung nur in mobiler App verfügbar"
                   />
-                        {donationLoading ? "…" : `${amount} €`}
                   <div className="absolute inset-0 rounded-full pointer-events-none peer-checked:bg-zinc-300/70" />
                 </label>
               </div>
