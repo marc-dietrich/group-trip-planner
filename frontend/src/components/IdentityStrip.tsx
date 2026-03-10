@@ -30,11 +30,11 @@ export function IdentityStrip({
         <div className={identityLine}>
           {identity.kind === "user"
             ? `Angemeldet als ${identity.displayName}`
-            : "Lokaler Nutzer (nicht eingeloggt)"}
+            : "Lokaler Nutzer (nicht angemeldet)"}
         </div>
         <div className="flex flex-wrap items-center gap-3 text-sm text-slate-700">
           <span className="inline-flex items-center gap-2 rounded-full border border-indigo-100 bg-indigo-50 px-3 py-1 font-semibold text-indigo-800">
-            Hi {identity.displayName}
+            Hallo {identity.displayName}
           </span>
           {identity.kind === "user" ? (
             <button
@@ -43,7 +43,7 @@ export function IdentityStrip({
               onClick={onLogout}
               disabled={authLoading}
             >
-              Logout
+              Abmelden
             </button>
           ) : (
             <button

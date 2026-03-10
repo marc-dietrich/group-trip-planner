@@ -50,7 +50,7 @@ export function AuthPanel({
       <div className={cardHeaderSubtle}>
         <p className={eyebrow}>Anmelden</p>
         <button type="button" className={buttonGhostSmall} onClick={onToggle}>
-          {open ? "Schließen" : "Log in / Sign up"}
+          {open ? "Schließen" : "Anmelden / Registrieren"}
         </button>
       </div>
 
@@ -83,7 +83,7 @@ export function AuthPanel({
               className={buttonPrimary}
               disabled={authLoading || !authEnabled}
             >
-              {authMode === "signin" ? "Login" : "Registrieren"}
+              {authMode === "signin" ? "Anmelden" : "Registrieren"}
             </button>
             <button
               type="button"
@@ -94,7 +94,7 @@ export function AuthPanel({
             >
               {authMode === "signin"
                 ? "Neu? Registrieren"
-                : "Schon Account? Login"}
+                : "Schon ein Konto? Anmelden"}
             </button>
           </div>
 

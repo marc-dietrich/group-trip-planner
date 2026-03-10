@@ -61,7 +61,7 @@ export function InviteModal({
             nötig ist.
           </p>
           {loading ? (
-            <p className={muted}>Einladung wird geladen...</p>
+            <p className={muted}>Einladung wird geladen…</p>
           ) : error ? (
             <div className={pillDanger}>{error}</div>
           ) : invite ? (
@@ -75,7 +75,7 @@ export function InviteModal({
                 <div className={pillSuccess}>Du bist bereits Mitglied.</div>
               )}
               {requireLogin && !alreadyMember && (
-                <p className={muted}>Bitte logge dich ein, um beizutreten.</p>
+                <p className={muted}>Bitte melde dich an, um beizutreten.</p>
               )}
             </>
           ) : null}
@@ -88,11 +88,11 @@ export function InviteModal({
               disabled={loading || joining || !!error || alreadyMember}
             >
               {requireLogin
-                ? "Jetzt einloggen"
+                ? "Jetzt anmelden"
                 : joining
-                ? "Tritt bei..."
+                ? "Beitritt läuft…"
                 : alreadyMember
-                ? "Schon drin"
+                ? "Bereits Mitglied"
                 : "Beitreten"}
             </button>
             <button

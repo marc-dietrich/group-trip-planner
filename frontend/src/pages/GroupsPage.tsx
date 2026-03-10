@@ -523,10 +523,10 @@ export function GroupsPage({
               </div>
 
               <h2 className="text-[36px] font-semibold leading-tight tracking-tight text-slate-900 max-w-[340px]">
-                Plannungen sollte leichter sein.
+                Planen sollte leichter sein.
               </h2>
               <p className="mt-3 max-w-[300px] text-sm leading-relaxed text-slate-500">
-                Erstelle deine erste Gruppe, um zu starten.
+                Erstelle deine erste Gruppe, um loszulegen.
               </p>
 
               <button
@@ -588,7 +588,7 @@ export function GroupsPage({
                     <div className="bg-sage-50/40 px-3 py-10 sm:px-4">
                       {anySummaryLoading ? (
                         <p className="text-sm text-sage-600">
-                          Lade Gruppen-Zeiträume ...
+                          Gruppenzeiträume werden geladen…
                         </p>
                       ) : (
                         <div className="mx-auto flex max-w-[330px] flex-col items-center text-center">

@@ -43,7 +43,7 @@ export function DesktopShell({
   const isErrorState = groupsStatus === "error";
   const initials = (identity.displayName || "?").slice(0, 2).toUpperCase();
   const identityHint =
-    identity.kind === "user" ? "Eingeloggt" : "Gastmodus (ohne Login)";
+    identity.kind === "user" ? "Eingeloggt" : "Gastmodus (ohne Anmeldung)";
 
   return (
     <div className="grid min-h-screen grid-cols-[260px,1fr,340px] bg-gradient-to-b from-clay via-cream to-sage-50 text-sage-900">
@@ -181,7 +181,7 @@ export function DesktopShell({
             type="button"
             className="flex h-9 w-9 items-center justify-center rounded-xl border border-sage-200 bg-white text-sage-700 shadow-sm transition hover:border-rose-200 hover:text-rose-600"
             onClick={onLogout}
-            title="Logout"
+            title="Abmelden"
           >
             <span className="material-symbols-outlined text-[18px]">
               logout

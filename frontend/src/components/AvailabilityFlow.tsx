@@ -400,7 +400,7 @@ export function AvailabilityFlow({
             badge: "3/3 Prüfen & Bestätigen",
             title: "Zusammenfassung",
             subtitle: "Alles korrekt?",
-            cta: saving ? "Speichere..." : "Bestätigen & Speichern",
+            cta: saving ? "Speichere…" : "Bestätigen & Speichern",
           };
 
   const canSave = Boolean(draft.start && draft.end && draft.groupId && !saving);
@@ -752,7 +752,7 @@ export function AvailabilityFlow({
               <p className={eyebrow}>Gespeicherte Zeiträume</p>
               <h4 className="text-base font-semibold text-slate-900 sm:text-lg">
                 {rangesLoading
-                  ? "Lade..."
+                  ? "Lade…"
                   : orderedRanges.length
                     ? `${orderedRanges.length} Einträge`
                     : "Noch nichts gespeichert"}

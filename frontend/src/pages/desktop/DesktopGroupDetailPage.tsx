@@ -236,7 +236,7 @@ export function DesktopGroupDetailPage({
           <div className="flex items-center justify-between">
             <div>
               <p className="text-xs uppercase tracking-[0.2em] text-sage-400">
-                Top Zeitraum
+                Bester Zeitraum
               </p>
               <h2 className="text-xl font-semibold text-sage-900">
                 {highlightInterval
@@ -401,7 +401,7 @@ export function DesktopGroupDetailPage({
                   className="mt-3 w-full rounded-xl bg-sage-900 px-4 py-3 text-sm font-semibold text-white shadow-lg transition hover:bg-sage-800"
                   onClick={open}
                 >
-                  Slots hinzufügen
+                  Zeitraum hinzufügen
                 </button>
               )}
               onChange={() => {

@@ -163,7 +163,7 @@ export function DesktopGroupsPage({
     <div className="space-y-8">
       <Topbar
         title="Gruppen-Dashboard"
-        subtitle="Verfügbarkeit synchronisieren"
+        subtitle="Verfügbarkeiten synchronisieren"
         health={health}
         buildLabel={identity.kind === "user" ? "Account" : "Gast"}
         buildTitle={identity.displayName}

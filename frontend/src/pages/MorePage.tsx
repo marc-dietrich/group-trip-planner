@@ -12,7 +12,7 @@ export function MorePage({ onTestVoice }: MorePageProps) {
       <div className={stackSm}>
         <p className={muted}>Debug-/Mock-Aktionen für interne Tests.</p>
         <button type="button" className={buttonPrimary} onClick={onTestVoice}>
-          Speech-to-Text Mock auslösen
+          Speech-to-Text-Mock auslösen
         </button>
       </div>
     </section>

@@ -21,7 +21,7 @@ export function GroupsPanel({
   return (
     <div className="mt-2">
       {groupsLoading ? (
-        <p className={muted}>Gruppen werden geladen...</p>
+        <p className={muted}>Gruppen werden geladen…</p>
       ) : groupsError ? (
         <div className={pillDanger}>{groupsError}</div>
       ) : groups.length === 0 ? (
@@ -48,7 +48,7 @@ export function GroupsPanel({
                   onClick={() => onDelete(g.groupId)}
                   disabled={deletingId === g.groupId}
                 >
-                  {deletingId === g.groupId ? "..." : "Löschen"}
+                  {deletingId === g.groupId ? "…" : "Löschen"}
                 </button>
               </div>
             </li>

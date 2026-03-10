@@ -69,7 +69,7 @@ export function GroupCreateModal({
 
           <div className={buttonRow}>
             <button type="submit" className={buttonPrimary} disabled={creating}>
-              {creating ? "Erstelle..." : "Anlegen"}
+              {creating ? "Wird erstellt…" : "Anlegen"}
             </button>
             <button
               type="button"

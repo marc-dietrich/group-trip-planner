@@ -31,7 +31,7 @@ export function Topbar({
       <div className="flex items-center gap-2">
         <div
           className="flex items-center gap-2 rounded-full border border-slate-200 bg-white px-3 py-2 text-sm text-slate-700"
-          title={isOk ? "Backend connected" : "Backend nicht erreichbar"}
+          title={isOk ? "Backend verbunden" : "Backend nicht erreichbar"}
         >
           <span
             className={`h-2.5 w-2.5 rounded-full ${
