@@ -153,7 +153,7 @@ OAUTH_CLIENT_ID=REPLACE_WITH_GOOGLE_CLIENT_ID
 OAUTH_CLIENT_SECRET=REPLACE_WITH_GOOGLE_CLIENT_SECRET
 OAUTH_COOKIE_SECRET=${OAUTH_COOKIE}
 OAUTH_UPSTREAM=http://backend:8000
-OAUTH_REDIRECT_URL=https://${DOMAIN}/oauth2/callback
+OAUTH_REDIRECT_URL=https://${DOMAIN}/oauth/callback
 
 # ── Stripe Service ───────────────────────────────────────────────────────────
 

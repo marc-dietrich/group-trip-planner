@@ -60,7 +60,7 @@ export function IdentityCard({
               onClick={onAuthClick}
               disabled={!authEnabled}
             >
-              Log in / Sign up
+              Mit Google anmelden
             </button>
           )}
         </div>

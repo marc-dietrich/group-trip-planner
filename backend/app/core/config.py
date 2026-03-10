@@ -47,6 +47,11 @@ class Settings(BaseSettings):
     jwt_secret: str = ""
     jwt_algorithm: str = "HS256"
 
+    # OAuth2-Proxy (internal session bootstrap)
+    oauth_proxy_auth_url: str = "http://oauth-proxy:4180/oauth/auth"
+    oauth_proxy_userinfo_url: str = "http://oauth-proxy:4180/oauth/userinfo"
+    oauth_proxy_timeout_seconds: float = 5.0
+
     # Internal webhook secret used by stripe-service to grant supporter badges
     supporter_webhook_secret: str = ""
 
