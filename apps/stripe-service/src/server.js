@@ -19,6 +19,12 @@ const stripe = new Stripe(process.env.STRIPE_SECRET_KEY);
 const app = express();
 const port = Number(process.env.PORT || 3000);
 const allowedOrigin = process.env.ALLOWED_ORIGIN || "*";
+const configuredPaymentMethodTypes = (
+  process.env.STRIPE_PAYMENT_METHOD_TYPES || "card,paypal"
+)
+  .split(",")
+  .map((entry) => entry.trim())
+  .filter(Boolean);
 const appBaseUrl = (process.env.APP_BASE_URL || allowedOrigin || "").trim();
 const supporterApiBase = (
   process.env.SUPPORTER_API_BASE_URL || "http://localhost:8000"
@@ -270,9 +276,12 @@ app.post("/create-checkout-session", async (req, res, next) => {
 
     const successUrl = buildSuccessUrl(process.env.CHECKOUT_SUCCESS_URL);
 
-    const session = await stripe.checkout.sessions.create({
+    const checkoutPayload = {
       mode: "payment",
-      payment_method_types: ["card", "paypal"],
+      payment_method_types:
+        configuredPaymentMethodTypes.length > 0
+          ? configuredPaymentMethodTypes
+          : ["card"],
       line_items: [
         {
           quantity: 1,
@@ -291,7 +300,31 @@ app.post("/create-checkout-session", async (req, res, next) => {
       },
       success_url: successUrl,
       cancel_url: process.env.CHECKOUT_CANCEL_URL,
-    });
+    };
+
+    let session;
+    try {
+      session = await stripe.checkout.sessions.create(checkoutPayload);
+    } catch (error) {
+      const isPaymentMethodTypeError =
+        error?.type === "StripeInvalidRequestError" &&
+        error?.param === "payment_method_types";
+      const requestedPaypal = checkoutPayload.payment_method_types.includes(
+        "paypal",
+      );
+
+      if (isPaymentMethodTypeError && requestedPaypal) {
+        console.warn(
+          "Stripe checkout: paypal unavailable for account/config, retrying with card only.",
+        );
+        session = await stripe.checkout.sessions.create({
+          ...checkoutPayload,
+          payment_method_types: ["card"],
+        });
+      } else {
+        throw error;
+      }
+    }
 
     return res.status(200).json({ url: session.url });
   } catch (error) {
