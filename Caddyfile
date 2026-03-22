@@ -46,6 +46,21 @@
     reverse_proxy contact-service:3002
   }
 
+  @stripe_checkout path /create-checkout-session
+  handle @stripe_checkout {
+    reverse_proxy stripe-service:3000
+  }
+
+  @stripe_webhook path /webhook
+  handle @stripe_webhook {
+    reverse_proxy stripe-service:3000
+  }
+
+  @stripe_success path /success /supporter/thanks
+  handle @stripe_success {
+    reverse_proxy stripe-service:3000
+  }
+
   handle {
     reverse_proxy frontend:80
   }
