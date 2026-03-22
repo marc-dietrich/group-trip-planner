@@ -25,6 +25,9 @@ const configuredPaymentMethodTypes = (
   .split(",")
   .map((entry) => entry.trim())
   .filter(Boolean);
+const checkoutProductText = (
+  process.env.STRIPE_CHECKOUT_PRODUCT_TEXT || "Donation @ PlanningMadeSimple"
+).trim();
 const appBaseUrl = (process.env.APP_BASE_URL || allowedOrigin || "").trim();
 const supporterApiBase = (
   process.env.SUPPORTER_API_BASE_URL || "http://localhost:8000"
@@ -289,7 +292,7 @@ app.post("/create-checkout-session", async (req, res, next) => {
             currency: "eur",
             unit_amount: unitAmount,
             product_data: {
-              name: "Donation",
+              name: checkoutProductText,
             },
           },
         },
