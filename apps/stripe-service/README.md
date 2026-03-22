@@ -18,6 +18,7 @@ Minimal Stripe payment microservice.
 - `CHECKOUT_CANCEL_URL` (required)
 - Optional: `ALLOWED_ORIGIN` (fallback `*`)
 - Optional: `STRIPE_PAYMENT_METHOD_TYPES` (comma-separated, default `card,paypal`)
+- Optional: `STRIPE_CHECKOUT_PRODUCT_TEXT` (checkout line item text, default `Donation @ domain`)
 - Optional: `APP_BASE_URL` (link target on thank-you page, e.g. `http://localhost:5173`)
 - Optional: `PORT` (fallback `3000`)
 - Optional: `SUPPORTER_API_BASE_URL` (e.g. `http://localhost:8000`, used after successful webhook)
