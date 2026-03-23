@@ -111,11 +111,16 @@ export function SideMenu({
     () => (isUser ? "Angemeldet" : "Gastmodus"),
     [isUser],
   );
+  const userEmail =
+    identity.kind === "user" && identity.email && identity.email !== displayName
+      ? identity.email
+      : null;
 
   const currentImageSrc =
     identity.kind === "user"
       ? profileImageUrl(identity.userId, imageVersion)
       : genericSurface;
+  const isUsingFallbackAvatar = imageFallback || identity.kind !== "user";
 
   const openFilePicker = (source: ImagePickSource) => {
     const input = fileInputRef.current;
@@ -343,9 +348,11 @@ export function SideMenu({
                       onError={() => setImageFallback(true)}
                     />
                     <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-transparent to-sage-900/15" />
-                    <span className="relative z-10 text-sage-900 font-semibold drop-shadow-[0_1px_1px_rgba(255,255,255,0.75)]">
-                      {getInitials(displayName)}
-                    </span>
+                    {isUsingFallbackAvatar ? (
+                      <span className="relative z-10 text-sage-900 font-semibold drop-shadow-[0_1px_1px_rgba(255,255,255,0.75)]">
+                        {getInitials(displayName)}
+                      </span>
+                    ) : null}
                   </button>
                   {hasSupporterCrown ? (
                     <div className="absolute -top-1 -right-1 bg-white rounded-full p-0.5 shadow-sm border border-sage-100 flex items-center justify-center">
@@ -384,14 +391,12 @@ export function SideMenu({
                     {displayName}
                   </p>
                   <p className="text-zinc-500 dark:text-zinc-400 text-[11px] font-normal">
-                    {identityLabel}
+                    {userEmail || identityLabel}
                   </p>
                 </div>
                 {isActor && !oauthReady ? (
                   <div className="ml-auto flex flex-col items-center gap-1">
-                    <span
-                      className="text-[10px] uppercase tracking-wide text-amber-600"
-                    >
+                    <span className="text-[10px] uppercase tracking-wide text-amber-600">
                       Proxy offline
                     </span>
                   </div>

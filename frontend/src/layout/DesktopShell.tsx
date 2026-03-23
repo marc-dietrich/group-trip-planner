@@ -44,6 +44,12 @@ export function DesktopShell({
   const initials = (identity.displayName || "?").slice(0, 2).toUpperCase();
   const identityHint =
     identity.kind === "user" ? "Eingeloggt" : "Gastmodus (ohne Anmeldung)";
+  const userEmail =
+    identity.kind === "user" &&
+    identity.email &&
+    identity.email !== identity.displayName
+      ? identity.email
+      : null;
 
   return (
     <div className="grid min-h-screen grid-cols-[260px,1fr,340px] bg-gradient-to-b from-clay via-cream to-sage-50 text-sage-900">
@@ -175,7 +181,7 @@ export function DesktopShell({
             <p className="text-sm font-semibold text-sage-900">
               {identity.displayName}
             </p>
-            <p className="text-xs text-sage-500">{identityHint}</p>
+            <p className="text-xs text-sage-500">{userEmail || identityHint}</p>
           </div>
           <button
             type="button"

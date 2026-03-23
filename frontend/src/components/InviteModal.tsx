@@ -47,7 +47,7 @@ export function InviteModal({
           <div>
             <p className={eyebrow}>Einladung</p>
             <h3 className="text-lg font-semibold text-slate-900">
-              Gruppe beitreten?
+              {invite ? `Einladung von ${invite.name}` : "Einladungslink"}
             </h3>
           </div>
           <button type="button" className={buttonGhostSmall} onClick={onClose}>
@@ -56,21 +56,12 @@ export function InviteModal({
         </div>
 
         <div className={stackSm}>
-          <p className={muted}>
-            Wir zeigen dir kurz, welcher Gruppe du beitrittst und was dafür
-            nötig ist.
-          </p>
           {loading ? (
-            <p className={muted}>Einladung wird geladen…</p>
+            <p className={muted}>Link wird geprüft…</p>
           ) : error ? (
             <div className={pillDanger}>{error}</div>
           ) : invite ? (
             <>
-              <p>
-                Du wurdest eingeladen, der Gruppe
-                <span className="font-semibold"> {invite.name} </span>
-                beizutreten.
-              </p>
               {alreadyMember && (
                 <div className={pillSuccess}>Du bist bereits Mitglied.</div>
               )}
@@ -90,10 +81,10 @@ export function InviteModal({
               {requireLogin
                 ? "Jetzt anmelden"
                 : joining
-                ? "Beitritt läuft…"
-                : alreadyMember
-                ? "Bereits Mitglied"
-                : "Beitreten"}
+                  ? "Beitritt läuft…"
+                  : alreadyMember
+                    ? "Bereits Mitglied"
+                    : "Beitreten"}
             </button>
             <button
               type="button"

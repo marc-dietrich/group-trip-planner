@@ -53,6 +53,7 @@ export type Identity =
       actorId: string;
       userId: string;
       displayName: string;
+      email?: string;
       accessToken?: string;
     };
 

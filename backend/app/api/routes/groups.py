@@ -145,6 +145,7 @@ async def create_group(
     request: Request,
     group_data: GroupCreate,
     actor_id: str | None = Header(default=None, alias="X-Actor-Id"),
+    display_name_header: str | None = Header(default=None, alias="X-Display-Name"),
     identity: Identity = Depends(get_identity),
     service: GroupService = Depends(get_group_service),
 ):
@@ -155,7 +156,12 @@ async def create_group(
     if not resolved_actor:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="actorId header required")
 
-    creator_display = group_data.displayName or identity.display_name or "Gast"
+    creator_display = (
+        group_data.displayName
+        or (display_name_header or "").strip()
+        or identity.display_name
+        or "Gast"
+    )
 
     group, member = await service.create_group(
         group_name=group_data.groupName,
@@ -229,6 +235,7 @@ async def join_group(
     group_id: UUID,
     request: Request,
     actor_id: str | None = Header(default=None, alias="X-Actor-Id"),
+    display_name_header: str | None = Header(default=None, alias="X-Display-Name"),
     identity: Identity = Depends(get_identity),
     service: GroupService = Depends(get_group_service),
 ):
@@ -239,7 +246,7 @@ async def join_group(
     if not resolved_actor:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="actorId header required")
 
-    display_name = identity.display_name or "Gast"
+    display_name = (display_name_header or "").strip() or identity.display_name or "Gast"
 
     try:
         group, member, created, invite = await service.join_group(

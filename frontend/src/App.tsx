@@ -160,17 +160,21 @@ function AppShell() {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [joining, setJoining] = useState(false);
   const [alreadyMember, setAlreadyMember] = useState(false);
+  const [joinAfterNamePrompt, setJoinAfterNamePrompt] = useState(false);
   const [menuOpen, setMenuOpen] = useState(false);
   const [hasSupporterCrown, setHasSupporterCrown] = useState(false);
   const oauthReady = authEnabled;
 
   const identity = useMemo<Identity>(() => {
     if (session?.userId) {
+      const preferredName = actor.displayName?.trim();
       return {
         kind: "user",
         actorId: actor.actorId,
         userId: session.userId,
-        displayName: session.displayName || actor.displayName,
+        displayName:
+          preferredName || session.displayName || session.email || "Nutzer",
+        email: session.email,
         accessToken: session.accessToken,
       };
     }
@@ -387,10 +391,11 @@ function AppShell() {
     setInvitePreview(null);
     setInviteError(null);
     setAlreadyMember(false);
+    setJoinAfterNamePrompt(false);
     window.history.replaceState({}, "", basename);
   };
 
-  const handleAcceptInvite = async () => {
+  const acceptInvite = async (displayNameOverride?: string) => {
     if (!inviteGroupId) return;
 
     setJoining(true);
@@ -398,6 +403,9 @@ function AppShell() {
 
     try {
       const headers: HeadersInit = buildIdentityHeaders(identity);
+      if (displayNameOverride?.trim()) {
+        (headers as Headers).set("X-Display-Name", displayNameOverride.trim());
+      }
       const res = await fetch(apiPath(`/api/groups/${inviteGroupId}/join`), {
         method: "POST",
         headers,
@@ -428,6 +436,20 @@ function AppShell() {
     } finally {
       setJoining(false);
     }
+  };
+
+  const handleAcceptInvite = async () => {
+    if (
+      identity.kind === "actor" &&
+      isPlaceholderActorName(actor.displayName)
+    ) {
+      setPendingName("");
+      setNamePromptOpen(true);
+      setJoinAfterNamePrompt(true);
+      return;
+    }
+
+    await acceptInvite();
   };
 
   const handleMockVoice = async () => {
@@ -471,6 +493,11 @@ function AppShell() {
     setActorDisplayName(trimmed);
     setPendingName(trimmed);
     setNamePromptOpen(false);
+
+    if (joinAfterNamePrompt) {
+      setJoinAfterNamePrompt(false);
+      void acceptInvite(trimmed);
+    }
   };
 
   const layoutMode = useLayoutMode();
@@ -589,7 +616,7 @@ function AppShell() {
       />
 
       <InviteModal
-        open={inviteOpen}
+        open={inviteOpen && !namePromptOpen}
         loading={inviteLoading}
         invite={invitePreview}
         error={inviteError}
@@ -648,7 +675,6 @@ function AppShell() {
           setError(null);
         }}
       />
-
     </>
   );
 }
