@@ -5,6 +5,7 @@ export type AuthSession = {
   userId: string;
   accessToken?: string;
   displayName?: string;
+  email?: string;
 };
 
 export const authEnabled = oauthConfigured;
@@ -77,6 +78,7 @@ function parseStoredToken(token: string): AuthSession | null {
       userId,
       accessToken: token,
       displayName,
+      email: typeof payload.email === "string" ? payload.email : undefined,
     };
   } catch {
     return null;
@@ -99,6 +101,7 @@ export async function getExistingSession(): Promise<AuthSession | null> {
           userId: payload.userId,
           accessToken: payload.accessToken,
           displayName: payload.displayName || payload.email || undefined,
+          email: payload.email || undefined,
         };
         persistJwt(session);
         return session;

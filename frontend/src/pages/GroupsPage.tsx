@@ -302,6 +302,12 @@ export function GroupsPage({
   const isInitialLoading = groupsStatus === "loading";
   const isErrorState = groupsStatus === "error";
   const isEmptyState = groupsStatus === "empty" && !isFiltered;
+  const hasOnlyHistoryGroups =
+    !isFiltered &&
+    !isInitialLoading &&
+    !isErrorState &&
+    activeGroups.length === 0 &&
+    historyGroups.length > 0;
 
   const groupSlots = useMemo<GroupSlot[]>(() => {
     const now = Date.now();
@@ -610,15 +616,33 @@ export function GroupsPage({
                   )}
                 </section>
 
-                <section className="space-y-8 px-1">
-                  <div className="flex items-center justify-between">
-                    <h3 className="text-[11px] font-bold text-sage-400 uppercase tracking-[0.2em]">
-                      Aktive Gruppen
-                    </h3>
-                    <div className="h-px flex-1 ml-4 bg-sage-100"></div>
-                  </div>
-                  {listBody}
-                  {!showHistory && historyGroups.length > 0 && (
+                {!hasOnlyHistoryGroups ? (
+                  <section className="space-y-8 px-1">
+                    <div className="flex items-center justify-between">
+                      <h3 className="text-[11px] font-bold text-sage-400 uppercase tracking-[0.2em]">
+                        Aktive Gruppen
+                      </h3>
+                      <div className="h-px flex-1 ml-4 bg-sage-100"></div>
+                    </div>
+                    {listBody}
+                    {!showHistory && historyGroups.length > 0 && (
+                      <div className="mt-4">
+                        <button
+                          className="w-full py-6 text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-3 transition-colors rounded-2xl border bg-sage-100 text-sage-900 border-sage-200 hover:bg-sage-200 hover:border-sage-300 active:scale-[0.99] shadow-soft"
+                          type="button"
+                          aria-label="Historie anzeigen"
+                          onClick={() => setShowHistory(true)}
+                        >
+                          Historie anzeigen · {historyLabel}
+                          <span className="material-symbols-outlined !text-[18px] text-sage-700">
+                            history
+                          </span>
+                        </button>
+                      </div>
+                    )}
+                  </section>
+                ) : !showHistory && historyGroups.length > 0 ? (
+                  <section className="px-1">
                     <div className="mt-4">
                       <button
                         className="w-full py-6 text-xs font-bold uppercase tracking-widest flex items-center justify-center gap-3 transition-colors rounded-2xl border bg-sage-100 text-sage-900 border-sage-200 hover:bg-sage-200 hover:border-sage-300 active:scale-[0.99] shadow-soft"
@@ -632,8 +656,8 @@ export function GroupsPage({
                         </span>
                       </button>
                     </div>
-                  )}
-                </section>
+                  </section>
+                ) : null}
 
                 {showHistory && historyGroups.length > 0 ? (
                   <section className="space-y-6 px-1 pb-2">

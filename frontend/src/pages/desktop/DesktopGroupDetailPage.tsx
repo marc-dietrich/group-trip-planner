@@ -15,10 +15,12 @@ import { useGroupStats } from "../../hooks/useGroupStats";
 import {
   deleteGroupImage,
   groupImageUrl,
+  profileImageUrl,
   uploadGroupImage,
 } from "../../services/imageService";
 import { GroupMembership, HealthCheck, Identity } from "../../types";
 import { muted } from "../../ui";
+import genericSurface from "../../../assets/generic.webp";
 
 const dateFormatter = new Intl.DateTimeFormat("de-DE", {
   day: "2-digit",
@@ -142,6 +144,41 @@ export function DesktopGroupDetailPage({
       return namePart || trimmed;
     }
     return trimmed;
+  };
+
+  const MemberAvatar = ({
+    displayName,
+    userId,
+  }: {
+    displayName: string;
+    userId: string | null;
+  }) => {
+    const [imageFallback, setImageFallback] = useState(!userId);
+
+    useEffect(() => {
+      setImageFallback(!userId);
+    }, [userId]);
+
+    const src =
+      userId && !imageFallback ? profileImageUrl(userId) : genericSurface;
+
+    return (
+      <div className="relative grid h-10 w-10 place-items-center overflow-hidden rounded-xl bg-white text-sm font-bold text-sage-800">
+        <img
+          src={src}
+          alt=""
+          aria-hidden="true"
+          className="absolute inset-0 h-full w-full object-cover"
+          onError={() => setImageFallback(true)}
+        />
+        <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-transparent to-sage-900/15" />
+        {imageFallback ? (
+          <span className="relative z-10">
+            {formatMemberName(displayName).slice(0, 2)}
+          </span>
+        ) : null}
+      </div>
+    );
   };
 
   const openGroupImagePicker = (source: ImagePickSource) => {
@@ -366,9 +403,10 @@ export function DesktopGroupDetailPage({
                   key={member.memberId}
                   className="flex items-center gap-3 rounded-xl border border-sage-100 bg-sage-50 px-3 py-2"
                 >
-                  <div className="grid h-10 w-10 place-items-center rounded-xl bg-white text-sm font-bold text-sage-800">
-                    {formatMemberName(member.displayName).slice(0, 2)}
-                  </div>
+                  <MemberAvatar
+                    displayName={member.displayName}
+                    userId={member.userId}
+                  />
                   <div>
                     <p className="text-sm font-semibold text-sage-900">
                       {formatMemberName(member.displayName)}

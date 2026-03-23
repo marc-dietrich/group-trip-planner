@@ -17,6 +17,7 @@ import { useGroupStore } from "../state/groupStore";
 import {
   deleteGroupImage,
   groupImageUrl,
+  profileImageUrl,
   uploadGroupImage,
 } from "../services/imageService";
 import genericSurface from "../../assets/generic.webp";
@@ -423,6 +424,43 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
     return undefined;
   }, [memberListFade.left, memberListFade.right]);
 
+  const MemberAvatar = ({
+    displayName,
+    userId,
+  }: {
+    displayName: string;
+    userId: string | null;
+  }) => {
+    const [imageFallback, setImageFallback] = useState(!userId);
+
+    useEffect(() => {
+      setImageFallback(!userId);
+    }, [userId]);
+
+    const src =
+      userId && !imageFallback ? profileImageUrl(userId) : genericSurface;
+
+    return (
+      <div className="w-14 h-14 rounded-full border-[2px] border-brand-primary p-0.5 shadow-sm bg-white">
+        <div className="relative w-full h-full rounded-full overflow-hidden grid place-items-center">
+          <img
+            src={src}
+            alt=""
+            aria-hidden="true"
+            className="absolute inset-0 h-full w-full object-cover"
+            onError={() => setImageFallback(true)}
+          />
+          <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-transparent to-sage-900/15" />
+          {imageFallback ? (
+            <span className="relative z-10 text-xs font-bold text-sage-900 drop-shadow-[0_1px_1px_rgba(255,255,255,0.75)]">
+              {formatMemberName(displayName).slice(0, 2)}
+            </span>
+          ) : null}
+        </div>
+      </div>
+    );
+  };
+
   useLayoutEffect(() => {
     const node = titleRef.current;
     if (!node) return;
@@ -627,20 +665,10 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
                   key={member.memberId}
                   className="flex flex-col items-center gap-2 min-w-[64px]"
                 >
-                  <div className="w-14 h-14 rounded-full border-[2px] border-brand-primary p-0.5 shadow-sm bg-white">
-                    <div className="relative w-full h-full rounded-full overflow-hidden grid place-items-center">
-                      <img
-                        src={genericSurface}
-                        alt=""
-                        aria-hidden="true"
-                        className="absolute inset-0 h-full w-full object-cover"
-                      />
-                      <div className="absolute inset-0 bg-gradient-to-br from-white/30 via-transparent to-sage-900/15" />
-                      <span className="relative z-10 text-xs font-bold text-sage-900 drop-shadow-[0_1px_1px_rgba(255,255,255,0.75)]">
-                        {formatMemberName(member.displayName).slice(0, 2)}
-                      </span>
-                    </div>
-                  </div>
+                  <MemberAvatar
+                    displayName={member.displayName}
+                    userId={member.userId}
+                  />
                   <p className="text-[11px] font-bold text-slate-900">
                     {formatMemberName(member.displayName)}
                   </p>

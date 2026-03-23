@@ -6,6 +6,9 @@ export function buildIdentityHeaders(
 ): Headers {
   const headers = new Headers(extra);
   headers.set("X-Actor-Id", identity.actorId);
+  if (identity.displayName?.trim()) {
+    headers.set("X-Display-Name", identity.displayName.trim());
+  }
   if (identity.kind === "user" && identity.accessToken) {
     headers.set("Authorization", `Bearer ${identity.accessToken}`);
   }

@@ -115,11 +115,17 @@ class ImageStorageService:
     ) -> ProcessedImage:
         try:
             with Image.open(BytesIO(raw_bytes)) as source_image:
-                source = source_image.convert("RGB")
+                normalized = ImageOps.exif_transpose(source_image)
+                source = normalized.convert("RGB")
         except UnidentifiedImageError as exc:
             raise ImageValidationError("Invalid image payload") from exc
 
-        resized = ImageOps.fit(source, (target_width, target_height), method=Image.Resampling.LANCZOS)
+        resized = ImageOps.fit(
+            source,
+            (target_width, target_height),
+            method=Image.Resampling.LANCZOS,
+            centering=(0.5, 0.5),
+        )
 
         quality_steps = [85, 80, 75, 70, 65, 60, 55, 50, 45, 40, 35]
         best: tuple[str, int, bytes] | None = None
