@@ -86,6 +86,12 @@ class GroupRepository(Protocol):
     async def commit(self) -> None:
         ...
 
+    async def record_group_interaction(self, group_id: UUID, at: Optional[datetime] = None) -> Optional[Group]:
+        ...
+
+    async def set_group_archived(self, group_id: UUID, is_archived: bool) -> Optional[Group]:
+        ...
+
 
 class SQLModelGroupRepository(GroupRepository):
     """SQLModel-backed implementation using an AsyncSession."""
@@ -286,6 +292,27 @@ class SQLModelGroupRepository(GroupRepository):
     async def commit(self) -> None:
         await self.session.commit()
 
+    async def record_group_interaction(self, group_id: UUID, at: Optional[datetime] = None) -> Optional[Group]:
+        group = await self.session.get(Group, group_id)
+        if not group:
+            return None
+
+        group.last_interaction_at = at or datetime.utcnow()
+        group.is_archived = False
+        await self.session.commit()
+        await self.session.refresh(group)
+        return group
+
+    async def set_group_archived(self, group_id: UUID, is_archived: bool) -> Optional[Group]:
+        group = await self.session.get(Group, group_id)
+        if not group:
+            return None
+
+        group.is_archived = is_archived
+        await self.session.commit()
+        await self.session.refresh(group)
+        return group
+
 
 class InMemoryGroupRepository(GroupRepository):
     """Simple in-memory repository for fast tests."""
@@ -448,3 +475,20 @@ class InMemoryGroupRepository(GroupRepository):
 
     async def commit(self) -> None:  # pragma: no cover - no-op for in-memory
         return None
+
+    async def record_group_interaction(self, group_id: UUID, at: Optional[datetime] = None) -> Optional[Group]:
+        group = self.groups.get(group_id)
+        if not group:
+            return None
+
+        group.last_interaction_at = at or datetime.utcnow()
+        group.is_archived = False
+        return group
+
+    async def set_group_archived(self, group_id: UUID, is_archived: bool) -> Optional[Group]:
+        group = self.groups.get(group_id)
+        if not group:
+            return None
+
+        group.is_archived = is_archived
+        return group

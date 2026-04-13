@@ -14,4 +14,6 @@ class Group(SQLModel, table=True):
     id: UUID = Field(default_factory=uuid4, primary_key=True, description="Primary identifier")
     name: str = Field(max_length=100, description="Name der Gruppe")
     created_at: datetime = Field(default_factory=datetime.utcnow, description="Erstellungsdatum")
+    last_interaction_at: datetime = Field(default_factory=datetime.utcnow, description="Zeitpunkt der letzten Interaktion")
+    is_archived: bool = Field(default=False, description="Archivierungsstatus der Gruppe")
     created_by_actor: str = Field(max_length=255, description="Opaque actor id of creator")

@@ -1,7 +1,7 @@
 """API tests with mocked persistence (no real database)."""
 
 from datetime import datetime, timedelta
-from uuid import uuid4
+from uuid import UUID, uuid4
 
 import pytest
 import pytest_asyncio
@@ -336,3 +336,65 @@ async def test_invite_used_count_increments(fake_group_repo):
         invite_again = await fake_group_repo.get_invite_by_token(str(group_id))
         assert invite_again is not None
         assert invite_again.used_count == 1
+
+
+@pytest.mark.asyncio
+async def test_archived_group_is_reactivated_and_can_generate_invite_link(fake_group_repo):
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        owner_headers, _ = _auth_headers(display_name="Owner")
+        create_res = await client.post(
+            "/api/groups",
+            json={"groupName": "Archivierte Gruppe", "displayName": "Owner"},
+            headers=owner_headers,
+        )
+        assert create_res.status_code == 200
+        group_id = create_res.json()["groupId"]
+        group_uuid = UUID(group_id)
+
+        group = await fake_group_repo.get_group(group_uuid)
+        assert group is not None
+        group.is_archived = True
+        group.last_interaction_at = datetime.utcnow() - timedelta(days=190)
+
+        list_res = await client.get("/api/groups", headers=owner_headers)
+        assert list_res.status_code == 200
+        listed = next((g for g in list_res.json() if g["groupId"] == group_id), None)
+        assert listed is not None
+        assert "/invite/" in listed["inviteLink"]
+
+        refreshed_group = await fake_group_repo.get_group(group_uuid)
+        assert refreshed_group is not None
+        assert refreshed_group.is_archived is False
+
+        preview_res = await client.get(f"/api/groups/{group_id}")
+        assert preview_res.status_code == 200
+
+
+@pytest.mark.asyncio
+async def test_join_archived_group_reactivates_group(fake_group_repo):
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as client:
+        owner_headers, _ = _auth_headers(display_name="Owner")
+        create_res = await client.post(
+            "/api/groups",
+            json={"groupName": "Archiv Join", "displayName": "Owner"},
+            headers=owner_headers,
+        )
+        assert create_res.status_code == 200
+        group_id = create_res.json()["groupId"]
+        group_uuid = UUID(group_id)
+
+        group = await fake_group_repo.get_group(group_uuid)
+        assert group is not None
+        group.is_archived = True
+        group.last_interaction_at = datetime.utcnow() - timedelta(days=190)
+
+        member_headers, _ = _auth_headers(display_name="Neues Mitglied")
+        join_res = await client.post(f"/api/groups/{group_id}/join", headers=member_headers)
+        assert join_res.status_code == 200
+        assert join_res.json()["alreadyMember"] is False
+
+        refreshed = await fake_group_repo.get_group(group_uuid)
+        assert refreshed is not None
+        assert refreshed.is_archived is False
