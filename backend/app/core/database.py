@@ -5,6 +5,7 @@ Database connection und session management
 from sqlmodel import create_engine
 from sqlalchemy.ext.asyncio import AsyncSession, create_async_engine
 from sqlalchemy.orm import sessionmaker
+from sqlalchemy import text
 from .config import get_settings
 
 settings = get_settings()
@@ -27,3 +28,21 @@ async def create_db_and_tables():
     from sqlmodel import SQLModel
     async with engine.begin() as conn:
         await conn.run_sync(SQLModel.metadata.create_all)
+        await conn.execute(
+            text(
+                """
+                ALTER TABLE IF EXISTS groups
+                    ADD COLUMN IF NOT EXISTS last_interaction_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
+                    ADD COLUMN IF NOT EXISTS is_archived BOOLEAN NOT NULL DEFAULT FALSE
+                """
+            )
+        )
+        await conn.execute(
+            text(
+                """
+                UPDATE groups
+                SET last_interaction_at = COALESCE(last_interaction_at, created_at)
+                WHERE last_interaction_at IS NULL
+                """
+            )
+        )
