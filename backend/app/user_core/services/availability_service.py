@@ -188,6 +188,7 @@ class AvailabilityService:
             end_date=end_date,
         )
         await self.availability_repo.commit()
+        await self.group_repo.record_group_interaction(group_id=group_id)
 
         # In-memory repo is used in tests; refresh synchronously for deterministic assertions.
         if self.availability_repo.__class__.__name__.startswith("InMemory"):
