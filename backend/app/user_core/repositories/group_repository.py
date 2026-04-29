@@ -72,6 +72,9 @@ class GroupRepository(Protocol):
     async def get_invite_by_token(self, token: str) -> Optional[GroupInvite]:
         ...
 
+    async def get_latest_invite_for_group(self, group_id: UUID) -> Optional[GroupInvite]:
+        ...
+
     async def increment_invite_used_count(self, invite_id: UUID) -> GroupInvite:
         ...
 
@@ -90,6 +93,9 @@ class GroupRepository(Protocol):
         ...
 
     async def set_group_archived(self, group_id: UUID, is_archived: bool) -> Optional[Group]:
+        ...
+
+    async def set_group_history_after_days(self, group_id: UUID, history_after_days: int) -> Optional[Group]:
         ...
 
 
@@ -245,6 +251,16 @@ class SQLModelGroupRepository(GroupRepository):
         result = await self.session.execute(stmt)
         return result.scalars().first()
 
+    async def get_latest_invite_for_group(self, group_id: UUID) -> Optional[GroupInvite]:
+        stmt = (
+            select(GroupInvite)
+            .where(GroupInvite.group_id == group_id)
+            .order_by(GroupInvite.created_at.desc())
+            .limit(1)
+        )
+        result = await self.session.execute(stmt)
+        return result.scalars().first()
+
     async def increment_invite_used_count(self, invite_id: UUID) -> GroupInvite:
         stmt = (
             update(GroupInvite)
@@ -309,6 +325,16 @@ class SQLModelGroupRepository(GroupRepository):
             return None
 
         group.is_archived = is_archived
+        await self.session.commit()
+        await self.session.refresh(group)
+        return group
+
+    async def set_group_history_after_days(self, group_id: UUID, history_after_days: int) -> Optional[Group]:
+        group = await self.session.get(Group, group_id)
+        if not group:
+            return None
+
+        group.history_after_days = history_after_days
         await self.session.commit()
         await self.session.refresh(group)
         return group
@@ -441,6 +467,12 @@ class InMemoryGroupRepository(GroupRepository):
     async def get_invite_by_token(self, token: str) -> Optional[GroupInvite]:
         return self.invites.get(token)
 
+    async def get_latest_invite_for_group(self, group_id: UUID) -> Optional[GroupInvite]:
+        invites = [invite for invite in self.invites.values() if invite.group_id == group_id]
+        if not invites:
+            return None
+        return max(invites, key=lambda invite: invite.created_at)
+
     async def increment_invite_used_count(self, invite_id: UUID) -> GroupInvite:
         for invite in self.invites.values():
             if invite.id == invite_id:
@@ -491,4 +523,12 @@ class InMemoryGroupRepository(GroupRepository):
             return None
 
         group.is_archived = is_archived
+        return group
+
+    async def set_group_history_after_days(self, group_id: UUID, history_after_days: int) -> Optional[Group]:
+        group = self.groups.get(group_id)
+        if not group:
+            return None
+
+        group.history_after_days = history_after_days
         return group

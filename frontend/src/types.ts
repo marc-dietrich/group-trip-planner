@@ -31,6 +31,8 @@ export type GroupMembership = {
   inviteLink: string;
   inviteExpiresAt?: string;
   createdAt?: string;
+  isArchived?: boolean;
+  historyAfterDays?: number;
 };
 
 export type GroupInvitePreview = {

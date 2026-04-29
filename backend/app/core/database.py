@@ -33,7 +33,8 @@ async def create_db_and_tables():
                 """
                 ALTER TABLE IF EXISTS groups
                     ADD COLUMN IF NOT EXISTS last_interaction_at TIMESTAMP WITHOUT TIME ZONE NOT NULL DEFAULT NOW(),
-                    ADD COLUMN IF NOT EXISTS is_archived BOOLEAN NOT NULL DEFAULT FALSE
+                    ADD COLUMN IF NOT EXISTS is_archived BOOLEAN NOT NULL DEFAULT FALSE,
+                    ADD COLUMN IF NOT EXISTS history_after_days INT NOT NULL DEFAULT 30
                 """
             )
         )
@@ -43,6 +44,15 @@ async def create_db_and_tables():
                 UPDATE groups
                 SET last_interaction_at = COALESCE(last_interaction_at, created_at)
                 WHERE last_interaction_at IS NULL
+                """
+            )
+        )
+        await conn.execute(
+            text(
+                """
+                UPDATE groups
+                SET history_after_days = 30
+                WHERE history_after_days IS NULL OR history_after_days < 1
                 """
             )
         )

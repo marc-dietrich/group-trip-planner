@@ -2,7 +2,7 @@
 
 from datetime import datetime, timedelta
 from typing import List, Optional, Tuple
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from app.user_core.models import Group, GroupInvite, GroupMember
 from app.user_core.repositories import GroupRepository
@@ -19,8 +19,6 @@ class InviteNotFoundError(Exception):
 class GroupService:
     """Service für Gruppen-Operationen über ein Repository."""
 
-    ARCHIVE_AFTER_MONTHS = 6
-
     def __init__(self, repo: GroupRepository):
         self.repo = repo
 
@@ -35,25 +33,10 @@ class GroupService:
         normalized = cls._normalize_dt(base)
         return normalized + timedelta(days=ttl_days)
 
-    @staticmethod
-    def _add_months(value: datetime, months: int) -> datetime:
-        year = value.year + (value.month - 1 + months) // 12
-        month = (value.month - 1 + months) % 12 + 1
-
-        if month == 2:
-            max_day = 29 if (year % 4 == 0 and (year % 100 != 0 or year % 400 == 0)) else 28
-        elif month in {4, 6, 9, 11}:
-            max_day = 30
-        else:
-            max_day = 31
-
-        day = min(value.day, max_day)
-        return value.replace(year=year, month=month, day=day)
-
     @classmethod
     def _should_be_archived(cls, group: Group, now: Optional[datetime] = None) -> bool:
         anchor = cls._normalize_dt(group.last_interaction_at)
-        threshold = cls._add_months(anchor, cls.ARCHIVE_AFTER_MONTHS)
+        threshold = anchor + timedelta(days=group.history_after_days)
         current = cls._normalize_dt(now or datetime.utcnow())
         return current >= threshold
 
@@ -95,17 +78,17 @@ class GroupService:
         return group, owner
 
     async def ensure_invite_for_group(self, group: Group, ttl_days: int) -> GroupInvite:
-        """Return existing invite for a group or create one with the configured TTL."""
+        """Return an active invite for a group or create a fresh token with configured TTL."""
 
         active_group = await self.repo.record_group_interaction(group.id)
         group = active_group or group
 
-        token = str(group.id)
-        existing = await self.repo.get_invite_by_token(token)
-        if existing:
+        existing = await self.repo.get_latest_invite_for_group(group.id)
+        if existing and not self.is_invite_expired(existing):
             return existing
 
         expires_at = self._calculate_expiry(ttl_days)
+        token = str(uuid4())
         return await self.repo.create_invite(group_id=group.id, token=token, expires_at=expires_at)
 
     async def get_groups(self) -> List[Group]:
@@ -174,35 +157,26 @@ class GroupService:
         """Assign an authenticated user to all memberships created by an actor."""
         return await self.repo.claim_memberships_for_user(actor_id=actor_id, user_id=user_id)
 
-    async def get_invite_preview(self, token: str, ttl_days: int) -> Tuple[Group, GroupInvite]:
+    async def update_group_history_after_days(self, group_id: UUID, history_after_days: int) -> Optional[Group]:
+        """Update per-group inactivity threshold for moving into history."""
+
+        return await self.repo.set_group_history_after_days(
+            group_id=group_id,
+            history_after_days=history_after_days,
+        )
+
+    async def get_invite_preview(self, token: str) -> Tuple[Group, GroupInvite]:
         """Resolve an invite token to its group, validating expiration."""
 
         invite = await self.repo.get_invite_by_token(token)
-        group: Optional[Group] = None
-
         if not invite:
-            try:
-                group_id = UUID(token)
-            except ValueError as exc:  # Defensive: should not happen for UUID route param
-                raise InviteNotFoundError("Einladung nicht gefunden") from exc
+            raise InviteNotFoundError("Einladung nicht gefunden")
 
-            group = await self.repo.get_group(group_id)
-            if not group:
-                raise InviteNotFoundError("Einladung nicht gefunden")
+        group = await self.repo.get_group(invite.group_id)
+        if not group:
+            raise InviteNotFoundError("Einladung nicht gefunden")
 
-            group = await self._auto_archive_if_inactive(group)
-
-            invite = await self.repo.create_invite(
-                group_id=group.id,
-                token=token,
-                expires_at=self._calculate_expiry(ttl_days),
-            )
-        else:
-            group = await self.repo.get_group(invite.group_id)
-            if not group:
-                raise InviteNotFoundError("Einladung nicht gefunden")
-
-            group = await self._auto_archive_if_inactive(group)
+        group = await self._auto_archive_if_inactive(group)
 
         if self.is_invite_expired(invite):
             raise InviteExpiredError("Einladung abgelaufen")
@@ -211,18 +185,17 @@ class GroupService:
 
     async def join_group(
         self,
-        group_id: UUID,
+        invite_token: str,
         actor_id: str,
         display_name: str,
         user_id: UUID | None = None,
-        invite_ttl_days: int = 7,
     ) -> Tuple[Group, GroupMember, bool, GroupInvite]:
         """Join a group by creating a membership when missing.
 
         Returns a tuple of (group, member, created_flag, invite).
         """
 
-        group, invite = await self.get_invite_preview(token=str(group_id), ttl_days=invite_ttl_days)
+        group, invite = await self.get_invite_preview(token=invite_token)
 
         existing = await self.repo.get_member_by_actor(group_id=group.id, actor_id=actor_id)
         if existing:

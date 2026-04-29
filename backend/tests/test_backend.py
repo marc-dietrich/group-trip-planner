@@ -120,12 +120,12 @@ async def test_join_new_member_unarchives_group():
     )
     group.is_archived = True
     group.last_interaction_at = datetime.utcnow() - timedelta(days=190)
+    invite = await service.ensure_invite_for_group(group=group, ttl_days=7)
 
     joined_group, _, created, _ = await service.join_group(
-        group_id=group.id,
+        invite_token=invite.token,
         actor_id="member-2",
         display_name="Member",
-        invite_ttl_days=7,
     )
 
     assert created is True

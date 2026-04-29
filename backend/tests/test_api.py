@@ -18,6 +18,10 @@ from app.user_core.services import GroupService
 settings = get_settings()
 
 
+def _invite_token_from_link(link: str) -> str:
+    return link.rstrip("/").split("/")[-1]
+
+
 def _auth_headers(
     user_id: str | None = None,
     display_name: str | None = "API Tester",
@@ -146,9 +150,10 @@ async def test_non_owner_cannot_delete_group():
         )
         assert create_res.status_code == 200
         group_id = create_res.json()["groupId"]
+        invite_token = _invite_token_from_link(create_res.json()["inviteLink"])
 
         member_headers, _ = _auth_headers(display_name="Member")
-        join_res = await client.post(f"/api/groups/{group_id}/join", headers=member_headers)
+        join_res = await client.post(f"/api/groups/{invite_token}/join", headers=member_headers)
         assert join_res.status_code == 200
 
         forbidden_delete = await client.delete(f"/api/groups/{group_id}", headers=member_headers)
@@ -183,16 +188,17 @@ async def test_join_group_via_invite_link():
         create_res = await client.post("/api/groups", json=group_data, headers=owner_headers)
         assert create_res.status_code == 200
         group_id = create_res.json()["groupId"]
+        invite_token = _invite_token_from_link(create_res.json()["inviteLink"])
 
         guest_headers, _ = _auth_headers(display_name="Guest")
-        join_res = await client.post(f"/api/groups/{group_id}/join", headers=guest_headers)
+        join_res = await client.post(f"/api/groups/{invite_token}/join", headers=guest_headers)
         assert join_res.status_code == 200
         body = join_res.json()
         assert body["groupId"] == group_id
         assert body["alreadyMember"] is False
 
         # Joining again should be idempotent
-        repeat = await client.post(f"/api/groups/{group_id}/join", headers=guest_headers)
+        repeat = await client.post(f"/api/groups/{invite_token}/join", headers=guest_headers)
         assert repeat.status_code == 200
         assert repeat.json()["alreadyMember"] is True
 
@@ -214,9 +220,10 @@ async def test_member_and_owner_can_leave_group():
         )
         assert create_res.status_code == 200
         group_id = create_res.json()["groupId"]
+        invite_token = _invite_token_from_link(create_res.json()["inviteLink"])
 
         member_headers, _ = _auth_headers(display_name="Member")
-        join_res = await client.post(f"/api/groups/{group_id}/join", headers=member_headers)
+        join_res = await client.post(f"/api/groups/{invite_token}/join", headers=member_headers)
         assert join_res.status_code == 200
 
         member_leave = await client.post(f"/api/groups/{group_id}/leave", headers=member_headers)
@@ -246,9 +253,10 @@ async def test_owner_leave_promotes_another_member_to_owner():
         )
         assert create_res.status_code == 200
         group_id = create_res.json()["groupId"]
+        invite_token = _invite_token_from_link(create_res.json()["inviteLink"])
 
         member_headers, _ = _auth_headers(display_name="Member")
-        join_res = await client.post(f"/api/groups/{group_id}/join", headers=member_headers)
+        join_res = await client.post(f"/api/groups/{invite_token}/join", headers=member_headers)
         assert join_res.status_code == 200
 
         owner_leave = await client.post(f"/api/groups/{group_id}/leave", headers=owner_headers)
@@ -275,13 +283,13 @@ async def test_invite_preview_returns_410_when_expired(fake_group_repo):
             headers=owner_headers,
         )
         assert create_res.status_code == 200
-        group_id = create_res.json()["groupId"]
+        invite_token = _invite_token_from_link(create_res.json()["inviteLink"])
 
-        invite = await fake_group_repo.get_invite_by_token(str(group_id))
+        invite = await fake_group_repo.get_invite_by_token(invite_token)
         assert invite is not None
         invite.expires_at = datetime.utcnow() - timedelta(days=1)
 
-        preview_res = await client.get(f"/api/groups/{group_id}")
+        preview_res = await client.get(f"/api/groups/{invite_token}")
         assert preview_res.status_code == 410
         assert preview_res.json()["detail"] == "Einladung abgelaufen"
 
@@ -297,14 +305,14 @@ async def test_join_rejects_expired_invite(fake_group_repo):
             headers=owner_headers,
         )
         assert create_res.status_code == 200
-        group_id = create_res.json()["groupId"]
+        invite_token = _invite_token_from_link(create_res.json()["inviteLink"])
 
-        invite = await fake_group_repo.get_invite_by_token(str(group_id))
+        invite = await fake_group_repo.get_invite_by_token(invite_token)
         assert invite is not None
         invite.expires_at = datetime.utcnow() - timedelta(days=1)
 
         guest_headers, _ = _auth_headers(display_name="Guest")
-        join_res = await client.post(f"/api/groups/{group_id}/join", headers=guest_headers)
+        join_res = await client.post(f"/api/groups/{invite_token}/join", headers=guest_headers)
         assert join_res.status_code == 410
         assert join_res.json()["detail"] == "Einladung abgelaufen"
 
@@ -320,20 +328,20 @@ async def test_invite_used_count_increments(fake_group_repo):
             headers=owner_headers,
         )
         assert create_res.status_code == 200
-        group_id = create_res.json()["groupId"]
+        invite_token = _invite_token_from_link(create_res.json()["inviteLink"])
 
         guest_headers, _ = _auth_headers(display_name="Guest")
-        join_res = await client.post(f"/api/groups/{group_id}/join", headers=guest_headers)
+        join_res = await client.post(f"/api/groups/{invite_token}/join", headers=guest_headers)
         assert join_res.status_code == 200
 
-        invite = await fake_group_repo.get_invite_by_token(str(group_id))
+        invite = await fake_group_repo.get_invite_by_token(invite_token)
         assert invite is not None
         assert invite.used_count == 1
 
-        repeat = await client.post(f"/api/groups/{group_id}/join", headers=guest_headers)
+        repeat = await client.post(f"/api/groups/{invite_token}/join", headers=guest_headers)
         assert repeat.status_code == 200
 
-        invite_again = await fake_group_repo.get_invite_by_token(str(group_id))
+        invite_again = await fake_group_repo.get_invite_by_token(invite_token)
         assert invite_again is not None
         assert invite_again.used_count == 1
 
@@ -362,12 +370,13 @@ async def test_archived_group_is_reactivated_and_can_generate_invite_link(fake_g
         listed = next((g for g in list_res.json() if g["groupId"] == group_id), None)
         assert listed is not None
         assert "/invite/" in listed["inviteLink"]
+        invite_token = _invite_token_from_link(listed["inviteLink"])
 
         refreshed_group = await fake_group_repo.get_group(group_uuid)
         assert refreshed_group is not None
         assert refreshed_group.is_archived is False
 
-        preview_res = await client.get(f"/api/groups/{group_id}")
+        preview_res = await client.get(f"/api/groups/{invite_token}")
         assert preview_res.status_code == 200
 
 
@@ -383,6 +392,7 @@ async def test_join_archived_group_reactivates_group(fake_group_repo):
         )
         assert create_res.status_code == 200
         group_id = create_res.json()["groupId"]
+        invite_token = _invite_token_from_link(create_res.json()["inviteLink"])
         group_uuid = UUID(group_id)
 
         group = await fake_group_repo.get_group(group_uuid)
@@ -391,7 +401,7 @@ async def test_join_archived_group_reactivates_group(fake_group_repo):
         group.last_interaction_at = datetime.utcnow() - timedelta(days=190)
 
         member_headers, _ = _auth_headers(display_name="Neues Mitglied")
-        join_res = await client.post(f"/api/groups/{group_id}/join", headers=member_headers)
+        join_res = await client.post(f"/api/groups/{invite_token}/join", headers=member_headers)
         assert join_res.status_code == 200
         assert join_res.json()["alreadyMember"] is False
 

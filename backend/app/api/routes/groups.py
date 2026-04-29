@@ -4,7 +4,7 @@ from datetime import datetime
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Request, Response, status, Header
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from urllib.parse import urlsplit, urlunsplit
 
 from app.core.config import get_settings
@@ -82,6 +82,18 @@ class GroupMembership(BaseModel):
     role: str
     inviteLink: str
     inviteExpiresAt: datetime
+    isArchived: bool
+    historyAfterDays: int
+
+
+class GroupHistorySettingsUpdate(BaseModel):
+    historyAfterDays: int = Field(ge=1, le=365)
+
+
+class GroupHistorySettingsResponse(BaseModel):
+    groupId: UUID
+    historyAfterDays: int
+    isArchived: bool
 
 
 class GroupPublic(BaseModel):
@@ -131,9 +143,11 @@ async def get_groups(
                 "groupId": group.id,
                 "name": group.name,
                 "role": member.role,
-                "inviteLink": f"{base_url}/invite/{group.id}",
+                "inviteLink": f"{base_url}/invite/{invite.token}",
                 "createdAt": group.created_at,
                 "inviteExpiresAt": invite.expires_at,
+                "isArchived": group.is_archived,
+                "historyAfterDays": group.history_after_days,
             }
         )
 
@@ -173,7 +187,7 @@ async def create_group(
 
     invite = await service.ensure_invite_for_group(group=group, ttl_days=settings.invite_token_ttl_days)
 
-    invite_link = f"{_frontend_base_url(request)}/invite/{group.id}"
+    invite_link = f"{_frontend_base_url(request)}/invite/{invite.token}"
 
     return {
         "groupId": group.id,
@@ -185,13 +199,11 @@ async def create_group(
     }
 
 
-@router.get("/groups/{group_id}", response_model=GroupPublic)
-async def get_group(group_id: UUID, service: GroupService = Depends(get_group_service)):
+@router.get("/groups/{invite_token}", response_model=GroupPublic)
+async def get_group(invite_token: str, service: GroupService = Depends(get_group_service)):
     """Fetch a single group by id."""
     try:
-        group, invite = await service.get_invite_preview(
-            token=str(group_id), ttl_days=settings.invite_token_ttl_days
-        )
+        group, invite = await service.get_invite_preview(token=invite_token)
     except InviteExpiredError as exc:
         raise HTTPException(status_code=status.HTTP_410_GONE, detail=str(exc)) from exc
     except InviteNotFoundError as exc:
@@ -230,9 +242,9 @@ async def delete_group(
     return Response(status_code=204)
 
 
-@router.post("/groups/{group_id}/join", response_model=JoinGroupResponse)
+@router.post("/groups/{invite_token}/join", response_model=JoinGroupResponse)
 async def join_group(
-    group_id: UUID,
+    invite_token: str,
     request: Request,
     actor_id: str | None = Header(default=None, alias="X-Actor-Id"),
     display_name_header: str | None = Header(default=None, alias="X-Display-Name"),
@@ -250,18 +262,17 @@ async def join_group(
 
     try:
         group, member, created, invite = await service.join_group(
-            group_id=group_id,
+            invite_token=invite_token,
             actor_id=resolved_actor,
             user_id=user_uuid,
             display_name=display_name,
-            invite_ttl_days=settings.invite_token_ttl_days,
         )
     except InviteExpiredError as exc:
         raise HTTPException(status_code=status.HTTP_410_GONE, detail=str(exc)) from exc
     except InviteNotFoundError as exc:
         raise HTTPException(status_code=404, detail=str(exc)) from exc
 
-    invite_link = f"{_frontend_base_url(request)}/invite/{group.id}"
+    invite_link = f"{_frontend_base_url(request)}/invite/{invite.token}"
 
     # Keep cached summary totals aligned with current membership count.
     AvailabilityService._schedule_group_summary_rebuild(group.id)
@@ -298,3 +309,42 @@ async def leave_group(
     AvailabilityService._schedule_group_summary_rebuild(group_id)
 
     return Response(status_code=204)
+
+
+@router.patch("/groups/{group_id}/history-settings", response_model=GroupHistorySettingsResponse)
+async def update_group_history_settings(
+    group_id: UUID,
+    payload: GroupHistorySettingsUpdate,
+    actor_id: str | None = Header(default=None, alias="X-Actor-Id"),
+    identity: Identity = Depends(get_identity),
+    service: GroupService = Depends(get_group_service),
+):
+    """Update per-group inactivity threshold for history grouping."""
+
+    user_uuid = _parse_uuid(identity.user_id)
+    resolved_actor = (actor_id or identity.user_id or "").strip() or None
+    if not resolved_actor and not user_uuid:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="actorId header required")
+
+    member = await service.get_member_for_identity(
+        group_id=group_id,
+        actor_id=resolved_actor,
+        user_id=user_uuid,
+    )
+    if not member:
+        raise HTTPException(status_code=404, detail="Mitgliedschaft nicht gefunden")
+    if member.role != "owner":
+        raise HTTPException(status_code=403, detail="Nur Gruppenbesitzer dürfen Historie-Einstellungen ändern")
+
+    group = await service.update_group_history_after_days(
+        group_id=group_id,
+        history_after_days=payload.historyAfterDays,
+    )
+    if not group:
+        raise HTTPException(status_code=404, detail="Gruppe nicht gefunden")
+
+    return GroupHistorySettingsResponse(
+        groupId=group.id,
+        historyAfterDays=group.history_after_days,
+        isArchived=group.is_archived,
+    )

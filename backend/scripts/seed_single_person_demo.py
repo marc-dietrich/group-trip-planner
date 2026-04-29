@@ -86,18 +86,22 @@ def _add_availability(*, api_base: str, actor_id: str, group_id: str, start_iso:
     )
 
 
-def _verify_invite_preview(*, api_base: str, group_id: str, actor_id: str, origin: str) -> dict[str, Any]:
+def _verify_invite_preview(*, api_base: str, invite_token: str, actor_id: str, origin: str) -> dict[str, Any]:
     return _request_json(
         method="GET",
-        url=f"{api_base}/api/groups/{group_id}",
+        url=f"{api_base}/api/groups/{invite_token}",
         headers={"X-Actor-Id": actor_id, "Origin": origin},
     )
 
 
-def _join_group(*, api_base: str, actor_id: str, group_id: str, origin: str) -> dict[str, Any]:
+def _invite_token_from_link(invite_link: str) -> str:
+    return invite_link.rstrip("/").split("/")[-1]
+
+
+def _join_group(*, api_base: str, actor_id: str, invite_token: str, origin: str) -> dict[str, Any]:
     return _request_json(
         method="POST",
-        url=f"{api_base}/api/groups/{group_id}/join",
+        url=f"{api_base}/api/groups/{invite_token}/join",
         headers={"X-Actor-Id": actor_id, "Origin": origin},
     )
 
@@ -183,6 +187,7 @@ def main() -> int:
         group_name=args.group_name,
         origin=frontend_base,
     )
+    invite_token = _invite_token_from_link(group.invite_link)
 
     member_actor_ids = [args.actor_id]
     for index in range(2, total_members + 1):
@@ -190,7 +195,7 @@ def main() -> int:
         _join_group(
             api_base=api_base,
             actor_id=member_actor,
-            group_id=group.group_id,
+            invite_token=invite_token,
             origin=frontend_base,
         )
         member_actor_ids.append(member_actor)
@@ -218,7 +223,7 @@ def main() -> int:
 
     preview = _verify_invite_preview(
         api_base=api_base,
-        group_id=group.group_id,
+        invite_token=invite_token,
         actor_id=args.actor_id,
         origin=frontend_base,
     )
