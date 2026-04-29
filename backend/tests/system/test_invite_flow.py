@@ -19,9 +19,10 @@ async def test_invite_full_flow(client, token_factory):
     assert create_res.status_code == 200
     group = create_res.json()
     group_id = group["groupId"]
+    invite_token = group["inviteLink"].rstrip("/").split("/")[-1]
 
     # Public invite preview fetch
-    preview_res = await client.get(f"/api/groups/{group_id}")
+    preview_res = await client.get(f"/api/groups/{invite_token}")
     assert preview_res.status_code == 200
     preview = preview_res.json()
     assert preview["groupId"] == group_id
@@ -30,7 +31,7 @@ async def test_invite_full_flow(client, token_factory):
     # Guest accepts invite
     guest_id = str(uuid4())
     guest_headers = {"Authorization": f"Bearer {token_factory(guest_id)}"}
-    join_res = await client.post(f"/api/groups/{group_id}/join", headers=guest_headers)
+    join_res = await client.post(f"/api/groups/{invite_token}/join", headers=guest_headers)
     assert join_res.status_code == 200
     join_body = join_res.json()
     assert join_body["groupId"] == group_id
@@ -44,6 +45,6 @@ async def test_invite_full_flow(client, token_factory):
     assert any(g["groupId"] == group_id for g in groups)
 
     # Joining again is idempotent
-    repeat = await client.post(f"/api/groups/{group_id}/join", headers=guest_headers)
+    repeat = await client.post(f"/api/groups/{invite_token}/join", headers=guest_headers)
     assert repeat.status_code == 200
     assert repeat.json()["alreadyMember"] is True

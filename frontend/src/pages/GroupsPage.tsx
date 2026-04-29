@@ -24,9 +24,6 @@ const monthLabels = [
   "Dez",
 ];
 
-const HISTORY_DAYS = 7;
-const FALLBACK_TEST_HOURS = 1;
-
 type GroupCardProps = {
   group: GroupMembership;
   identity: Identity;
@@ -256,31 +253,13 @@ export function GroupsPage({
   const isFiltered = filterQuery.trim().length > 0;
 
   const { activeGroups, historyGroups, historyLabel } = useMemo(() => {
-    const now = Date.now();
-    const hasCreatedAt = filteredGroups.some((g) => Boolean(g.createdAt));
-    const thresholdMs = hasCreatedAt
-      ? HISTORY_DAYS * 24 * 60 * 60 * 1000
-      : FALLBACK_TEST_HOURS * 60 * 60 * 1000;
-    const label = hasCreatedAt
-      ? "Älter als 1 Woche"
-      : "Älter als 1 Stunde (Test)";
-
-    const active: GroupMembership[] = [];
-    const history: GroupMembership[] = [];
-
-    filteredGroups.forEach((group) => {
-      const createdMs = group.createdAt ? Date.parse(group.createdAt) : NaN;
-      if (Number.isFinite(createdMs) && now - createdMs > thresholdMs) {
-        history.push(group);
-      } else {
-        active.push(group);
-      }
-    });
+    const active = filteredGroups.filter((group) => !group.isArchived);
+    const history = filteredGroups.filter((group) => Boolean(group.isArchived));
 
     return {
       activeGroups: active,
       historyGroups: history,
-      historyLabel: label,
+      historyLabel: "Nur Historie",
     };
   }, [filteredGroups]);
 

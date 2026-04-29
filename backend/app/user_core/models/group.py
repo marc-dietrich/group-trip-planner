@@ -16,4 +16,5 @@ class Group(SQLModel, table=True):
     created_at: datetime = Field(default_factory=datetime.utcnow, description="Erstellungsdatum")
     last_interaction_at: datetime = Field(default_factory=datetime.utcnow, description="Zeitpunkt der letzten Interaktion")
     is_archived: bool = Field(default=False, description="Archivierungsstatus der Gruppe")
+    history_after_days: int = Field(default=30, description="Tage bis eine inaktive Gruppe in die Historie wandert")
     created_by_actor: str = Field(max_length=255, description="Opaque actor id of creator")

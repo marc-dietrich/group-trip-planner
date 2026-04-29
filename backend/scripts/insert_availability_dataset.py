@@ -54,12 +54,16 @@ def _create_group(*, api_base: str, actor_id: str, display_name: str, group_name
     )
 
 
-def _join_group(*, api_base: str, actor_id: str, group_id: str, origin: str) -> None:
+def _join_group(*, api_base: str, actor_id: str, invite_token: str, origin: str) -> None:
     _request_json(
         method="POST",
-        url=f"{api_base}/api/groups/{group_id}/join",
+        url=f"{api_base}/api/groups/{invite_token}/join",
         headers={"X-Actor-Id": actor_id, "Origin": origin},
     )
+
+
+def _invite_token_from_link(invite_link: str) -> str:
+    return invite_link.rstrip("/").split("/")[-1]
 
 
 def _add_availability(*, api_base: str, actor_id: str, group_id: str, start_date: str, end_date: str, origin: str) -> None:
@@ -71,10 +75,10 @@ def _add_availability(*, api_base: str, actor_id: str, group_id: str, start_date
     )
 
 
-def _preview_group(*, api_base: str, actor_id: str, group_id: str, origin: str) -> dict[str, Any]:
+def _preview_group(*, api_base: str, actor_id: str, invite_token: str, origin: str) -> dict[str, Any]:
     return _request_json(
         method="GET",
-        url=f"{api_base}/api/groups/{group_id}",
+        url=f"{api_base}/api/groups/{invite_token}",
         headers={"X-Actor-Id": actor_id, "Origin": origin},
     )
 
@@ -121,6 +125,7 @@ def main() -> int:
     )
     group_id = created["groupId"]
     invite_link = created["inviteLink"]
+    invite_token = _invite_token_from_link(invite_link)
 
     joined = 1
     total_ranges = 0
@@ -132,7 +137,7 @@ def main() -> int:
             _join_group(
                 api_base=api_base,
                 actor_id=actor_id,
-                group_id=group_id,
+                invite_token=invite_token,
                 origin=frontend_base,
             )
             joined += 1
@@ -151,7 +156,7 @@ def main() -> int:
     preview = _preview_group(
         api_base=api_base,
         actor_id=owner_actor_id,
-        group_id=group_id,
+        invite_token=invite_token,
         origin=frontend_base,
     )
 

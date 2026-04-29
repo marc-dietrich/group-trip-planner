@@ -41,6 +41,9 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
   const [selfListOpen, setSelfListOpen] = useState(false);
   const [groupListOpen, setGroupListOpen] = useState(false);
   const [actionMenuOpen, setActionMenuOpen] = useState(false);
+  const [historySettingsOpen, setHistorySettingsOpen] = useState(false);
+  const [historyAfterDaysDraft, setHistoryAfterDaysDraft] = useState("30");
+  const [historySettingsSaving, setHistorySettingsSaving] = useState(false);
   const [groupImageDialogOpen, setGroupImageDialogOpen] = useState(false);
   const [groupImageUploading, setGroupImageUploading] = useState(false);
   const [groupImageVersion, setGroupImageVersion] = useState<number>(
@@ -56,6 +59,7 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
   const titleRef = useRef<HTMLHeadingElement | null>(null);
   const groupImageInputRef = useRef<HTMLInputElement | null>(null);
   const removeGroup = useGroupStore((state) => state.removeGroup);
+  const upsertGroup = useGroupStore((state) => state.upsertGroup);
 
   const { data: summary, refetch: refetchSummary } = useGroupAvailability(
     groupId ?? null,
@@ -168,6 +172,11 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
     return `${window.location.origin}${normalizedBase}/invite/${currentGroup.groupId}`;
   }, [currentGroup]);
   const isOwner = currentGroup?.role === "owner";
+  const currentHistoryAfterDays = currentGroup?.historyAfterDays ?? 30;
+  const parsedHistoryAfterDaysDraft = Number.parseInt(
+    historyAfterDaysDraft,
+    10,
+  );
   const canLeaveGroup = Boolean(currentGroup);
   const currentGroupImage = groupId
     ? groupImageUrl(groupId, groupImageVersion)
@@ -285,6 +294,46 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
     }
   };
 
+  const handleSaveHistorySettings = async () => {
+    if (!groupId || !currentGroup) return;
+
+    try {
+      setHistorySettingsSaving(true);
+      const res = await fetch(
+        apiPath(`/api/groups/${groupId}/history-settings`),
+        {
+          method: "PATCH",
+          headers: buildIdentityHeaders(identity, {
+            "Content-Type": "application/json",
+          }),
+          body: JSON.stringify({
+            historyAfterDays: parsedHistoryAfterDaysDraft,
+          }),
+        },
+      );
+      if (!res.ok) throw new Error(`Fehler: ${res.status}`);
+      const data = await res.json();
+
+      upsertGroup({
+        ...currentGroup,
+        historyAfterDays: data.historyAfterDays,
+        isArchived: data.isArchived,
+      });
+
+      toast.success("Historie-Zeitraum gespeichert");
+      setHistorySettingsOpen(false);
+      setActionMenuOpen(false);
+    } catch (error) {
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : "Historie-Zeitraum konnte nicht gespeichert werden",
+      );
+    } finally {
+      setHistorySettingsSaving(false);
+    }
+  };
+
   const openGroupImagePicker = (source: ImagePickSource) => {
     const input = groupImageInputRef.current;
     if (!input) return;
@@ -385,6 +434,10 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
       window.removeEventListener("keydown", handleEscape);
     };
   }, [actionMenuOpen]);
+
+  useEffect(() => {
+    setHistoryAfterDaysDraft(String(currentHistoryAfterDays));
+  }, [currentHistoryAfterDays]);
 
   useEffect(() => {
     const node = memberListRef.current;
@@ -593,6 +646,57 @@ export function GroupDetailPage({ identity, groups }: GroupDetailPageProps) {
                     ? "Gruppenbild wird hochgeladen…"
                     : "Gruppenbild anpassen"}
                 </button>
+                {isOwner ? (
+                  <>
+                    <button
+                      type="button"
+                      className="w-full rounded-xl px-3 py-2 text-left text-sm font-semibold text-sage-900 transition hover:bg-sage-50"
+                      onClick={() =>
+                        setHistorySettingsOpen((isOpen) => !isOpen)
+                      }
+                    >
+                      TTL setzen
+                    </button>
+                    {historySettingsOpen ? (
+                      <div className="mx-2 mb-1 rounded-xl border border-sage-100 px-2 py-2">
+                        <div className="mb-2 text-[11px] font-semibold text-sage-500">
+                          Aktuell: {currentHistoryAfterDays} Tage
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <input
+                            type="text"
+                            inputMode="numeric"
+                            className="h-8 w-20 rounded-lg border border-sage-200 bg-white px-2 text-sm font-medium text-sage-900"
+                            value={historyAfterDaysDraft}
+                            onChange={(event) =>
+                              setHistoryAfterDaysDraft(
+                                event.target.value.replace(/[^0-9]/g, ""),
+                              )
+                            }
+                          />
+                          <button
+                            type="button"
+                            aria-label="Historie-Einstellung speichern"
+                            className="inline-flex h-8 w-8 items-center justify-center rounded-lg border border-sage-200 bg-white text-sage-700 transition hover:bg-sage-50 disabled:opacity-50"
+                            onClick={handleSaveHistorySettings}
+                            disabled={
+                              historySettingsSaving ||
+                              parsedHistoryAfterDaysDraft ===
+                                currentHistoryAfterDays ||
+                              Number.isNaN(parsedHistoryAfterDaysDraft) ||
+                              parsedHistoryAfterDaysDraft < 1 ||
+                              parsedHistoryAfterDaysDraft > 365
+                            }
+                          >
+                            <span className="material-symbols-outlined text-[18px]">
+                              check
+                            </span>
+                          </button>
+                        </div>
+                      </div>
+                    ) : null}
+                  </>
+                ) : null}
                 {isOwner ? (
                   <button
                     type="button"
