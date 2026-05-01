@@ -1,13 +1,13 @@
 {
   email {$CADDY_EMAIL}
   admin 0.0.0.0:2019
+  auto_https disable_redirects
   servers {
     metrics
   }
-  auto_https off
 }
 
-:80 {
+(app_routes) {
   encode zstd gzip
 
   @prometheus path /ops/prometheus /ops/prometheus/*
@@ -64,4 +64,13 @@
   handle {
     reverse_proxy frontend:80
   }
+}
+
+:80 {
+  import app_routes
+}
+
+https://localhost, https://127.0.0.1 {
+  tls internal
+  import app_routes
 }

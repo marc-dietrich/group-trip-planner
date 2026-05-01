@@ -9,6 +9,17 @@ function resolveStripeBase(rawBase: string): string {
     return normalized;
   }
 
+  const isLocalWindowHost = localhostHosts.has(window.location.hostname);
+  const isLocalCaddyOrigin =
+    isLocalWindowHost &&
+    (window.location.port === "" ||
+      window.location.port === "80" ||
+      window.location.port === "443");
+
+  if (isLocalCaddyOrigin) {
+    return "";
+  }
+
   try {
     const candidate = new URL(normalized, window.location.origin);
     const envHostIsLocal = localhostHosts.has(candidate.hostname);
