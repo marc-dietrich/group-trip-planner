@@ -4,6 +4,7 @@ import {
   Navigate,
   Route,
   Routes,
+  useLocation,
   useNavigate,
   useParams,
 } from "react-router-dom";
@@ -47,6 +48,7 @@ import { useGroupStore } from "./state/groupStore";
 import { fetchSupporterStatus } from "./services/supporterService";
 
 const basename = import.meta.env.BASE_URL || "/";
+const INVITE_PATH_REGEX = /(?:^|\/)invite\/([A-Za-z0-9-]+)/;
 
 const stripBasename = (path: string) => {
   if (!basename || basename === "/") return path;
@@ -56,6 +58,17 @@ const stripBasename = (path: string) => {
   return path.startsWith(normalizedBase)
     ? path.slice(normalizedBase.length) || "/"
     : path;
+};
+
+const extractInviteIdFromPath = (path: string): string | null => {
+  const relativePath = stripBasename(path);
+  const directMatch = relativePath.match(/^\/?invite\/([A-Za-z0-9-]+)/);
+  if (directMatch?.[1]) {
+    return directMatch[1];
+  }
+
+  const prefixedMatch = path.match(INVITE_PATH_REGEX);
+  return prefixedMatch?.[1] ?? null;
 };
 
 class AppErrorBoundary extends React.Component<
@@ -121,6 +134,10 @@ function App() {
 }
 
 function AppShell() {
+  const location = useLocation();
+  const initialPathRef = React.useRef(
+    typeof window !== "undefined" ? window.location.pathname : "",
+  );
   const [actor, setActorDisplayName] = useLocalActor(DEFAULT_ACTOR_NAME);
   const [namePromptOpen, setNamePromptOpen] = useState(false);
   const [pendingName, setPendingName] = useState("");
@@ -256,13 +273,27 @@ function AppShell() {
   }, []);
 
   useEffect(() => {
-    const relativePath = stripBasename(window.location.pathname);
-    const match = relativePath.match(/^\/?invite\/([A-Za-z0-9-]+)/);
-    if (match?.[1]) {
-      setInviteGroupId(match[1]);
+    const currentInviteId = extractInviteIdFromPath(location.pathname);
+    if (currentInviteId) {
+      setInviteGroupId((current) =>
+        current === currentInviteId ? current : currentInviteId,
+      );
+      setInviteOpen(true);
+      return;
+    }
+
+    const initialPath = initialPathRef.current;
+    if (!initialPath) return;
+
+    initialPathRef.current = "";
+    const initialInviteId = extractInviteIdFromPath(initialPath);
+    if (initialInviteId) {
+      setInviteGroupId((current) =>
+        current === initialInviteId ? current : initialInviteId,
+      );
       setInviteOpen(true);
     }
-  }, []);
+  }, [location.pathname]);
 
   useEffect(() => {
     if (!inviteGroupId) return;

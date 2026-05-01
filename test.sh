@@ -59,6 +59,8 @@ run_services_tests() {
   export OAUTH_HOST_PORT="${OAUTH_HOST_PORT:-0}"
   export GARAGE_S3_HOST_PORT="${GARAGE_S3_HOST_PORT:-0}"
   export GARAGE_ADMIN_HOST_PORT="${GARAGE_ADMIN_HOST_PORT:-0}"
+  export STRIPE_HOST_PORT="${STRIPE_HOST_PORT:-0}"
+  export CONTACT_HOST_PORT="${CONTACT_HOST_PORT:-0}"
   export STRIPE_SECRET_KEY="${STRIPE_SECRET_KEY:-sk_test_dummy}"
   export STRIPE_WEBHOOK_SECRET="${STRIPE_WEBHOOK_SECRET:-whsec_dummy}"
   export CHECKOUT_SUCCESS_URL="${CHECKOUT_SUCCESS_URL:-http://frontend/supporter/thanks}"
@@ -80,11 +82,17 @@ run_services_tests() {
     -f services/tests/docker-compose.test.yml
   )
 
+  cleanup_services_stack() {
+    docker compose "${compose_files[@]}" down --remove-orphans || true
+  }
+
   local service_exit=0
-  docker compose "${compose_files[@]}" down --remove-orphans || true
+  trap cleanup_services_stack EXIT INT TERM
+  cleanup_services_stack
   docker compose "${compose_files[@]}" up -d --build postgres backend frontend garage oauth-proxy caddy contact-service stripe-service audio-service
   docker compose "${compose_files[@]}" run --rm services-test-runner || service_exit=$?
-  docker compose "${compose_files[@]}" down --remove-orphans || true
+  cleanup_services_stack
+  trap - EXIT INT TERM
 
   if [[ $service_exit -ne 0 ]]; then
     return $service_exit

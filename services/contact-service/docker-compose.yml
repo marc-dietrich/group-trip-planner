@@ -10,5 +10,7 @@ services:
       - CONTACT_SUPPORT_EMAIL=${CONTACT_SUPPORT_EMAIL:-kontakt@group-trip-planner.local}
       - CONTACT_LOG_FILE=${CONTACT_LOG_FILE}
       - CONTACT_LOG_MAX_BYTES=${CONTACT_LOG_MAX_BYTES:-10485760}
+    ports:
+      - "${CONTACT_HOST_PORT:-3002}:3002"
     expose:
       - "3002"
