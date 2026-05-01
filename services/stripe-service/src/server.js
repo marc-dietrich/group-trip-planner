@@ -240,6 +240,16 @@ function renderSupporterThanksPage({ actorName = "Supporter", appUrl = "/" }) {
       .cta:hover {
         background: rgba(255,255,255,0.15);
       }
+      .cta-row {
+        margin-top: 18px;
+        display: flex;
+        gap: 10px;
+        justify-content: center;
+        flex-wrap: wrap;
+      }
+      .cta-row .cta {
+        margin-top: 0;
+      }
     </style>
   </head>
   <body>
@@ -250,7 +260,10 @@ function renderSupporterThanksPage({ actorName = "Supporter", appUrl = "/" }) {
       </div>
       <h1>Danke für deinen Support, ${actorName}!</h1>
       <p>Dein Beitrag hilft uns, Speech/Voice-Features schneller auszurollen.</p>
-      <a class="cta" href="${appUrl}">Zurück zur App</a>
+      <div class="cta-row">
+        <a class="cta" href="${appUrl}">Zurück zur App</a>
+        <a class="cta" href="${appUrl}">Weiter →</a>
+      </div>
     </main>
   </body>
 </html>`;
@@ -312,9 +325,8 @@ app.post("/create-checkout-session", async (req, res, next) => {
       const isPaymentMethodTypeError =
         error?.type === "StripeInvalidRequestError" &&
         error?.param === "payment_method_types";
-      const requestedPaypal = checkoutPayload.payment_method_types.includes(
-        "paypal",
-      );
+      const requestedPaypal =
+        checkoutPayload.payment_method_types.includes("paypal");
 
       if (isPaymentMethodTypeError && requestedPaypal) {
         console.warn(
@@ -335,20 +347,23 @@ app.post("/create-checkout-session", async (req, res, next) => {
   }
 });
 
-app.get("/supporter/thanks", (req, res) => {
-  const actorName =
-    typeof req.query.actor_name === "string" && req.query.actor_name.trim()
-      ? req.query.actor_name.trim().slice(0, 60)
-      : "Supporter";
+app.get(
+  ["/supporter/thanks", "/group-trip-planner/supporter/thanks"],
+  (req, res) => {
+    const actorName =
+      typeof req.query.actor_name === "string" && req.query.actor_name.trim()
+        ? req.query.actor_name.trim().slice(0, 60)
+        : "Supporter";
 
-  const appUrl = appBaseUrl && appBaseUrl !== "*" ? appBaseUrl : "/";
-  return res
-    .status(200)
-    .setHeader("Content-Type", "text/html; charset=utf-8")
-    .send(renderSupporterThanksPage({ actorName, appUrl }));
-});
+    const appUrl = appBaseUrl && appBaseUrl !== "*" ? appBaseUrl : "/";
+    return res
+      .status(200)
+      .setHeader("Content-Type", "text/html; charset=utf-8")
+      .send(renderSupporterThanksPage({ actorName, appUrl }));
+  },
+);
 
-app.get("/success", (req, res) => {
+app.get(["/success", "/group-trip-planner/success"], (req, res) => {
   const params = new URLSearchParams();
   for (const [key, value] of Object.entries(req.query)) {
     if (typeof value === "string") params.set(key, value);

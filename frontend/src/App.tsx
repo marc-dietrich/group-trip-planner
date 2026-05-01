@@ -558,11 +558,28 @@ function AppShell() {
       />
       <Route path="/supporter/thanks" element={<SupporterThanksPage />} />
       <Route
+        path="/group-trip-planner/supporter/thanks"
+        element={<SupporterThanksPage />}
+      />
+      <Route
         path="/success"
         element={<Navigate to="/supporter/thanks" replace />}
       />
       <Route
+        path="/group-trip-planner/success"
+        element={<Navigate to="/supporter/thanks" replace />}
+      />
+      <Route
         path="/invite/:inviteId"
+        element={
+          <InviteRoute
+            onInvite={(id) => setInviteGroupId(id)}
+            onShow={() => setInviteOpen(true)}
+          />
+        }
+      />
+      <Route
+        path="/group-trip-planner/invite/:inviteId"
         element={
           <InviteRoute
             onInvite={(id) => setInviteGroupId(id)}

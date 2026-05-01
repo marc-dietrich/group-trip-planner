@@ -31,9 +31,9 @@ export function SupporterThanksPage() {
   const showAvatarImage = Boolean(avatarSrc && !avatarFailed);
 
   return (
-    <main className="min-h-[100svh] bg-cream px-4 pt-10 pb-8 text-slate-900">
-      <section className="mx-auto flex min-h-[100svh] w-full max-w-[520px] flex-col items-center">
-        <div className="relative mt-10 h-[140px] w-[140px] rounded-full border border-sage-100 bg-sage-50 shadow-soft">
+    <main className="h-full min-h-0 overflow-hidden bg-cream px-4 py-3 text-slate-900">
+      <section className="mx-auto flex h-full w-full max-w-[520px] flex-col items-center justify-start pt-4">
+        <div className="relative h-[132px] w-[132px] rounded-full border border-sage-100 bg-sage-50 shadow-soft">
           <img
             src={showAvatarImage ? avatarSrc! : genericSurface}
             alt="Profilbild"
@@ -78,13 +78,13 @@ export function SupporterThanksPage() {
           </span>
         </div>
 
-        <h1 className="mt-12 text-center text-[36px] font-semibold leading-[1.05] tracking-tight text-slate-900">
+        <h1 className="mt-6 text-center text-[34px] font-semibold leading-[1.05] tracking-tight text-slate-900">
           Vielen Dank für deine
           <br />
           Unterstützung!
         </h1>
 
-        <div className="mt-4 flex justify-center">
+        <div className="mt-3 flex justify-center">
           <span className="inline-flex items-center gap-2 rounded-full bg-sage-100 px-3 py-1 text-sm font-semibold text-sage-600">
             <span className="material-symbols-outlined text-[16px]">
               verified
@@ -93,12 +93,14 @@ export function SupporterThanksPage() {
           </span>
         </div>
 
-        <Link
-          to="/groups"
-          className="mt-auto inline-flex h-12 w-full items-center justify-center rounded-xl bg-sage-600 px-5 text-base font-semibold text-white transition hover:bg-sage-500"
-        >
-          Zurück zum Dashboard
-        </Link>
+        <div className="supporter-cta mt-24 flex w-full justify-center">
+          <Link
+            to="/groups"
+            className="inline-flex h-12 min-w-[220px] items-center justify-center rounded-xl bg-sage-600 px-6 text-base font-semibold text-white transition hover:bg-sage-500"
+          >
+            Weiter
+          </Link>
+        </div>
       </section>
 
       <style>{`
@@ -170,6 +172,23 @@ export function SupporterThanksPage() {
         .supporter-confetti.confetti-4 { animation-name: supporter-confetti-burst-4; }
         .supporter-confetti.confetti-5 { animation-name: supporter-confetti-burst-5; }
         .supporter-confetti.confetti-6 { animation-name: supporter-confetti-burst-6; }
+
+        @keyframes supporter-cta-appear {
+          0% { opacity: 0; transform: translateY(10px); }
+          100% { opacity: 1; transform: translateY(0); }
+        }
+
+        .supporter-cta {
+          opacity: 0;
+          animation: supporter-cta-appear 1000ms ease-out 1000ms forwards;
+        }
+
+        @media (prefers-reduced-motion: reduce) {
+          .supporter-cta {
+            opacity: 1;
+            animation: none;
+          }
+        }
       `}</style>
     </main>
   );

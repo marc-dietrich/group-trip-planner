@@ -56,7 +56,7 @@
     reverse_proxy stripe-service:3001
   }
 
-  @stripe_success path /success /supporter/thanks
+  @stripe_success path /success /supporter/thanks /group-trip-planner/success /group-trip-planner/supporter/thanks
   handle @stripe_success {
     reverse_proxy stripe-service:3001
   }

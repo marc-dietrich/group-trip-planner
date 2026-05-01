@@ -1,9 +1,37 @@
+const localhostHosts = new Set(["localhost", "127.0.0.1"]);
+
+function resolveContactBase(rawBase: string): string {
+  const trimmed = rawBase.trim();
+  if (!trimmed) return "";
+  const normalized = trimmed.endsWith("/") ? trimmed.slice(0, -1) : trimmed;
+
+  if (typeof window === "undefined") {
+    return normalized;
+  }
+
+  try {
+    const candidate = new URL(normalized, window.location.origin);
+    const envHostIsLocal = localhostHosts.has(candidate.hostname);
+    const windowHostIsLocal = localhostHosts.has(window.location.hostname);
+    const localHostMismatch =
+      envHostIsLocal &&
+      windowHostIsLocal &&
+      candidate.hostname !== window.location.hostname;
+
+    if ((envHostIsLocal && !windowHostIsLocal) || localHostMismatch) {
+      return "";
+    }
+  } catch {
+    return "";
+  }
+
+  return normalized;
+}
+
 const rawContactServiceBase = (
   import.meta.env.VITE_CONTACT_SERVICE_BASE_URL ?? ""
 ).trim();
-const contactServiceBase = rawContactServiceBase.endsWith("/")
-  ? rawContactServiceBase.slice(0, -1)
-  : rawContactServiceBase;
+const contactServiceBase = resolveContactBase(rawContactServiceBase);
 
 function contactPath(path: string): string {
   const normalized = path.startsWith("/") ? path : `/${path}`;

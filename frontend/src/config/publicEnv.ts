@@ -26,7 +26,11 @@ function shouldFallbackToWindowOrigin(base: string): boolean {
     const candidate = new URL(base, window.location.origin);
     const envHostIsLocal = localhostHosts.has(candidate.hostname);
     const windowHostIsLocal = localhostHosts.has(window.location.hostname);
-    return envHostIsLocal && !windowHostIsLocal;
+    const localHostMismatch =
+      envHostIsLocal &&
+      windowHostIsLocal &&
+      candidate.hostname !== window.location.hostname;
+    return (envHostIsLocal && !windowHostIsLocal) || localHostMismatch;
   } catch {
     return true;
   }
