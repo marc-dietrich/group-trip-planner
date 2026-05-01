@@ -9,7 +9,8 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
     "preview": "vite preview",
     "test": "vitest",
-    "test:e2e": "playwright test"
+    "test:e2e": "playwright test",
+    "test:e2e:stripe": "STRIPE_E2E=true E2E_BASE_URL=http://localhost/group-trip-planner/ playwright test tests/e2e/stripe-donation-flow.spec.ts"
   },
   "dependencies": {
     "react": "^18.2.0",

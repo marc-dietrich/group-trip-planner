@@ -1,21 +1,17 @@
 name: CI
 
 on:
-  push:
+  pull_request:
     branches:
       - main
-  pull_request:
 
 jobs:
-  frontend-check:
-    name: Frontend (typecheck & build)
+  frontend-tests:
+    name: Frontend tests
     runs-on: ubuntu-latest
     env:
       VITE_API_BASE_URL: http://localhost:8000
       VITE_OAUTH_BASE_URL: http://localhost:4180
-    defaults:
-      run:
-        working-directory: frontend
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -28,26 +24,14 @@ jobs:
           cache-dependency-path: frontend/package-lock.json
 
       - name: Install dependencies
-        run: npm ci
+        run: npm --prefix frontend ci
 
       - name: Run frontend tests
-        run: npm run test -- --run
+        run: ./test.sh frontend
 
-      - name: Install Playwright browsers
-        run: npx playwright install --with-deps
-
-      - name: Run Playwright tests
-        run: npm run test:e2e -- --reporter=line
-
-      - name: Type check and build
-        run: npm run build
-
-  backend-check:
-    name: Backend (pytest)
+  backend-tests:
+    name: Backend tests
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        working-directory: backend
     steps:
       - name: Checkout
         uses: actions/checkout@v4
@@ -64,13 +48,18 @@ jobs:
       - name: Install dependencies
         run: |
           python -m pip install --upgrade pip
-          pip install -r requirements.txt -r requirements-dev.txt
+          pip install -r backend/requirements.txt -r backend/requirements-dev.txt
 
       - name: Run tests
-        run: pytest -m "not db_smoke"
+        run: ./test.sh backend
 
-      - name: Optional DB smoke test
-        if: env.DATABASE_URL != ''
-        env:
-          DATABASE_URL: ${{ env.DATABASE_URL }}
-        run: pytest -m db_smoke
+  services-tests:
+    name: Services tests
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Run services tests
+        run: ./test.sh services

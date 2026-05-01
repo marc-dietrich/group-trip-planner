@@ -1,0 +1,22 @@
+services:
+  stripe-service:
+    build:
+      context: ./services/stripe-service
+    container_name: gtp-stripe-service
+    restart: unless-stopped
+    environment:
+      - PORT=3001
+      - ALLOWED_ORIGIN=${STRIPE_ALLOWED_ORIGIN:-http://localhost:3000}
+      - STRIPE_SECRET_KEY=${STRIPE_SECRET_KEY}
+      - STRIPE_WEBHOOK_SECRET=${STRIPE_WEBHOOK_SECRET}
+      - STRIPE_PAYMENT_METHOD_TYPES=${STRIPE_PAYMENT_METHOD_TYPES:-card}
+      - STRIPE_CHECKOUT_PRODUCT_TEXT=${STRIPE_CHECKOUT_PRODUCT_TEXT}
+      - CHECKOUT_SUCCESS_URL=${CHECKOUT_SUCCESS_URL}
+      - CHECKOUT_CANCEL_URL=${CHECKOUT_CANCEL_URL}
+      - APP_BASE_URL=${APP_BASE_URL:-}
+      - SUPPORTER_API_BASE_URL=${SUPPORTER_API_BASE_URL:-http://backend:8000}
+      - SUPPORTER_WEBHOOK_SECRET=${SUPPORTER_WEBHOOK_SECRET:-}
+    ports:
+      - "${STRIPE_HOST_PORT:-3001}:3001"
+    expose:
+      - "3001"

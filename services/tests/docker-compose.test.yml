@@ -1,0 +1,23 @@
+services:
+  services-test-runner:
+    image: python:3.11-slim
+    working_dir: /workspace
+    volumes:
+      - ./:/workspace
+    command: >
+      sh -lc "pip install --no-cache-dir pytest && pytest services/tests -q"
+    environment:
+      - CADDY_BASE_URL=http://caddy
+      - BACKEND_BASE_URL=http://backend:8000
+      - CONTACT_BASE_URL=http://contact-service:3002
+      - STRIPE_BASE_URL=http://stripe-service:3001
+      - AUDIO_BASE_URL=http://audio-service:8000
+    depends_on:
+      - backend
+      - frontend
+      - garage
+      - oauth-proxy
+      - caddy
+      - contact-service
+      - stripe-service
+      - audio-service

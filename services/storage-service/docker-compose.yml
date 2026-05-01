@@ -1,0 +1,38 @@
+services:
+  garage:
+    image: dxflrs/garage:v1.2.0
+    container_name: gtp-garage
+    restart: unless-stopped
+    environment:
+      - GARAGE_CONFIG_FILE=/etc/garage.toml
+      - GARAGE_RPC_SECRET=${GARAGE_RPC_SECRET:-8f1f3df6b3d8a03bc6d4e4295f2f7fd4d709f8e9319a43a2e1b7f6dd4c5b9e0a}
+      - GARAGE_ADMIN_TOKEN=${GARAGE_ADMIN_TOKEN:-2bb8a4e61b9d44e3a8e9f7d5c1a603af2d7e4b6c9f1083a5d4e7b1c2f6a9d8e0}
+      - GARAGE_S3_REGION=${GARAGE_S3_REGION:-garage}
+      - GARAGE_S3_ROOT_DOMAIN=${GARAGE_S3_ROOT_DOMAIN:-.s3.localhost}
+    ports:
+      - "${GARAGE_S3_HOST_PORT:-3900}:3900" # S3 API
+      - "${GARAGE_ADMIN_HOST_PORT:-3901}:3901" # Admin API
+    volumes:
+      - ${GARAGE_TOML_PATH:-./services/storage-service/garage-config.toml}:/etc/garage.toml:ro
+      - garage_meta:/var/lib/garage/meta
+      - garage_data:/var/lib/garage/data
+
+  s3-manager:
+    image: peakcom/s3manager:latest
+    container_name: gtp-s3-manager
+    restart: unless-stopped
+    profiles: ["ui"]
+    environment:
+      - ENDPOINT=http://garage:3900
+      - ACCESS_KEY_ID=${GARAGE_ACCESS_KEY_ID:-garage-access-key}
+      - SECRET_ACCESS_KEY=${GARAGE_SECRET_ACCESS_KEY:-garage-secret-key}
+      - USE_SSL=false
+      - PORT=8080
+    ports:
+      - "8088:8080"
+    depends_on:
+      - garage
+
+volumes:
+  garage_meta:
+  garage_data:

@@ -5,7 +5,7 @@ This project can store profile/group images in self-hosted Garage object storage
 ## 1) Start Garage
 
 ```bash
-cd storage
+cd services/storage-service
 docker compose up -d
 # Optional UI (if desired)
 docker compose --profile ui up -d
@@ -22,7 +22,7 @@ Garage endpoints:
 Use Garage CLI inside the container:
 
 ```bash
-cd storage
+cd services/storage-service
 
 # Generate one keypair
 docker compose exec garage garage key new --name app-key

@@ -1,7 +1,46 @@
+const localhostHosts = new Set(["localhost", "127.0.0.1"]);
+
+function resolveStripeBase(rawBase: string): string {
+  const trimmed = rawBase.trim();
+  if (!trimmed) return "";
+  const normalized = trimmed.endsWith("/") ? trimmed.slice(0, -1) : trimmed;
+
+  if (typeof window === "undefined") {
+    return normalized;
+  }
+
+  const isLocalWindowHost = localhostHosts.has(window.location.hostname);
+  const isLocalCaddyOrigin =
+    isLocalWindowHost &&
+    (window.location.port === "" ||
+      window.location.port === "80" ||
+      window.location.port === "443");
+
+  if (isLocalCaddyOrigin) {
+    return "";
+  }
+
+  try {
+    const candidate = new URL(normalized, window.location.origin);
+    const envHostIsLocal = localhostHosts.has(candidate.hostname);
+    const windowHostIsLocal = localhostHosts.has(window.location.hostname);
+    const localHostMismatch =
+      envHostIsLocal &&
+      windowHostIsLocal &&
+      candidate.hostname !== window.location.hostname;
+
+    if ((envHostIsLocal && !windowHostIsLocal) || localHostMismatch) {
+      return "";
+    }
+  } catch {
+    return "";
+  }
+
+  return normalized;
+}
+
 const rawStripeBase = (import.meta.env.VITE_STRIPE_BASE_URL ?? "").trim();
-const stripeBase = rawStripeBase.endsWith("/")
-  ? rawStripeBase.slice(0, -1)
-  : rawStripeBase;
+const stripeBase = resolveStripeBase(rawStripeBase);
 
 function stripePath(path: string): string {
   const normalized = path.startsWith("/") ? path : `/${path}`;
