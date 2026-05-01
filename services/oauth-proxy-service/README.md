@@ -4,7 +4,7 @@ Lightweight reverse proxy that handles Google OAuth and forwards authenticated r
 
 ## Quick start
 
-1. `cd oauth-proxy`
+1. `cd services/oauth-proxy-service`
 2. Configure Doppler once in repo root: `doppler setup --project group-trip-planner --config dev`
 3. Ensure `OAUTH_CLIENT_ID`, `OAUTH_CLIENT_SECRET`, and `OAUTH_COOKIE_SECRET` exist in Doppler.
 4. Start: `doppler run -- docker compose up -d`

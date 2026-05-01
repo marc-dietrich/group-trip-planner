@@ -10,7 +10,9 @@ RUN apt-get update \
 WORKDIR /app
 
 COPY requirements.txt ./
-RUN pip install --upgrade pip && pip install -r requirements.txt
+RUN pip install --upgrade "pip<25" "setuptools<81" wheel \
+    && pip install --no-build-isolation openai-whisper==20231117 \
+    && pip install -r requirements.txt
 
 COPY app.py ./
 

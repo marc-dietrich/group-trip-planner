@@ -29,3 +29,5 @@ database/backups/
 .idea/
 *.swp
 *.swo
+
+.github

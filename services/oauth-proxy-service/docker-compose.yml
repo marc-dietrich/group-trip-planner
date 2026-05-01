@@ -1,10 +1,10 @@
 services:
-  oauth2-proxy:
+  oauth-proxy:
     image: quay.io/oauth2-proxy/oauth2-proxy:v7.6.0
     container_name: gtp-oauth2-proxy
     restart: unless-stopped
     ports:
-      - "4180:4180"
+      - "${OAUTH_HOST_PORT:-4180}:4180"
     command:
       - "--http-address=0.0.0.0:4180"
       - "--provider=google"

@@ -36,17 +36,11 @@ import { ActorNameModal } from "./components/ActorNameModal";
 import { GroupCreateModal } from "./components/GroupCreateModal";
 import { InviteModal } from "./components/InviteModal";
 import { SideMenu } from "./components/SideMenu";
-import { IdentityCard } from "./components/IdentityCard";
 import { GroupsPage } from "./pages/GroupsPage";
 import { GroupDetailPage } from "./pages/GroupDetailPage";
 import { ProfilePage } from "./pages/ProfilePage";
 import { MorePage } from "./pages/MorePage";
 import { SupporterThanksPage } from "./pages/SupporterThanksPage";
-import { DialogSandbox } from "./pages/DialogSandbox";
-import { DesktopGroupsPage } from "./pages/desktop/DesktopGroupsPage";
-import { DesktopGroupDetailPage } from "./pages/desktop/DesktopGroupDetailPage";
-import { LayoutProvider, useLayoutMode } from "./layout/layoutMode";
-import { DesktopShell } from "./layout/DesktopShell";
 import { MobileShell } from "./layout/MobileShell";
 import { useGroups } from "./hooks/useGroups";
 import { useGroupStore } from "./state/groupStore";
@@ -119,24 +113,14 @@ class AppErrorBoundary extends React.Component<
 function App() {
   return (
     <BrowserRouter basename={basename}>
-      <LayoutProvider>
-        <AppErrorBoundary>
-          <AppShell />
-        </AppErrorBoundary>
-      </LayoutProvider>
+      <AppErrorBoundary>
+        <AppShell />
+      </AppErrorBoundary>
     </BrowserRouter>
   );
 }
 
 function AppShell() {
-  const isDialogSandbox =
-    typeof window !== "undefined" &&
-    window.location.pathname.includes("__dialog-sandbox");
-
-  if (isDialogSandbox) {
-    return <DialogSandbox />;
-  }
-
   const [actor, setActorDisplayName] = useLocalActor(DEFAULT_ACTOR_NAME);
   const [namePromptOpen, setNamePromptOpen] = useState(false);
   const [pendingName, setPendingName] = useState("");
@@ -188,7 +172,6 @@ function AppShell() {
 
   const {
     groups,
-    groupsLoading,
     groupsError,
     groupsStatus,
     refetch: refetchGroups,
@@ -500,32 +483,7 @@ function AppShell() {
     }
   };
 
-  const layoutMode = useLayoutMode();
-  // Temporarily force mobile UI everywhere while desktop is disabled
-  const isDesktop = false && layoutMode === "desktop";
-
-  useEffect(() => {
-    if (isDesktop && menuOpen) {
-      setMenuOpen(false);
-    }
-  }, [isDesktop, menuOpen]);
-
   const combinedGroupsError = groupsError || groupsActionError;
-
-  const rightRail = isDesktop ? (
-    <IdentityCard
-      identity={identity}
-      localDisplayName={pendingName || actor.displayName}
-      onDisplayNameChange={(value) => {
-        setPendingName(value);
-        setActorDisplayName(value);
-      }}
-      onLogout={handleLogout}
-      onAuthClick={handleStartOAuthLogin}
-      authLoading={authLoading}
-      authEnabled={oauthReady}
-    />
-  ) : null;
 
   const routes = (
     <Routes>
@@ -533,43 +491,22 @@ function AppShell() {
       <Route
         path="/groups"
         element={
-          isDesktop ? (
-            <DesktopGroupsPage
-              groups={groups}
-              groupsStatus={groupsStatus}
-              groupsError={combinedGroupsError}
-              identity={identity}
-              health={health}
-              onCreate={() => setCreateOpen(true)}
-            />
-          ) : (
-            <GroupsPage
-              groups={groups}
-              groupsStatus={groupsStatus}
-              groupsError={combinedGroupsError}
-              deletingId={deletingId}
-              identity={identity}
-              onCreate={() => setCreateOpen(true)}
-              onDelete={handleDeleteGroup}
-              onCopyInvite={handleCopyInvite}
-              onOpenMenu={() => setMenuOpen(true)}
-            />
-          )
+          <GroupsPage
+            groups={groups}
+            groupsStatus={groupsStatus}
+            groupsError={combinedGroupsError}
+            deletingId={deletingId}
+            identity={identity}
+            onCreate={() => setCreateOpen(true)}
+            onDelete={handleDeleteGroup}
+            onCopyInvite={handleCopyInvite}
+            onOpenMenu={() => setMenuOpen(true)}
+          />
         }
       />
       <Route
         path="/groups/:groupId"
-        element={
-          isDesktop ? (
-            <DesktopGroupDetailPage
-              identity={identity}
-              groups={groups}
-              health={health}
-            />
-          ) : (
-            <GroupDetailPage identity={identity} groups={groups} />
-          )
-        }
+        element={<GroupDetailPage identity={identity} groups={groups} />}
       />
       <Route
         path="/profile"
@@ -631,37 +568,17 @@ function AppShell() {
         }}
       />
 
-      {!isDesktop && (
-        <SideMenu
-          open={menuOpen}
-          onClose={() => setMenuOpen(false)}
-          identity={identity}
-          hasSupporterCrown={hasSupporterCrown}
-          onLogout={handleLogout}
-          onLogin={handleStartOAuthLogin}
-          authEnabled={oauthReady}
-        />
-      )}
+      <SideMenu
+        open={menuOpen}
+        onClose={() => setMenuOpen(false)}
+        identity={identity}
+        hasSupporterCrown={hasSupporterCrown}
+        onLogout={handleLogout}
+        onLogin={handleStartOAuthLogin}
+        authEnabled={oauthReady}
+      />
 
-      {isDesktop ? (
-        <DesktopShell
-          identity={identity}
-          groups={groups}
-          groupsLoading={groupsLoading}
-          groupsStatus={groupsStatus}
-          groupsError={combinedGroupsError}
-          deletingId={deletingId}
-          onCopyInvite={handleCopyInvite}
-          onDeleteGroup={handleDeleteGroup}
-          onLogout={handleLogout}
-          onCreateGroup={() => setCreateOpen(true)}
-          rightRail={rightRail}
-        >
-          {routes}
-        </DesktopShell>
-      ) : (
-        <MobileShell>{routes}</MobileShell>
-      )}
+      <MobileShell>{routes}</MobileShell>
 
       <GroupCreateModal
         open={createOpen}

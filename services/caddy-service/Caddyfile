@@ -48,17 +48,17 @@
 
   @stripe_checkout path /create-checkout-session
   handle @stripe_checkout {
-    reverse_proxy stripe-service:3000
+    reverse_proxy stripe-service:3001
   }
 
   @stripe_webhook path /webhook
   handle @stripe_webhook {
-    reverse_proxy stripe-service:3000
+    reverse_proxy stripe-service:3001
   }
 
   @stripe_success path /success /supporter/thanks
   handle @stripe_success {
-    reverse_proxy stripe-service:3000
+    reverse_proxy stripe-service:3001
   }
 
   handle {
