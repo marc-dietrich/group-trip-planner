@@ -70,6 +70,9 @@ run_services_tests() {
   export MONITORING_USER="${MONITORING_USER:-monitor}"
   export MONITORING_PASSWORD_HASH="${MONITORING_PASSWORD_HASH:-\$2a\$14\$eImiTXuWVxfM37uY4JANjQ==}"
   export CADDY_EMAIL="${CADDY_EMAIL:-dev@example.com}"
+  export CONTACT_LOG_FILE="${CONTACT_LOG_FILE:-/tmp/contact-requests.log}"
+  export SERVICES_WAIT_TIMEOUT_SECONDS="${SERVICES_WAIT_TIMEOUT_SECONDS:-180}"
+  export BACKEND_WAIT_TIMEOUT_SECONDS="${BACKEND_WAIT_TIMEOUT_SECONDS:-240}"
 
   local compose_files=(
     -f docker-compose.yml
@@ -91,6 +94,11 @@ run_services_tests() {
   cleanup_services_stack
   docker compose "${compose_files[@]}" up -d --build postgres backend frontend garage oauth-proxy caddy contact-service stripe-service audio-service
   docker compose "${compose_files[@]}" run --rm services-test-runner || service_exit=$?
+  if [[ $service_exit -ne 0 ]]; then
+    echo "==> Services tests failed; dumping compose status and recent logs"
+    docker compose "${compose_files[@]}" ps || true
+    docker compose "${compose_files[@]}" logs --no-color --tail=200 backend caddy oauth-proxy contact-service stripe-service audio-service || true
+  fi
   cleanup_services_stack
   trap - EXIT INT TERM
 

@@ -38,6 +38,8 @@ def _wait_tcp(host: str, port: int, timeout_seconds: float = 120.0) -> None:
 @pytest.fixture(scope="session")
 def full_stack() -> dict[str, str]:
     env = os.environ.copy()
+    default_wait_seconds = float(env.get("SERVICES_WAIT_TIMEOUT_SECONDS", "180"))
+    backend_wait_seconds = float(env.get("BACKEND_WAIT_TIMEOUT_SECONDS", "240"))
     caddy_base_url = env.get("CADDY_BASE_URL", "http://caddy")
     backend_base_url = env.get("BACKEND_BASE_URL", "http://backend:8000")
     contact_base_url = env.get("CONTACT_BASE_URL", "http://contact-service:3002")
@@ -48,15 +50,23 @@ def full_stack() -> dict[str, str]:
     garage_s3_port = int(env.get("GARAGE_S3_PORT", "3900"))
     garage_admin_port = int(env.get("GARAGE_ADMIN_PORT", "3901"))
 
-    _wait_http_status("http://frontend/", {200, 301, 302})
-    _wait_http_status(f"{backend_base_url}/api/health", {200})
-    _wait_http_status(f"{contact_base_url}/health", {200})
-    _wait_http_status(f"{stripe_base_url}/health", {200})
-    _wait_http_status(f"{audio_base_url}/health", {200})
-    _wait_http_status(f"{oauth_base_url}/oauth/auth", {200, 202, 302, 401, 403})
-    _wait_http_status(f"{caddy_base_url}/api/health", {200})
-    _wait_tcp(garage_host, garage_s3_port)
-    _wait_tcp(garage_host, garage_admin_port)
+    _wait_http_status("http://frontend/", {200, 301, 302}, timeout_seconds=default_wait_seconds)
+    _wait_http_status(
+        f"{backend_base_url}/api/health",
+        {200},
+        timeout_seconds=backend_wait_seconds,
+    )
+    _wait_http_status(f"{contact_base_url}/health", {200}, timeout_seconds=default_wait_seconds)
+    _wait_http_status(f"{stripe_base_url}/health", {200}, timeout_seconds=default_wait_seconds)
+    _wait_http_status(f"{audio_base_url}/health", {200}, timeout_seconds=default_wait_seconds)
+    _wait_http_status(
+        f"{oauth_base_url}/oauth/auth",
+        {200, 202, 302, 401, 403},
+        timeout_seconds=default_wait_seconds,
+    )
+    _wait_http_status(f"{caddy_base_url}/api/health", {200}, timeout_seconds=default_wait_seconds)
+    _wait_tcp(garage_host, garage_s3_port, timeout_seconds=default_wait_seconds)
+    _wait_tcp(garage_host, garage_admin_port, timeout_seconds=default_wait_seconds)
 
     ctx = {
         "caddy_base_url": caddy_base_url,
