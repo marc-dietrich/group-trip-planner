@@ -55,6 +55,7 @@ function parseStoredToken(token: string): AuthSession | null {
 
     const payload = JSON.parse(decodeBase64Url(parts[1])) as {
       sub?: unknown;
+      exp?: unknown;
       email?: unknown;
       user_metadata?: {
         full_name?: unknown;
@@ -64,6 +65,13 @@ function parseStoredToken(token: string): AuthSession | null {
 
     const userId = typeof payload.sub === "string" ? payload.sub : null;
     if (!userId) return null;
+
+    // Drop expired tokens so the app falls back to guest mode instead of
+    // sending an invalid Bearer token that the backend rejects with 401.
+    const expiresAt = typeof payload.exp === "number" ? payload.exp * 1000 : null;
+    if (expiresAt !== null && expiresAt <= Date.now()) {
+      return null;
+    }
 
     const displayName =
       typeof payload.user_metadata?.full_name === "string"
